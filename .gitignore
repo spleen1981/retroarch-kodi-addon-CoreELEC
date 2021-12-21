@@ -1,0 +1,6 @@
+repo/
+repo
+local.conf
+*.swp
+*~
+*.log

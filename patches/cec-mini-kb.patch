@@ -1,0 +1,30 @@
+diff --git a/packages/tools/cec-mini-kb/package.mk b/packages/tools/cec-mini-kb/package.mk
+new file mode 100644
+index 0000000000..71335fefd0
+--- /dev/null
++++ b/packages/tools/cec-mini-kb/package.mk
+@@ -0,0 +1,24 @@
++# SPDX-License-Identifier: GPL-2.0-or-later OR MIT
++# 2021 Giovanni Cascione
++
++PKG_NAME="cec-mini-kb"
++PKG_VERSION="d214b75"
++PKG_SHA256=""
++PKG_REV=""
++PKG_ARCH="any"
++PKG_LICENSE="MIT"
++PKG_SITE="https://github.com/spleen1981/cec-mini-kb"
++PKG_URL="$PKG_SITE".git
++PKG_DEPENDS_TARGET="toolchain"
++PKG_SECTION="tools"
++PKG_SHORTDESC="Small utility to use a CEC remote controller as a mini keyboard"
++PKG_LONGDESC="Small utility to use a CEC remote controller as a mini keyboard"
++PKG_TOOLCHAIN="auto"
++
++PKG_IS_ADDON="no"
++PKG_AUTORECONF="no"
++
++makeinstall_target() {
++  mkdir -p $INSTALL/usr/bin/
++  cp cec-mini-kb $INSTALL/usr/bin/
++}

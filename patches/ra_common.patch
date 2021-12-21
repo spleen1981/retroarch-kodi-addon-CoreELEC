@@ -1,0 +1,16 @@
+diff --git a/packages/libretro/retroarch/package.mk b/packages/libretro/retroarch/package.mk
+index e4157c4510..283923056d 100644
+--- a/packages/libretro/retroarch/package.mk
++++ b/packages/libretro/retroarch/package.mk
+@@ -161,9 +161,9 @@ pre_make_target() {
+ 
+ make_target() {
+   if [ "$DEVICE" = "Switch" ]; then
+-    make V=1 HAVE_LAKKA=1 HAVE_LAKKA_SWITCH=1 HAVE_ZARCH=0 HAVE_BLUETOOTH=1 HAVE_FREETYPE=1 $HAVE_LAKKA_NIGHTLY
++    make V=1 HAVE_LAKKA_SWITCH=1 HAVE_ZARCH=0 HAVE_BLUETOOTH=1 HAVE_FREETYPE=1
+   else
+-    make V=1 HAVE_LAKKA=1 HAVE_ZARCH=0 HAVE_BLUETOOTH=1 HAVE_FREETYPE=1 $HAVE_LAKKA_NIGHTLY
++    make V=1 HAVE_ZARCH=0 HAVE_BLUETOOTH=1 HAVE_FREETYPE=1 HAVE_FLOATHARD=1
+   fi
+   make -C gfx/video_filters compiler=$CC extra_flags="$CFLAGS"
+   make -C libretro-common/audio/dsp_filters compiler=$CC extra_flags="$CFLAGS"

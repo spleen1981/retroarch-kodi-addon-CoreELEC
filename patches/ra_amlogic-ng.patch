@@ -1,0 +1,27 @@
+diff --git a/packages/libretro/retroarch/package.mk b/packages/libretro/retroarch/package.mk
+index e4157c4510..584fb0e75c 100644
+--- a/packages/libretro/retroarch/package.mk
++++ b/packages/libretro/retroarch/package.mk
+@@ -76,12 +76,10 @@ if [ "$DEVICE" = "OdroidGoAdvance" ]; then
+   RETROARCH_GL="--enable-kms --enable-odroidgo2 --disable-x11 --disable-wayland --enable-opengles --enable-opengles3 --enable-opengles3_2 --disable-mali_fbdev"
+ elif [ "$OPENGL_SUPPORT" = "yes" ]; then
+   RETROARCH_GL="--enable-kms"
+-elif [ "$OPENGLES" = "odroidc1-mali" ] || [ "$OPENGLES" = "opengl-meson" ] || [ "$OPENGLES" = "opengl-meson8" ] || [ "$OPENGLES" = "opengl-meson-t82x" ] || [ "$OPENGLES" = "allwinner-fb-mali" ]; then
++elif [ "$OPENGLES" = "odroidc1-mali" ] || [ "$OPENGLES" = "opengl-meson" ] || [ "$OPENGLES" = "libmali" ] || [ "$OPENGLES" = "opengl-meson8" ] || [ "$OPENGLES" = "opengl-meson-t82x" ] || [ "$OPENGLES" = "allwinner-fb-mali" ]; then
+   RETROARCH_GL="--enable-opengles --disable-kms --disable-x11 --enable-mali_fbdev"
+ elif [ "$OPENGLES" = "gpu-viv-bin-mx6q" ] || [ "$OPENGLES" = "imx-gpu-viv" ]; then
+   RETROARCH_GL="--enable-opengles --disable-kms --disable-x11 --enable-vivante_fbdev"
+-elif [ "$OPENGLES" = "libmali" ]; then
+-  RETROARCH_GL="--enable-opengles --enable-kms --disable-x11 --disable-wayland"
+ elif [ "$OPENGLES" = "bcm2835-driver" ]; then
+   RETROARCH_GL="--enable-opengles --disable-kms --disable-x11 --disable-wayland --enable-videocore --enable-dispmanx --disable-opengl --enable-egl"
+ elif [ "$OPENGLES" = "allwinner-mali" ]; then
+@@ -132,7 +130,7 @@ PKG_CONFIGURE_OPTS_TARGET="--disable-vg \
+                            --enable-zlib \
+                            --enable-freetype \
+                            --enable-translate \
+-                           --enable-cdrom \
++                           --disable-cdrom \
+                            --enable-command \
+                            --datarootdir=$SYSROOT_PREFIX/usr/share" # don't use host /usr/share!
+ 

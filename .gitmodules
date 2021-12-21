@@ -1,0 +1,3 @@
+[submodule "Lakka-LibreELEC"]
+	path = Lakka-LibreELEC
+	url = https://github.com/libretro/Lakka-LibreELEC
