@@ -9,7 +9,7 @@
 [ -z "$PROVIDER" ] && PROVIDER="${USER}"
 [ -z "$IV" ] && IV=1
 [ -z "$INCLUDE_DOWNLOADABLE" ] && INCLUDE_DOWNLOADABLE=""
-[ -z "$GIT_BRANCH" ] && GIT_BRANCH="v3.6"
+[ -z "$GIT_BRANCH" ] && GIT_BRANCH="1d4fca6"
 [ -z "$LAKKA" ] && LAKKA="${SCRIPT_DIR}/Lakka-LibreELEC"
 
 SCRIPT="scripts/build"
