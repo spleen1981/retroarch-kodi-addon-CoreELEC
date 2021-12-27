@@ -1,0 +1,28 @@
+diff --git a/packages/libretro/flycast/patches/cmakelist_typo.patch b/packages/libretro/flycast/patches/cmakelist_typo.patch
+new file mode 100644
+index 0000000000..8299b6e958
+--- /dev/null
++++ b/packages/libretro/flycast/patches/cmakelist_typo.patch
+@@ -0,0 +1,22 @@
++From 120aeec7d81a283cbfc28297acd76985e2bb4a57 Mon Sep 17 00:00:00 2001
++From: asdf288 <75165517+asdf288@users.noreply.github.com>
++Date: Thu, 23 Dec 2021 21:04:36 +0100
++Subject: [PATCH] Fix typo in GLES2 library name
++
++---
++ CMakeLists.txt | 2 +-
++ 1 file changed, 1 insertion(+), 1 deletion(-)
++
++diff --git a/CMakeLists.txt b/CMakeLists.txt
++index 5d7ba28b8..4380d1870 100644
++--- a/CMakeLists.txt
+++++ b/CMakeLists.txt
++@@ -116,7 +116,7 @@ elseif(LIBRETRO)
++			target_link_libraries(${PROJECT_NAME} PRIVATE "-lbrcmGLESv2")
++			target_link_directories(${PROJECT_NAME} PRIVATE "/opt/vc/lib")
++		else()
++-			target_link_libraries(${PROJECT_NAME} PRIVATE "-GLESv2")
+++			target_link_libraries(${PROJECT_NAME} PRIVATE "-lGLESv2")
++		endif()
++    else()
++		target_compile_definitions(${PROJECT_NAME} PRIVATE HAVE_OPENGL)
