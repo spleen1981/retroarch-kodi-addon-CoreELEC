@@ -17,13 +17,13 @@ By default the addon includes only RetroArch and cores (included cores can be cu
 
 First time the building/compiling process will take a lot of time (the whole toolchain will be compiled with the first package).
 
-Addon zip file will be placed in `repo` subfolder (this path can be customized passing desired path through `REPO_DIR` variable), ready to be installed in [KODI](http://kodi.wiki/view/HOW-TO:Install_add-ons_from_zip_files).
+Addon zip file will be placed in `repo` subfolder (this path can be customized passing desired path through `REPO_DIR` variable), ready to be installed in [KODI](https://kodi.wiki/view/Add-on_manager#How_to_install_from_a_ZIP_file).
 
 ## Addon settings/features
    - Stop Kodi when Retroarch is launched, to freeup memory
    - Turn off Xbox360 wireless controllers when exiting Retroarch
    - Use remote location (e.g. SMB) as roms folder
-   - Use TV remote controller (CEC) to navigate RetroArch menu.
+   - Use TV remote controller (CEC) to navigate RetroArch menu (ref [here](https://github.com/spleen1981/cec-mini-kb) for key bindings)
 
 ## Folders
 
