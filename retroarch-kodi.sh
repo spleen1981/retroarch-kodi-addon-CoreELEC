@@ -231,7 +231,7 @@ read -d '' content <<EOF
 
 oe_setup_addon ${ADDON_NAME}
 
-systemd-run \$ADDON_DIR/bin/retroarch.start
+systemd-run -u retroarch \$ADDON_DIR/bin/retroarch.start
 EOF
 echo "$content" > bin/retroarch.sh
 [ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit 1 ; }
