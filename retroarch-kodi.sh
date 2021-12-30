@@ -272,10 +272,7 @@ fi
 
 [ "\$ra_verbose" = "true" ] && RA_PARAMS="--verbose \$RA_PARAMS"
 
-if [ "\$ra_log" = "true" ] ; then
-	RA_LOG1=">\$LOGFILE"
-	RA_LOG2="2>&1"
-fi
+[ "\$ra_log" = "true" ] && RA_PARAMS="--log-file=\$LOGFILE \$RA_PARAMS"
 
 if [ "\$ra_stop_kodi" = "true" ] ; then
 	systemctl stop kodi
@@ -295,7 +292,7 @@ if [ "\$ra_roms_remote" = "true" ] ; then
 fi
 
 [ "\$ra_cec_remote" = "true" ] && systemd-run -u cec-kb "\$ADDON_DIR/bin/cec-mini-kb"
-\$RA_EXE \$RA_PARAMS \$RA_LOG1 \$RA_LOG2
+\$RA_EXE \$RA_PARAMS
 [ "\$ra_cec_remote" = "true" ] && systemctl stop cec-kb.service
 
 [ "\$ra_xbox360_shutdown" = "true" ] && "\$ADDON_DIR"/bin/xbox360-controllers-shutdown
