@@ -1,4 +1,22 @@
 #!/bin/bash
+
+revert_patches(){
+	#Removing used patches
+	for patch in $LAKKA_PATCHES ; do
+		if [ -f "$SCRIPT_DIR"/patches/"$patch" ] ; then
+			echo "Reverting $patch"
+			git apply --reverse "$SCRIPT_DIR"/patches/"$patch"
+		else
+			echo "$patch not found"
+		fi
+	done
+}
+
+exit_script(){
+	revert_patches
+	exit $1
+}
+
 [ -z "$DISTRO" ] && DISTRO=Lakka
 [ -z "$PROJECT" ] && PROJECT=Amlogic-ng
 [ -z "$ARCH" ] && ARCH=arm
@@ -77,7 +95,7 @@ echo
 
 # Checks folders
 for folder in ${REPO_DIR} ${REPO_DIR}/${ADDON_NAME} ${REPO_DIR}/${ADDON_NAME}/resources ; do
-	[ ! -d "$folder" ] && { mkdir -p "$folder" && echo "Created folder '$folder'" || { echo "Could not create folder '$folder'!" ; exit 1 ; } ; } || echo "Folder '$folder' exists."
+	[ ! -d "$folder" ] && { mkdir -p "$folder" && echo "Created folder '$folder'" || { echo "Could not create folder '$folder'!" ; exit_script 1 ; } ; } || echo "Folder '$folder' exists."
 done
 echo
 
@@ -111,7 +129,7 @@ if [ -d "$LAKKA" ] ; then
 		else
 			echo "(failed) $?"
 			echo "Error building package '$package'!"
-			exit 1
+			exit_script 1
 		fi
 	done
 	echo
@@ -124,7 +142,7 @@ if [ -d "$LAKKA" ] ; then
 		else
 			echo "failed!"
 			echo "Could not create folder '$TARGET_DIR'!"
-			exit 1
+			exit_script 1
 		fi
 	fi
 	echo
@@ -145,7 +163,7 @@ if [ -d "$LAKKA" ] ; then
 			PKG_FOLDER="${BUILD_SUBDIR}/${package}-${PKG_VERSION}/.install_pkg"
 			if [ -d "$PKG_FOLDER" ] ; then
 				cp -Rf "${PKG_FOLDER}/"* "${TARGET_DIR}/" &>>"$LOG"
-				[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit 1 ; }
+				[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 			else
 				echo "(skipped - not found)"
 				continue
@@ -153,72 +171,64 @@ if [ -d "$LAKKA" ] ; then
 		done
 	done
 
-	#Removing used patches
-	for patch in $LAKKA_PATCHES ; do
-		if [ -f "$SCRIPT_DIR"/patches/"$patch" ] ; then
-			echo "Reverting $patch"
-			git apply --reverse "$SCRIPT_DIR"/patches/"$patch"
-		else
-			echo "$patch not found"
-		fi
-	done
+	revert_patches
 
 	echo
 else
 	echo "Folder '$LAKKA' does not exist! Aborting!" >&2
-	exit 1
+	exit_script 1
 fi
 if [ -d "$ADDON_DIR" ] ; then
 	echo -n "Removing previous addon..."
 	rm -rf "${ADDON_DIR}" &>>"$LOG"
-	[ $? -eq 0 ] && echo "done." || { echo "failed!" ; echo "Error removing folder '${ADDON_DIR}'!" ; exit 1 ; }
+	[ $? -eq 0 ] && echo "done." || { echo "failed!" ; echo "Error removing folder '${ADDON_DIR}'!" ; exit_script 1 ; }
 	echo
 fi
 echo -n "Creating addon folder..."
 mkdir -p "${ADDON_DIR}" &>>"$LOG"
-[ $? -eq 0 ] && echo "done." || { echo "failed!" ; echo "Error creating folder '${ADDON_DIR}'!" ; exit 1 ; }
+[ $? -eq 0 ] && echo "done." || { echo "failed!" ; echo "Error creating folder '${ADDON_DIR}'!" ; exit_script 1 ; }
 echo
 cd "${ADDON_DIR}"
 echo "Creating folder structure..."
 for f in config resources ; do
 	echo -ne "\t$f "
 	mkdir $f &>>"$LOG"
-	[ $? -eq 0 ] && echo -e "(ok)" || { echo -e "(failed)" ; exit 1 ; }
+	[ $? -eq 0 ] && echo -e "(ok)" || { echo -e "(failed)" ; exit_script 1 ; }
 done
 echo
 echo "Moving files to addon..."
 echo -ne "\tretroarch.cfg "
 mv -v "${TARGET_DIR}/etc/retroarch.cfg" "${ADDON_DIR}/config/" &>>"$LOG"
-[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit 1 ; }
+[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo -ne "\tbinaries "
 mv -v "${TARGET_DIR}/usr/bin" "${ADDON_DIR}/" &>>"$LOG"
-[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit 1 ; }
+[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo -ne "\tlibraries and cores "
 mv -v "${TARGET_DIR}/usr/lib" "${ADDON_DIR}/" &>>"$LOG"
-[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit 1 ; }
+[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo -ne "\taudio filters "
 mv -v "${TARGET_DIR}/usr/share/audio_filters" "${ADDON_DIR}/resources/" &>>"$LOG"
-[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit 1 ; }
+[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo -ne "\tvideo filters "
 mv -v "${TARGET_DIR}/usr/share/video_filters" "${ADDON_DIR}/resources/" &>>"$LOG"
-[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit 1 ; }
+[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 
 if [ ! -z "$INCLUDE_DOWNLOADABLE" ]; then
 	echo -ne "\tjoypads "
 	mv -v "${TARGET_DIR}/etc/retroarch-joypad-autoconfig" "${ADDON_DIR}/resources/joypads" &>>"$LOG"
-	[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit 1 ; }
+	[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 	echo -ne "\tshaders "
 	mv -v "${TARGET_DIR}/usr/share/common-shaders" "${ADDON_DIR}/resources/shaders" &>>"$LOG"
-	[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit 1 ; }
+	[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 	echo -ne "\tdatabases "
 	mv -v "${TARGET_DIR}/usr/share/libretro-database" "${ADDON_DIR}/resources/database" &>>"$LOG"
-	[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit 1 ; }
+	[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 	echo -ne "\tassets "
 	mv -v "${TARGET_DIR}/usr/share/retroarch-assets" "${ADDON_DIR}/resources/assets" &>>"$LOG"
-	[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit 1 ; }
+	[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 	echo -ne "\toverlays "
 	mv -v "${TARGET_DIR}/usr/share/retroarch-overlays" "${ADDON_DIR}/resources/overlays" &>>"$LOG"
-	[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit 1 ; }
+	[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 fi
 
 echo
@@ -234,7 +244,7 @@ oe_setup_addon ${ADDON_NAME}
 systemd-run -u retroarch \$ADDON_DIR/bin/retroarch.start
 EOF
 echo "$content" > bin/retroarch.sh
-[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit 1 ; }
+[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 chmod +x bin/retroarch.sh
 echo -ne "\tretroarch.start "
 read -d '' content <<EOF
@@ -308,7 +318,7 @@ fi
 exit 0
 EOF
 echo "$content" > bin/retroarch.start
-[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit 1 ; }
+[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 chmod +x bin/retroarch.start
 echo -ne "\taddon.xml "
 read -d '' addon <<EOF
@@ -333,7 +343,7 @@ read -d '' addon <<EOF
 </addon>
 EOF
 echo "$addon" > addon.xml
-[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit 1 ; }
+[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo -ne "\tdefault.py "
 read -d '' content <<EOF
 import xbmc, xbmcgui, xbmcplugin, xbmcaddon
@@ -354,7 +364,7 @@ fanart  = addonfolder + 'resources/fanart.jpg'
 util.runRetroarchMenu()
 EOF
 echo "$content" > default.py
-[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit 1 ; }
+[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo -ne "\tutil.py "
 read -d '' content <<EOF
 import os, xbmc, xbmcaddon
@@ -372,7 +382,7 @@ def runRetroarchMenu():
 	os.system(retroarch_exe)
 EOF
 echo "$content" > util.py
-[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit 1 ; }
+[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo -ne "\tsettings.xml "
 read -d '' content <<EOF
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
@@ -395,7 +405,7 @@ read -d '' content <<EOF
 </settings>
 EOF
 echo "$content" > resources/settings.xml
-[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit 1 ; }
+[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo -ne "\tsettings-default.xml "
 read -d '' content <<EOF
 <settings>
@@ -411,7 +421,7 @@ read -d '' content <<EOF
 </settings>
 EOF
 echo "$content"  > settings-default.xml
-[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit 1 ; }
+[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo -ne "\tfanart.jpg "
 read -d '' fanart <<EOF
 /9j/4AAQSkZJRgABAQEAYABgAAD/4QBaRXhpZgAATU0AKgAAAAgABAEyAAIAAAAUAAAAPlEQAAEA
@@ -5882,7 +5892,7 @@ jlvpQVshCdq1Xzk5PepJ3z8v4mozQEQFRzv/AA/iakJwKrk7jmpWupsBOBUdOc8000SLiHemTyeX
 H79BT+lV7h98nsvFJFIjHApjnLU8nAqOnIsKKKKkAooooAKKKKACiiigAooooA//2Q==
 EOF
 echo "$fanart" | base64 --decode > resources/fanart.jpg
-[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit 1 ; }
+[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo -ne "\ticon.png "
 read -d '' icon <<EOF
 iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAYAAABccqhmAAAABmJLR0QAAAAAAAD5Q7t/AAAACXBI
@@ -5936,7 +5946,7 @@ AgAIACAAgAAAAgAIACAAgAAAAgAIACAAgAAAAgAIACAAgAAAAgAIACAAwB30n57cQCkJfap5AAAA
 AElFTkSuQmCC
 EOF
 echo "$icon" | base64 --decode > resources/icon.png
-[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit 1 ; }
+[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo
 echo "Making modifications to retroarch.cfg..."
 CFG="config/retroarch.cfg"
@@ -5945,46 +5955,46 @@ RA_CORES_DIR="\/storage\/\.kodi\/addons\/${ADDON_NAME}\/lib\/libretro"
 RA_RES_DIR="\/storage\/\.kodi\/addons\/${ADDON_NAME}\/resources"
 echo -ne "\tsavefiles "
 sed -i "s/\/storage\/savefiles/${RA_CFG_DIR}\/savefiles/g" $CFG
-[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit 1 ; }
+[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo -ne "\tsavestates "
 sed -i "s/\/storage\/savestates/${RA_CFG_DIR}\/savestates/g" $CFG
-[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit 1 ; }
+[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo -ne "\tremappings "
 sed -i "s/\/storage\/remappings/${RA_CFG_DIR}\/remappings/g" $CFG
-[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit 1 ; }
+[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo -ne "\tplaylists "
 sed -i "s/\/storage\/playlists/${RA_CFG_DIR}\/playlists/g" $CFG
-[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit 1 ; }
+[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo -ne "\tcores "
 sed -i "s/\/tmp\/cores/${RA_CORES_DIR}/g" $CFG
-[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit 1 ; }
+[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo -ne "\tsystem "
 sed -i "s/\/storage\/system/${RA_CFG_DIR}\/system/g" $CFG
-[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit 1 ; }
+[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo -ne "\tassets "
 sed -i "s/\/tmp\/assets/${RA_RES_DIR}\/assets/g" $CFG
-[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit 1 ; }
+[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo -ne "\tthumbnails "
 sed -i "s/\/storage\/thumbnails/${RA_CFG_DIR}\/thumbnails/g" $CFG
-[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit 1 ; }
+[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo -ne "\tshaders "
 sed -i "s/\/tmp\/shaders/${RA_RES_DIR}\/shaders/g" $CFG
-[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit 1 ; }
+[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo -ne "\tvideo_filters "
 sed -i "s/\/usr\/share\/video_filters/${RA_RES_DIR}\/video_filters/g" $CFG
-[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit 1 ; }
+[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo -ne "\taudio_filters "
 sed -i "s/\/usr\/share\/audio_filters/${RA_RES_DIR}\/audio_filters/g" $CFG
-[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit 1 ; }
+[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo -ne "\tretroarch-assets "
 sed -i "s/\/usr\/share\/retroarch-assets/${RA_RES_DIR}\/assets/g" $CFG
-[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit 1 ; }
+[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo -ne "\tjoypads "
 sed -i "s/\/tmp\/joypads/${RA_RES_DIR}\/joypads/g" $CFG
-[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit 1 ; }
+[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo -ne "\tdatabase "
 sed -i "s/\/tmp\/database/${RA_RES_DIR}\/database/g" $CFG
-[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit 1 ; }
+[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo -ne "\tmisc settings "
 sed -i "s/all_users_control_menu = \"false\"/all_users_control_menu = \"true\"/g" $CFG
 sed -i "s/content_show_images = \"true\"/content_show_images = \"false\"/g" $CFG
@@ -5999,39 +6009,39 @@ sed -i "s/video_smooth = \"false\"/video_smooth = \"true\"/g" $CFG
 sed -i "s/video_threaded = \"false\"/video_threaded = \"true\"/g" $CFG
 sed -i "s/video_monitor_index  = \"0\"/video_monitor_index  = \"1\"/g" $CFG 
 
-[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit 1 ; }
+[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 
 echo
 echo -n "Creating archive..."
 cd ..
 zip -y -r "${ARCHIVE_NAME}" "${ADDON_NAME}" &>>"$LOG"
-[ $? -eq 0 ] && echo "done." || { echo "failed!" ; exit 1 ; }
+[ $? -eq 0 ] && echo "done." || { echo "failed!" ; exit_script 1 ; }
 echo
 echo "Creating repository files..."
 echo -ne "\tzip "
 mv -vf "${ARCHIVE_NAME}" "${REPO_DIR}/${ADDON_NAME}/" &>>"$LOG"
-[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit 1 ; }
+[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo -ne "\tsymlink "
 ln -vsf "${ARCHIVE_NAME}" "${REPO_DIR}/${ADDON_NAME}/${ADDON_NAME}-LATEST.zip" &>>"$LOG"
-[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit 1 ; }
+[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo -ne "\ticon.png "
 echo "$icon" | base64 --decode > "${REPO_DIR}/${ADDON_NAME}/resources/icon.png" &>>"$LOG"
-[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit 1 ; }
+[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo -ne "\tfanart.jpg "
 echo "$fanart" | base64 --decode > "${REPO_DIR}/${ADDON_NAME}/resources/fanart.jpg" &>>"$LOG"
-[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit 1 ; }
+[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo -ne "\taddon.xml "
 echo "$addon" > "${REPO_DIR}/${ADDON_NAME}/addon.xml"
-[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit 1 ; }
+[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo
 echo "Cleaning up..."
 cd "${SCRIPT_DIR}"
 echo -ne "\tproject folder "
 rm -vrf "${PROJECT_DIR}" &>>"$LOG"
-[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit 1 ; }
+[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo -ne "\tlog file "
 rm -rf "$LOG"
-[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit 1 ; }
+[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo
 echo "Finished."
 echo
