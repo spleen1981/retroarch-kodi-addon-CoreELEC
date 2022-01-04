@@ -9,7 +9,7 @@ Clone this repository including submodules:
 
 To build the addon, enter the folder where this repo has been cloned and type:
 ```bash
-./retroarch-kodi.sh
+./build.sh
 ```
 Addon zip file will be placed in `repo` subfolder (this path can be customized passing desired path through `REPO_DIR` variable) in the same directory.
 
