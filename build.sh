@@ -57,7 +57,7 @@ PACKAGES_LIBRETRO="$LIBRETRO_BASE $LIBRETRO_CORES"
 
 PACKAGES_ALL=""
 
-LAKKA_PATCHES="cec-mini-kb.patch ra_common.patch flycast_cmakelist_typo.patch"
+LAKKA_PATCHES="cec-mini-kb.patch ra_common.patch"
 
 # source local overrides
 if [ -f "${SCRIPT_DIR}/local.conf" ] ; then
