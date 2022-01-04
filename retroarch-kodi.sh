@@ -16,6 +16,7 @@ exit_script(){
 	revert_patches
 	exit $1
 }
+trap exit_script SIGINT SIGTERM
 
 [ -z "$DISTRO" ] && DISTRO=Lakka
 [ -z "$PROJECT" ] && PROJECT=Amlogic-ng
