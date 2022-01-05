@@ -57,7 +57,7 @@ PACKAGES_LIBRETRO="$LIBRETRO_BASE $LIBRETRO_CORES"
 
 PACKAGES_ALL=""
 
-LAKKA_PATCHES="cec-mini-kb.patch ra_common.patch flycast_bump_to_e61951a.patch"
+LAKKA_PATCHES="01-ra_common.patch 51-cec-mini-kb.patch 91-flycast_bump_to_e61951a.patch"
 
 # source local overrides
 if [ -f "${SCRIPT_DIR}/local.conf" ] ; then
@@ -103,7 +103,7 @@ echo
 if [ "$PROJECT" = "Amlogic-ng" ]; then
 	PROJECT=Amlogic
 	DEVICE=AMLG12
-	LAKKA_PATCHES="$LAKKA_PATCHES ra_amlogic-ng.patch"
+	LAKKA_PATCHES="$LAKKA_PATCHES 02-ra_amlogic-ng.patch"
 fi
 
 BUILD_SUBDIR="build.${DISTRO}-${DEVICE:-$PROJECT}.${ARCH}"
