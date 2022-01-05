@@ -6001,14 +6001,13 @@ sed -i "s/all_users_control_menu = \"false\"/all_users_control_menu = \"true\"/g
 sed -i "s/content_show_images = \"true\"/content_show_images = \"false\"/g" $CFG
 sed -i "s/content_show_music = \"true\"/content_show_music = \"false\"/g" $CFG
 sed -i "s/content_show_video = \"true\"/content_show_video = \"false\"/g" $CFG
-sed -i "s/input_menu_toggle_gamepad_combo = \"ozone\"/input_menu_toggle_gamepad_combo = \"xmb\"/g" $CFG
-sed -i "s/menu_driver = \"0\"/menu_driver = \"4\"/g" $CFG
+sed -i "s/input_menu_toggle_gamepad_combo = \"0\"/input_menu_toggle_gamepad_combo = \"4\"/g" $CFG
+sed -i "s/menu_driver = \"ozone\"/menu_driver = \"xmb\"/g" $CFG
 sed -i "s/menu_show_configurations = \"true\"/menu_show_configurations = \"false\"/g" $CFG
 sed -i "s/menu_show_restart_retroarch = \"true\"/menu_show_restart_retroarch = \"false\"/g" $CFG
 sed -i "s/menu_swap_ok_cancel_buttons = \"false\"/menu_swap_ok_cancel_buttons = \"true\"/g" $CFG
 sed -i "s/video_smooth = \"false\"/video_smooth = \"true\"/g" $CFG
 sed -i "s/video_threaded = \"false\"/video_threaded = \"true\"/g" $CFG
-sed -i "s/video_monitor_index  = \"0\"/video_monitor_index  = \"1\"/g" $CFG 
 
 [ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 
