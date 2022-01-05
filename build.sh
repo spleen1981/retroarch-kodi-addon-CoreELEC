@@ -57,7 +57,7 @@ PACKAGES_LIBRETRO="$LIBRETRO_BASE $LIBRETRO_CORES"
 
 PACKAGES_ALL=""
 
-LAKKA_PATCHES="01-ra_common.patch 03-RA_fbdev_yoffset_setterm_refreshrate.patch 51-cec-mini-kb.patch 91-flycast_bump_to_e61951a.patch"
+LAKKA_PATCHES="01-ra_common.patch 51-cec-mini-kb.patch 91-flycast_bump_to_e61951a.patch 92-ra_bump_to_f43b19d.patch"
 
 # source local overrides
 if [ -f "${SCRIPT_DIR}/local.conf" ] ; then
