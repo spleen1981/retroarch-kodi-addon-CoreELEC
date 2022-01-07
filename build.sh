@@ -28,7 +28,7 @@ trap exit_script SIGINT SIGTERM
 [ -z "$PROVIDER" ] && PROVIDER="${USER}"
 [ -z "$IV" ] && IV=1
 [ -z "$INCLUDE_DOWNLOADABLE" ] && INCLUDE_DOWNLOADABLE=""
-[ -z "$GIT_BRANCH" ] && GIT_BRANCH="1d4fca6"
+[ -z "$LAKKA_VERSION" ] && LAKKA_VERSION="22947e8"
 [ -z "$LAKKA" ] && LAKKA="${SCRIPT_DIR}/Lakka-LibreELEC"
 
 SCRIPT="scripts/build"
@@ -57,7 +57,7 @@ PACKAGES_LIBRETRO="$LIBRETRO_BASE $LIBRETRO_CORES"
 
 PACKAGES_ALL=""
 
-LAKKA_PATCHES="01-ra_common.patch 51-cec-mini-kb.patch 91-flycast_bump_to_e61951a.patch 92-ra_bump_to_f43b19d.patch"
+LAKKA_PATCHES="01-ra_common.patch 51-cec-mini-kb.patch 92-ra_bump_to_f43b19d.patch"
 
 # source local overrides
 if [ -f "${SCRIPT_DIR}/local.conf" ] ; then
@@ -110,7 +110,7 @@ BUILD_SUBDIR="build.${DISTRO}-${DEVICE:-$PROJECT}.${ARCH}"
 
 if [ -d "$LAKKA" ] ; then
 	cd "$LAKKA"
-	git checkout ${GIT_BRANCH} &>>"$LOG"
+	git checkout ${LAKKA_VERSION} &>>"$LOG"
 
 	#Applied required patches to Lakka
 	for patch in $LAKKA_PATCHES ; do
