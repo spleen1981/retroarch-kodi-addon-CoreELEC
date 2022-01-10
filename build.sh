@@ -332,9 +332,9 @@ read -d '' addon <<EOF
 		<provides>executable game</provides>
 	</extension>
 	<extension point="xbmc.addon.metadata">
-		<summary lang="en">RetroArch addon (${RA_NAME_SUFFIX}). Provides binary, cores and basic settings to launch it</summary>
-		<description lang="en">RetroArch addon based on source modified by Lakka project. Provides binary, cores and basic settings to launch it. Lakka is Just Enough OS for RetroArch - check out this project at www.lakka.tv.</description>
-		<disclaimer lang="en">This is an unofficial add-on. Please don't ask for support in CoreELEC or Lakka forums / irc channels.</disclaimer>
+		<summary lang="en">RetroArch add-on for Kodi (${RA_NAME_SUFFIX}). RetroArch is a frontend for emulators, game engines and media players.</summary>
+		<description lang="en">The add-on provides binary, cores and basic settings to launch RetroArch from Kodi UI, plus additional features to improve user experience. It is built from Lakka sources.</description>
+		<disclaimer lang="en">This is an unofficial add-on. Use github.com/spleen1981/retroarch-kodi-addon-CoreELEC to submit issues.</disclaimer>
 		<platform>linux</platform>
 		<assets>
 			<icon>resources/icon.png</icon>
@@ -394,7 +394,7 @@ read -d '' content <<EOF
 		<setting id="ra_cec_remote" label="Use CEC remote control with RetroArch" type="bool" default="true" />
 	</category>
 	<category label="Paths">
-		<setting id="ra_roms_remote" label="Mount remote path for Retroarch roms" type="bool" default="false" />
+		<setting id="ra_roms_remote" label="Mount remote path for RetroArch roms" type="bool" default="false" />
 		<setting id="ra_roms_remote_path" label="Remote path" type="text" default="" enable="eq(-1,true)" subsetting="true"/>
 		<setting id="ra_roms_remote_user" label="Username" type="text" default="" enable="eq(-2,true)" subsetting="true"/>
 		<setting id="ra_roms_remote_password" label="Password" type="text" default="" enable="eq(-3,true)" subsetting="true"/>
