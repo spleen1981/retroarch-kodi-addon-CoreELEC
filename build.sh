@@ -103,7 +103,7 @@ echo
 if [ "$PROJECT" = "Amlogic-ng" ]; then
 	PROJECT=Amlogic
 	DEVICE=AMLG12
-	LAKKA_PATCHES="$LAKKA_PATCHES 02-ra_amlogic-ng.patch"
+	LAKKA_PATCHES="$LAKKA_PATCHES 02-ra_amlogic-ng.patch 03-ra_fbdev_fpsdrop.patch"
 fi
 
 BUILD_SUBDIR="build.${DISTRO}-${DEVICE:-$PROJECT}.${ARCH}"
@@ -6007,7 +6007,6 @@ sed -i "s/menu_show_configurations = \"true\"/menu_show_configurations = \"false
 sed -i "s/menu_show_restart_retroarch = \"true\"/menu_show_restart_retroarch = \"false\"/g" $CFG
 sed -i "s/menu_swap_ok_cancel_buttons = \"false\"/menu_swap_ok_cancel_buttons = \"true\"/g" $CFG
 sed -i "s/video_smooth = \"false\"/video_smooth = \"true\"/g" $CFG
-sed -i "s/video_threaded = \"false\"/video_threaded = \"true\"/g" $CFG
 
 [ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 
