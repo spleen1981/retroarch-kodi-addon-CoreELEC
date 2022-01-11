@@ -298,8 +298,7 @@ if [ "\$ra_roms_remote" = "true" ] ; then
 		RA_REMOTE_OPTS="username=\$ra_roms_remote_user,password=\$ra_roms_remote_password"
 		RA_REMOTE_OPTS_PRE="-o"
 	fi
-	[ ! -z "\$ra_roms_remote_path" ] && mount \$RA_REMOTE_OPTS_PRE "\$RA_REMOTE_OPTS" 
-	"\$ra_roms_remote_path" "\$ROMS_FOLDER"
+	[ ! -z "\$ra_roms_remote_path" ] && mount \$RA_REMOTE_OPTS_PRE "\$RA_REMOTE_OPTS" "\$ra_roms_remote_path" "\$ROMS_FOLDER"
 fi
 
 [ "\$ra_cec_remote" = "true" ] && systemd-run -u cec-kb "\$ADDON_DIR/bin/cec-mini-kb"
