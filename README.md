@@ -4,20 +4,20 @@ Resulting build has been tested with S905X3 ARM device only on CoreELEC 19.3.
 
 # Usage
 [Lakka repository](https://github.com/libretro/Lakka-LibreELEC) is included as a submodule by default.
-Clone this repository including submodules:
-`git clone --recursive https://github.com/spleen1981/retroarch-kodi-addon-CoreELEC`
+To build the addon with default settings type the following:
 
-To build the addon, enter the folder where this repo has been cloned and type:
 ```bash
+git clone --recursive https://github.com/spleen1981/retroarch-kodi-addon-CoreELEC
+cd Lakka-LibreELEC
 ./build.sh
 ```
-Addon zip file will be placed in `repo` subfolder (this path can be customized passing desired path through `REPO_DIR` variable) in the same directory.
 
-By default the addon includes only RetroArch and cores (included cores can be customized inside the script) in order to minimize addon zip size, but build can be configured to include `retroarch-assets retroarch-joypad-autoconfig retroarch-overlays libretro-database glsl-shaders` (which can be downloaded from RetroArch online updater otherwise) passing `INCLUDE_DOWNLOADABLE="Y"`.
+By default the addon includes only RetroArch and cores (included cores can be customized inside the script).
+Other dowloadable contents as `retroarch-assets retroarch-joypad-autoconfig retroarch-overlays libretro-database glsl-shaders` are not included by default to reduce addon size, but can be included setting `INCLUDE_DLC="Y"`(or can be downloaded from RetroArch online updater otherwise).
 
 First time the building/compiling process will take a lot of time (the whole toolchain will be compiled with the first package).
 
-Addon zip file will be placed in `repo` subfolder (this path can be customized passing desired path through `REPO_DIR` variable), ready to be installed in [KODI](https://kodi.wiki/view/Add-on_manager#How_to_install_from_a_ZIP_file).
+Addon zip file will be placed in `build` subfolder, ready to be installed in [KODI](https://kodi.wiki/view/Add-on_manager#How_to_install_from_a_ZIP_file).
 
 ## Addon settings/features
    - Stop Kodi when Retroarch is launched, to freeup memory
@@ -55,4 +55,4 @@ The emulation cores are stored in `lib/libretro` subfolder of the add-on (remove
 # Credits
 Thanks to [Lakka](http://lakka.tv) for their work.
 
-Also thanks to [ToKe79](https://github.com/ToKe79) - I based my work on [his](https://github.com/ToKe79/retroarch-kodi-addon-LibreELEC).
+Also thanks to [ToKe79](https://github.com/ToKe79) - This work is based on [his](https://github.com/ToKe79/retroarch-kodi-addon-LibreELEC).

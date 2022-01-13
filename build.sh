@@ -18,167 +18,166 @@ exit_script(){
 }
 trap exit_script SIGINT SIGTERM
 
-[ -z "$DISTRO" ] && DISTRO=Lakka
-[ -z "$PROJECT" ] && PROJECT=Amlogic-ng
-[ -z "$ARCH" ] && ARCH=arm
-[ -z "$DEVICE" ] && DEVICE=""
-[ -z "$VERSION" ] && VERSION=$(date +%y.%m.%d)
-[ -z "$SCRIPT_DIR" ] && SCRIPT_DIR=$(pwd)
-[ -z "$REPO_DIR" ] && REPO_DIR="${SCRIPT_DIR}/repo"
-[ -z "$PROVIDER" ] && PROVIDER="${USER}"
-[ -z "$IV" ] && IV=1
-[ -z "$INCLUDE_DOWNLOADABLE" ] && INCLUDE_DOWNLOADABLE=""
-[ -z "$LAKKA_VERSION" ] && LAKKA_VERSION="22947e8"
-[ -z "$LAKKA" ] && LAKKA="${SCRIPT_DIR}/Lakka-LibreELEC"
-
-SCRIPT="scripts/build"
-PACKAGES_SUBDIR="packages"
-PROJECT_DIR="${SCRIPT_DIR}/retroarch_work"
-TARGET_DIR="${PROJECT_DIR}/`date +%Y-%m-%d_%H%M%S`"
-BASE_NAME="$PROVIDER.retroarch"
-
-PKG_TYPES="LIBRETRO TOOLS NETWORK SYSUTILS"
-
-PKG_SUBDIR_TOOLS="tools"
-PKG_SUBDIR_NETWORK="network"
-PKG_SUBDIR_SYSUTILS="sysutils"
-PKG_SUBDIR_LIBRETRO="libretro"
-
-PACKAGES_TOOLS="joyutils xbox360-controllers-shutdown cec-mini-kb"
-PACKAGES_NETWORK="sixpair"
-PACKAGES_SYSUTILS="empty"
-
-LIBRETRO_BASE="retroarch core-info"
-[ ! -z "$INCLUDE_DOWNLOADABLE" ] && LIBRETRO_BASE="$LIBRETRO_BASE retroarch-assets retroarch-joypad-autoconfig retroarch-overlays libretro-database glsl-shaders"
-
-LIBRETRO_CORES="beetle-psx beetle-saturn bsnes dolphin dosbox fbalpha2012 fbneo flycast gearboy genesis-plus-gx genesis_plus_gx_wide mame2003-plus mupen64plus_next neocd nestopia openlara parallel-n64 pcsx2 pcsx_rearmed ppsspp puae sameboy scummvm snes9x virtualjaguar yabasanshiro yabause"
-
-PACKAGES_LIBRETRO="$LIBRETRO_BASE $LIBRETRO_CORES"
-
-PACKAGES_ALL=""
-
-LAKKA_PATCHES="01-ra_common.patch 51-cec-mini-kb.patch 92-ra_bump_to_f43b19d.patch"
-
-# source local overrides
+#Source local overrides
 if [ -f "${SCRIPT_DIR}/local.conf" ] ; then
 	source "${SCRIPT_DIR}/local.conf"
 fi
 
+#Platform and general settings variables
+BASE_NAME="$PROVIDER.retroarch"
+[ -z "$PROJECT" ] && PROJECT=Amlogic-ng
+[ -z "$ARCH" ] && ARCH=arm
+[ -z "$DEVICE" ] && DEVICE=""
+[ -z "$ADDON_VERSION" ] && ADDON_VERSION=$(date +%y.%m.%d)
+[ -z "$PROVIDER" ] && PROVIDER="${USER}"
+[ -z "$INCLUDE_DLC" ] && INCLUDE_DLC=""
+[ -z "$LAKKA_VERSION" ] && LAKKA_VERSION="22947e8"
+[ -z "$DISTRONAME" ] && DISTRONAME="Lakka"
+
+#Path and filename variables
+[ -z "$SCRIPT_DIR" ] && SCRIPT_DIR=$(pwd)
+[ -z "$DISTRO_PACKAGES_SUBDIR" ] && DISTRO_PACKAGES_SUBDIR="packages"
+[ -z "$ADDON_BUILD_DIR" ] && ADDON_BUILD_DIR="${SCRIPT_DIR}/build"
+[ -z "$DISTRO_BUILD_SCRIPT" ] && DISTRO_BUILD_SCRIPT="scripts/build"
+[ -z "$LAKKA_DIR" ] && LAKKA_DIR="${SCRIPT_DIR}/Lakka-LibreELEC"
+if [ ! -d "$LAKKA_DIR" ] ; then
+	echo "Folder '$LAKKA_DIR' does not exist! Aborting!" >&2
+	exit_script 1
+fi
+[ -n "$DEVICE" ] && RA_NAME_SUFFIX=${DEVICE}.${ARCH} ||	RA_NAME_SUFFIX=${PROJECT}.${ARCH}
+TMP_PROJECT_DIR="${SCRIPT_DIR}/retroarch_work"
+TMP_TARGET_DIR="${TMP_PROJECT_DIR}/`date +%Y-%m-%d_%H%M%S`"
+ADDON_NAME="script.retroarch.launcher.${RA_NAME_SUFFIX}"
+ADDON_DIR="${TMP_PROJECT_DIR}/${ADDON_NAME}"
+ARCHIVE_NAME="${ADDON_NAME}-${ADDON_VERSION}.zip"
+LOG="${SCRIPT_DIR}/retroarch-kodi_`date +%Y%m%d_%H%M%S`.log"
+
+
+#Misc packages variables
+[ -z "$PKG_TYPES" ] && PKG_TYPES="LIBRETRO TOOLS NETWORK SYSUTILS"
+[ -z "$PKG_SUBDIR_TOOLS" ] && PKG_SUBDIR_TOOLS="tools"
+[ -z "$PKG_SUBDIR_NETWORK" ] && PKG_SUBDIR_NETWORK="network"
+[ -z "$PKG_SUBDIR_SYSUTILS" ] && PKG_SUBDIR_SYSUTILS="sysutils"
+[ -z "$PACKAGES_TOOLS" ] && PACKAGES_TOOLS="joyutils xbox360-controllers-shutdown cec-mini-kb"
+[ -z "$PACKAGES_NETWORK" ] && PACKAGES_NETWORK="sixpair"
+[ -z "$PACKAGES_SYSUTILS" ] && PACKAGES_SYSUTILS="empty"
+
+[ -z "$LAKKA_PATCHES" ] && LAKKA_PATCHES="01-ra_common.patch 51-cec-mini-kb.patch 92-ra_bump_to_f43b19d.patch"
+
+[ -z "$LIBRETRO_CORES" ] && LIBRETRO_CORES="beetle-psx beetle-saturn bsnes dolphin dosbox fbalpha2012 fbneo flycast gearboy genesis-plus-gx genesis_plus_gx_wide mame2003-plus mupen64plus_next neocd nestopia openlara parallel-n64 pcsx2 pcsx_rearmed ppsspp puae sameboy scummvm snes9x virtualjaguar yabasanshiro yabause"
+
+#Others libretro packages variables
+[ -z "$LIBRETRO_BASE" ] && LIBRETRO_BASE="retroarch core-info"
+[ ! -z "$INCLUDE_DLC" ] && LIBRETRO_BASE="$LIBRETRO_BASE retroarch-assets retroarch-joypad-autoconfig retroarch-overlays libretro-database glsl-shaders"
+
+#Aggregate entire package list
+[ -z "$PKG_SUBDIR_LIBRETRO" ] && PKG_SUBDIR_LIBRETRO="libretro"
+PACKAGES_LIBRETRO="$LIBRETRO_BASE $LIBRETRO_CORES"
+PACKAGES_ALL=""
 for suffix in $PKG_TYPES ; do
 	varname="PACKAGES_$suffix"
 	PACKAGES_ALL="$PACKAGES_ALL ${!varname}"
 done
 
-[ -n "$DEVICE" ] && RA_NAME_SUFFIX=${DEVICE}.${ARCH} ||	RA_NAME_SUFFIX=${PROJECT}.${ARCH}
-
-ADDON_NAME="script.retroarch.launcher.${RA_NAME_SUFFIX}"
-ADDON_DIR="${PROJECT_DIR}/${ADDON_NAME}"
-ARCHIVE_NAME="${ADDON_NAME}-${VERSION}.zip"
-LOG="${SCRIPT_DIR}/retroarch-kodi_`date +%Y%m%d_%H%M%S`.log"
-
 read -d '' message <<EOF
 Building RetroArch KODI add-on for CoreELEC:
 
-DISTRO=${DISTRO}
+DISTRO=${DISTRONAME}
 PROJECT=${PROJECT}
 DEVICE=${DEVICE}
 ARCH=${ARCH}
-VERSION=${VERSION}
+VERSION=${ADDON_VERSION}
 
 Working in: ${SCRIPT_DIR}
-Temporary project folder: ${TARGET_DIR}
+Temporary project folder: ${TMP_TARGET_DIR}
 
-Target zip: ${REPO_DIR}/${ADDON_NAME}/${ARCHIVE_NAME}
+Target zip: ${ADDON_BUILD_DIR}/${ADDON_NAME}/${ARCHIVE_NAME}
 EOF
 
 echo "$message"
 echo
 
 # Checks folders
-for folder in ${REPO_DIR} ${REPO_DIR}/${ADDON_NAME} ${REPO_DIR}/${ADDON_NAME}/resources ; do
+for folder in ${ADDON_BUILD_DIR} ${ADDON_BUILD_DIR}/${ADDON_NAME} ${ADDON_BUILD_DIR}/${ADDON_NAME}/resources ; do
 	[ ! -d "$folder" ] && { mkdir -p "$folder" && echo "Created folder '$folder'" || { echo "Could not create folder '$folder'!" ; exit_script 1 ; } ; } || echo "Folder '$folder' exists."
 done
 echo
 
+#Translating PROJECT/DEVICES in Lakka ones if needed
 if [ "$PROJECT" = "Amlogic-ng" ]; then
 	PROJECT=Amlogic
 	DEVICE=AMLG12
 	LAKKA_PATCHES="$LAKKA_PATCHES 02-ra_amlogic-ng.patch 03-ra_fbdev_fpsdrop.patch"
 fi
+LAKKA_BUILD_SUBDIR="build.${DISTRONAME}-${DEVICE:-$PROJECT}.${ARCH}"
 
-BUILD_SUBDIR="build.${DISTRO}-${DEVICE:-$PROJECT}.${ARCH}"
+cd "$LAKKA_DIR"
+git checkout ${LAKKA_VERSION} &>>"$LOG"
 
-if [ -d "$LAKKA" ] ; then
-	cd "$LAKKA"
-	git checkout ${LAKKA_VERSION} &>>"$LOG"
-
-	#Applied required patches to Lakka
-	for patch in $LAKKA_PATCHES ; do
-		if [ -f "$SCRIPT_DIR"/patches/"$patch" ] ; then
-			echo "Applying $patch"
-			git apply "$SCRIPT_DIR"/patches/"$patch"
-		else
-			echo "$patch not found"
-		fi
-	done
-	echo "Building packages:"
-	for package in $PACKAGES_ALL ; do
-		echo -ne "\t$package "
-		IGNORE_VERSION=$IV DISTRO=$DISTRO PROJECT=$PROJECT DEVICE=$DEVICE ARCH=$ARCH ./$SCRIPT $package &>>"$LOG"
-		if [ $? -eq 0 ] ; then
-			echo "(ok)"
-		else
-			echo "(failed) $?"
-			echo "Error building package '$package'!"
-			exit_script 1
-		fi
-	done
-	echo
-
-	if [ ! -d "$TARGET_DIR" ] ; then
-		echo -n "Creating target folder '$TARGET_DIR'..."
-		mkdir -p "$TARGET_DIR" &>>"$LOG"
-		if [ $? -eq 0 ] ; then
-			echo "done."
-		else
-			echo "failed!"
-			echo "Could not create folder '$TARGET_DIR'!"
-			exit_script 1
-		fi
+#Applied required patches to Lakka
+for patch in $LAKKA_PATCHES ; do
+	if [ -f "$SCRIPT_DIR"/patches/"$patch" ] ; then
+		echo "Applying $patch"
+		git apply "$SCRIPT_DIR"/patches/"$patch"
+	else
+		echo "$patch not found"
 	fi
-	echo
-	echo "Copying packages:"
-	for suffix in $PKG_TYPES ; do
-		varname="PKG_SUBDIR_${suffix}"
-		path="${PACKAGES_SUBDIR}/${!varname}"
-		varname="PACKAGES_${suffix}"
-		for package in ${!varname} ; do
-			echo -ne "\t$package "
-			SRC="${path}/${package}/package.mk"
-			if [ -f "$SRC" ] ; then
-				PKG_VERSION=`cat $SRC | sed -En "s/PKG_VERSION=\"(.*)\"/\1/p"`
-			else
-				echo "(skipped - no package.mk)"
-				continue
-			fi
-			PKG_FOLDER="${BUILD_SUBDIR}/${package}-${PKG_VERSION}/.install_pkg"
-			if [ -d "$PKG_FOLDER" ] ; then
-				cp -Rf "${PKG_FOLDER}/"* "${TARGET_DIR}/" &>>"$LOG"
-				[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
-			else
-				echo "(skipped - not found)"
-				continue
-			fi
-		done
-	done
+done
+echo "Building packages:"
+for package in $PACKAGES_ALL ; do
+	echo -ne "\t$package "
+	IGNORE_VERSION=1 DISTRO=$DISTRONAME PROJECT=$PROJECT DEVICE=$DEVICE ARCH=$ARCH ./$DISTRO_BUILD_SCRIPT $package &>>"$LOG"
+	if [ $? -eq 0 ] ; then
+		echo "(ok)"
+	else
+		echo "(failed) $?"
+		echo "Error building package '$package'!"
+		exit_script 1
+	fi
+done
+echo
 
-	revert_patches
-
-	echo
-else
-	echo "Folder '$LAKKA' does not exist! Aborting!" >&2
-	exit_script 1
+if [ ! -d "$TMP_TARGET_DIR" ] ; then
+	echo -n "Creating target folder '$TMP_TARGET_DIR'..."
+	mkdir -p "$TMP_TARGET_DIR" &>>"$LOG"
+	if [ $? -eq 0 ] ; then
+		echo "done."
+	else
+		echo "failed!"
+		echo "Could not create folder '$TMP_TARGET_DIR'!"
+		exit_script 1
+	fi
 fi
+echo
+echo "Copying packages:"
+for suffix in $PKG_TYPES ; do
+	varname="PKG_SUBDIR_${suffix}"
+	path="${DISTRO_PACKAGES_SUBDIR}/${!varname}"
+	varname="PACKAGES_${suffix}"
+	for package in ${!varname} ; do
+		echo -ne "\t$package "
+		SRC="${path}/${package}/package.mk"
+		if [ -f "$SRC" ] ; then
+			PKG_VERSION=`cat $SRC | sed -En "s/PKG_VERSION=\"(.*)\"/\1/p"`
+		else
+			echo "(skipped - no package.mk)"
+			continue
+		fi
+		PKG_FOLDER="${LAKKA_BUILD_SUBDIR}/${package}-${PKG_VERSION}/.install_pkg"
+		if [ -d "$PKG_FOLDER" ] ; then
+			cp -Rf "${PKG_FOLDER}/"* "${TMP_TARGET_DIR}/" &>>"$LOG"
+			[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
+		else
+			echo "(skipped - not found)"
+			continue
+		fi
+	done
+done
+
+revert_patches
+
+echo
+
 if [ -d "$ADDON_DIR" ] ; then
 	echo -n "Removing previous addon..."
 	rm -rf "${ADDON_DIR}" &>>"$LOG"
@@ -199,36 +198,36 @@ done
 echo
 echo "Moving files to addon..."
 echo -ne "\tretroarch.cfg "
-mv -v "${TARGET_DIR}/etc/retroarch.cfg" "${ADDON_DIR}/config/" &>>"$LOG"
+mv -v "${TMP_TARGET_DIR}/etc/retroarch.cfg" "${ADDON_DIR}/config/" &>>"$LOG"
 [ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo -ne "\tbinaries "
-mv -v "${TARGET_DIR}/usr/bin" "${ADDON_DIR}/" &>>"$LOG"
+mv -v "${TMP_TARGET_DIR}/usr/bin" "${ADDON_DIR}/" &>>"$LOG"
 [ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo -ne "\tlibraries and cores "
-mv -v "${TARGET_DIR}/usr/lib" "${ADDON_DIR}/" &>>"$LOG"
+mv -v "${TMP_TARGET_DIR}/usr/lib" "${ADDON_DIR}/" &>>"$LOG"
 [ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo -ne "\taudio filters "
-mv -v "${TARGET_DIR}/usr/share/audio_filters" "${ADDON_DIR}/resources/" &>>"$LOG"
+mv -v "${TMP_TARGET_DIR}/usr/share/audio_filters" "${ADDON_DIR}/resources/" &>>"$LOG"
 [ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo -ne "\tvideo filters "
-mv -v "${TARGET_DIR}/usr/share/video_filters" "${ADDON_DIR}/resources/" &>>"$LOG"
+mv -v "${TMP_TARGET_DIR}/usr/share/video_filters" "${ADDON_DIR}/resources/" &>>"$LOG"
 [ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 
-if [ ! -z "$INCLUDE_DOWNLOADABLE" ]; then
+if [ ! -z "$INCLUDE_DLC" ]; then
 	echo -ne "\tjoypads "
-	mv -v "${TARGET_DIR}/etc/retroarch-joypad-autoconfig" "${ADDON_DIR}/resources/joypads" &>>"$LOG"
+	mv -v "${TMP_TARGET_DIR}/etc/retroarch-joypad-autoconfig" "${ADDON_DIR}/resources/joypads" &>>"$LOG"
 	[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 	echo -ne "\tshaders "
-	mv -v "${TARGET_DIR}/usr/share/common-shaders" "${ADDON_DIR}/resources/shaders" &>>"$LOG"
+	mv -v "${TMP_TARGET_DIR}/usr/share/common-shaders" "${ADDON_DIR}/resources/shaders" &>>"$LOG"
 	[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 	echo -ne "\tdatabases "
-	mv -v "${TARGET_DIR}/usr/share/libretro-database" "${ADDON_DIR}/resources/database" &>>"$LOG"
+	mv -v "${TMP_TARGET_DIR}/usr/share/libretro-database" "${ADDON_DIR}/resources/database" &>>"$LOG"
 	[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 	echo -ne "\tassets "
-	mv -v "${TARGET_DIR}/usr/share/retroarch-assets" "${ADDON_DIR}/resources/assets" &>>"$LOG"
+	mv -v "${TMP_TARGET_DIR}/usr/share/retroarch-assets" "${ADDON_DIR}/resources/assets" &>>"$LOG"
 	[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 	echo -ne "\toverlays "
-	mv -v "${TARGET_DIR}/usr/share/retroarch-overlays" "${ADDON_DIR}/resources/overlays" &>>"$LOG"
+	mv -v "${TMP_TARGET_DIR}/usr/share/retroarch-overlays" "${ADDON_DIR}/resources/overlays" &>>"$LOG"
 	[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 fi
 
@@ -323,7 +322,7 @@ chmod +x bin/retroarch.start
 echo -ne "\taddon.xml "
 read -d '' addon <<EOF
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="${ADDON_NAME}" name="RetroArch" version="${VERSION}" provider-name="${PROVIDER}">
+<addon id="${ADDON_NAME}" name="RetroArch" version="${ADDON_VERSION}" provider-name="${PROVIDER}">
 	<requires>
 		<import addon="xbmc.python" version="3.0.0"/>
 	</requires>
@@ -6005,8 +6004,6 @@ sed -i "s/menu_driver = \"ozone\"/menu_driver = \"xmb\"/g" $CFG
 sed -i "s/menu_show_configurations = \"true\"/menu_show_configurations = \"false\"/g" $CFG
 sed -i "s/menu_show_restart_retroarch = \"true\"/menu_show_restart_retroarch = \"false\"/g" $CFG
 sed -i "s/menu_swap_ok_cancel_buttons = \"false\"/menu_swap_ok_cancel_buttons = \"true\"/g" $CFG
-sed -i "s/video_smooth = \"false\"/video_smooth = \"true\"/g" $CFG
-
 [ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 
 echo
@@ -6017,25 +6014,25 @@ zip -y -r "${ARCHIVE_NAME}" "${ADDON_NAME}" &>>"$LOG"
 echo
 echo "Creating repository files..."
 echo -ne "\tzip "
-mv -vf "${ARCHIVE_NAME}" "${REPO_DIR}/${ADDON_NAME}/" &>>"$LOG"
+mv -vf "${ARCHIVE_NAME}" "${ADDON_BUILD_DIR}/${ADDON_NAME}/" &>>"$LOG"
 [ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo -ne "\tsymlink "
-ln -vsf "${ARCHIVE_NAME}" "${REPO_DIR}/${ADDON_NAME}/${ADDON_NAME}-LATEST.zip" &>>"$LOG"
+ln -vsf "${ARCHIVE_NAME}" "${ADDON_BUILD_DIR}/${ADDON_NAME}/${ADDON_NAME}-LATEST.zip" &>>"$LOG"
 [ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo -ne "\ticon.png "
-echo "$icon" | base64 --decode > "${REPO_DIR}/${ADDON_NAME}/resources/icon.png" &>>"$LOG"
+echo "$icon" | base64 --decode > "${ADDON_BUILD_DIR}/${ADDON_NAME}/resources/icon.png" &>>"$LOG"
 [ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo -ne "\tfanart.jpg "
-echo "$fanart" | base64 --decode > "${REPO_DIR}/${ADDON_NAME}/resources/fanart.jpg" &>>"$LOG"
+echo "$fanart" | base64 --decode > "${ADDON_BUILD_DIR}/${ADDON_NAME}/resources/fanart.jpg" &>>"$LOG"
 [ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo -ne "\taddon.xml "
-echo "$addon" > "${REPO_DIR}/${ADDON_NAME}/addon.xml"
+echo "$addon" > "${ADDON_BUILD_DIR}/${ADDON_NAME}/addon.xml"
 [ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo
 echo "Cleaning up..."
 cd "${SCRIPT_DIR}"
 echo -ne "\tproject folder "
-rm -vrf "${PROJECT_DIR}" &>>"$LOG"
+rm -vrf "${TMP_PROJECT_DIR}" &>>"$LOG"
 [ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo -ne "\tlog file "
 rm -rf "$LOG"
