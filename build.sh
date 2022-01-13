@@ -64,7 +64,16 @@ LOG="${SCRIPT_DIR}/retroarch-kodi_`date +%Y%m%d_%H%M%S`.log"
 
 [ -z "$LAKKA_PATCHES" ] && LAKKA_PATCHES="01-ra_common.patch 51-cec-mini-kb.patch 92-ra_bump_to_f43b19d.patch"
 
-[ -z "$LIBRETRO_CORES" ] && LIBRETRO_CORES="beetle-psx beetle-saturn bsnes dolphin dosbox fbalpha2012 fbneo flycast gearboy genesis-plus-gx genesis_plus_gx_wide mame2003-plus mupen64plus_next neocd nestopia openlara parallel-n64 pcsx2 pcsx_rearmed ppsspp puae sameboy scummvm snes9x virtualjaguar yabasanshiro yabause"
+#Building libretro core variable list from Lakka sources
+source "${LAKKA_DIR}/distributions/Lakka/options"
+[ -z "$LIBRERETRO_CORES_ADD" ] && LIBRERETRO_CORES_ADD=""
+[ -z "$LIBRERETRO_CORES_RM" ] && LIBRERETRO_CORES_RM=""
+for CORE in $LIBRERETRO_CORES_RM $LIBRERETRO_CORES_ADD ; do
+	LIBRETRO_CORES="${LIBRETRO_CORES// $CORE /}"
+done
+for CORE in $LIBRERETRO_CORES_ADD ; do
+	LIBRETRO_CORES+=" $CORE "
+done
 
 #Others libretro packages variables
 [ -z "$LIBRETRO_BASE" ] && LIBRETRO_BASE="retroarch core-info"

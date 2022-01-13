@@ -12,8 +12,9 @@ cd Lakka-LibreELEC
 ./build.sh
 ```
 
-By default the addon includes only RetroArch and cores (included cores can be customized inside the script).
+By default the add-on includes only RetroArch and cores.
 Other dowloadable contents as `retroarch-assets retroarch-joypad-autoconfig retroarch-overlays libretro-database glsl-shaders` are not included by default to reduce addon size, but can be included setting `INCLUDE_DLC="Y"`(or can be downloaded from RetroArch online updater otherwise).
+Core list included by default is same as Lakka. This can be customized setting `LIBRERETRO_CORES_ADD` and `LIBRERETRO_CORES_RM` variables.
 
 First time the building/compiling process will take a lot of time (the whole toolchain will be compiled with the first package).
 
