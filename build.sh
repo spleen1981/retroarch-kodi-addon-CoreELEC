@@ -62,7 +62,7 @@ LOG="${SCRIPT_DIR}/retroarch-kodi_`date +%Y%m%d_%H%M%S`.log"
 [ -z "$PACKAGES_NETWORK" ] && PACKAGES_NETWORK="sixpair"
 [ -z "$PACKAGES_SYSUTILS" ] && PACKAGES_SYSUTILS="empty"
 
-[ -z "$LAKKA_PATCHES" ] && LAKKA_PATCHES="01-ra_common.patch 51-cec-mini-kb.patch 92-ra_bump_to_f43b19d.patch"
+[ -z "$LAKKA_PATCHES" ] && LAKKA_PATCHES="01-ra_common.patch 51-cec-mini-kb.patch 92-ra_bump.patch"
 
 #Building libretro core variable list from Lakka sources
 source "${LAKKA_DIR}/distributions/Lakka/options"
@@ -116,7 +116,7 @@ echo
 if [ "$PROJECT" = "Amlogic-ng" ]; then
 	PROJECT=Amlogic
 	DEVICE=AMLG12
-	LAKKA_PATCHES="$LAKKA_PATCHES 02-ra_amlogic-ng.patch 03-ra_fbdev_fpsdrop.patch"
+	LAKKA_PATCHES="$LAKKA_PATCHES 02-ra_amlogic-ng.patch"
 fi
 LAKKA_BUILD_SUBDIR="build.${DISTRONAME}-${DEVICE:-$PROJECT}.${ARCH}"
 

@@ -7,7 +7,7 @@ index 2b1c66165a..ea0e0c4874 100644
  
  PKG_NAME="retroarch"
 -PKG_VERSION="06a2367"
-+PKG_VERSION="f43b19d"
++PKG_VERSION="f93548a"
  PKG_ARCH="any"
  PKG_LICENSE="GPLv3"
  PKG_SITE="https://github.com/libretro/RetroArch"
