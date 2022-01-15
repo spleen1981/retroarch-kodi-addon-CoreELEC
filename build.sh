@@ -1,19 +1,25 @@
 #!/bin/bash
 
-revert_patches(){
-	#Removing used patches
-	for patch in $LAKKA_PATCHES ; do
-		if [ -f "$SCRIPT_DIR"/patches/"$patch" ] ; then
-			echo "Reverting $patch"
-			git apply --reverse "$SCRIPT_DIR"/patches/"$patch"
-		else
-			echo "$patch not found"
-		fi
+apply_patches(){
+	local message="Applying"
+	local argument=""
+	if [ "$1" = "revert" ]; then
+		message="Reverting"
+		argument="--reverse"
+	fi
+	shopt -s nullglob
+	for patch_path in "$SCRIPT_DIR/patches/common" "$SCRIPT_DIR/patches/$DEVICE" "$SCRIPT_DIR/patches/$PROJECT" "$SCRIPT_DIR/patches/$ARCH"; do
+		for patch_file in "$patch_path"/*.patch ; do
+			if [ -f "$patch_file" ]; then
+				echo "$message $patch_file"
+				git apply $argument "$patch_file"
+			fi
+		done
 	done
 }
 
 exit_script(){
-	revert_patches
+	apply_patches revert
 	exit $1
 }
 trap exit_script SIGINT SIGTERM
@@ -61,8 +67,6 @@ LOG="${SCRIPT_DIR}/retroarch-kodi_`date +%Y%m%d_%H%M%S`.log"
 [ -z "$PACKAGES_TOOLS" ] && PACKAGES_TOOLS="joyutils xbox360-controllers-shutdown cec-mini-kb"
 [ -z "$PACKAGES_NETWORK" ] && PACKAGES_NETWORK="sixpair"
 [ -z "$PACKAGES_SYSUTILS" ] && PACKAGES_SYSUTILS="empty"
-
-[ -z "$LAKKA_PATCHES" ] && LAKKA_PATCHES="01-ra_common.patch 51-cec-mini-kb.patch 92-ra_bump.patch"
 
 #Building libretro core variable list from Lakka sources
 source "${LAKKA_DIR}/distributions/Lakka/options"
@@ -114,28 +118,21 @@ echo
 
 #Translating PROJECT/DEVICES in Lakka ones if needed
 if [ "$PROJECT" = "Amlogic-ng" ]; then
-	PROJECT=Amlogic
-	DEVICE=AMLG12
-	LAKKA_PATCHES="$LAKKA_PATCHES 02-ra_amlogic-ng.patch"
+	PROJECT_LAKKA=Amlogic
+	DEVICE_LAKKA=AMLG12
 fi
-LAKKA_BUILD_SUBDIR="build.${DISTRONAME}-${DEVICE:-$PROJECT}.${ARCH}"
+LAKKA_BUILD_SUBDIR="build.${DISTRONAME}-${DEVICE_LAKKA:-$PROJECT_LAKKA}.${ARCH}"
 
 cd "$LAKKA_DIR"
 git checkout ${LAKKA_VERSION} &>>"$LOG"
 
-#Applied required patches to Lakka
-for patch in $LAKKA_PATCHES ; do
-	if [ -f "$SCRIPT_DIR"/patches/"$patch" ] ; then
-		echo "Applying $patch"
-		git apply "$SCRIPT_DIR"/patches/"$patch"
-	else
-		echo "$patch not found"
-	fi
-done
+#Apply required patches to Lakka
+apply_patches
+
 echo "Building packages:"
 for package in $PACKAGES_ALL ; do
 	echo -ne "\t$package "
-	IGNORE_VERSION=1 DISTRO=$DISTRONAME PROJECT=$PROJECT DEVICE=$DEVICE ARCH=$ARCH ./$DISTRO_BUILD_SCRIPT $package &>>"$LOG"
+	IGNORE_VERSION=1 DISTRO=$DISTRONAME PROJECT=$PROJECT_LAKKA DEVICE=$DEVICE_LAKKA ARCH=$ARCH ./$DISTRO_BUILD_SCRIPT $package &>>"$LOG"
 	if [ $? -eq 0 ] ; then
 		echo "(ok)"
 	else
@@ -183,7 +180,7 @@ for suffix in $PKG_TYPES ; do
 	done
 done
 
-revert_patches
+apply_patches revert
 
 echo
 
