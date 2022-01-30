@@ -28,13 +28,13 @@ Addon zip file will be placed in `build` subfolder, ready to be installed in [KO
 
 ## Folders
 
-`/storage/.config/retroarch` is the root folder for RetroArch configurations. this It is not deleted when addon is removed (remove the folder manually in this case). It includes the `retroarch.cfg` main configuration file and following subfolders:
+`/storage/.config/retroarch` is the root folder for RetroArch configurations. It is not deleted when addon is removed (remove the folder manually in this case). It includes the `retroarch.cfg` main configuration file and following subfolders:
 
    - `savestates` for storing the savestates
    - `savefiles` for storing the saves (e.g. memory card files)
    - `remappings` for storing remapped controls
    - `playlists` for storing RetroArch playlists - lists of games per emulated system
-   - `system` put your BIOS files here
+   - `system` this is not the default system location, must be set up in retroarch settings if needed. It is convenient to put BIOS files here to avoid deletion on addon removal. Original content of `system` in addon folder can be copied here or downloaded again through retroarch online updater again.
    - `thumbnails` Boxarts / Screenshots / Title screens will be stored here
 
 Put your ROM files to folder `/storage/roms`. You may put them in separate folders by systems, but it is not required by RetroArch.
@@ -50,10 +50,11 @@ The add-on includes also following subfolders in the addon `resources` folder (r
    - `overlays` for touch-devices only - on screen gamepad overlays
    - `shaders` various shaders to enhance the visuals of the emulated systems on current display devices
    - `video_filters` various video filters
+   - `system` default location containing cores additional system files (e.g. BIOS) if any and as per core list built. Additional user BIOS/data can be added (see same bullet above).
 
 The emulation cores are stored in `lib/libretro` subfolder of the add-on (removed on addon removal).
 
 # Credits
-Thanks to [Lakka](http://lakka.tv) for their work.
+Thanks to [Lakka](http://lakka.tv) and [CoreELEC](https://coreelec.org/) for their work.
 
-Also thanks to [ToKe79](https://github.com/ToKe79) - This work is based on [his](https://github.com/ToKe79/retroarch-kodi-addon-LibreELEC).
+Also thanks to [ToKe79](https://github.com/ToKe79) - This work has been developed starting from [his](https://github.com/ToKe79/retroarch-kodi-addon-LibreELEC).

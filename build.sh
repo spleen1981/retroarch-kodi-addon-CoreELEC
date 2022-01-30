@@ -218,6 +218,9 @@ mv -v "${TMP_TARGET_DIR}/usr/share/audio_filters" "${ADDON_DIR}/resources/" &>>"
 echo -ne "\tvideo filters "
 mv -v "${TMP_TARGET_DIR}/usr/share/video_filters" "${ADDON_DIR}/resources/" &>>"$LOG"
 [ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
+echo -ne "\tsystem "
+mv -v "${TMP_TARGET_DIR}/usr/share/retroarch-system" "${ADDON_DIR}/resources/system" &>>"$LOG"
+[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 
 if [ ! -z "$INCLUDE_DLC" ]; then
 	echo -ne "\tjoypads "
@@ -5974,7 +5977,7 @@ echo -ne "\tcores "
 sed -i "s/\/tmp\/cores/${RA_CORES_DIR}/g" $CFG
 [ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo -ne "\tsystem "
-sed -i "s/\/storage\/system/${RA_CFG_DIR}\/system/g" $CFG
+sed -i "s/\/storage\/system/${RA_RES_DIR}\/system/g" $CFG
 [ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo -ne "\tassets "
 sed -i "s/\/tmp\/assets/${RA_RES_DIR}\/assets/g" $CFG
