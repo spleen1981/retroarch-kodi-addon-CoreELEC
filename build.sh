@@ -70,7 +70,7 @@ LOG="${SCRIPT_DIR}/retroarch-kodi_`date +%Y%m%d_%H%M%S`.log"
 [ -z "$PACKAGES_SYSUTILS" ] && PACKAGES_SYSUTILS="empty"
 
 #Applying auxiliary scripts
-for script_file in "$SCRIPT_DIR/scripts/common"/*.sh ; do
+for script_file in "$SCRIPT_DIR/scripts/hooks/$HOOK.sh" "$SCRIPT_DIR/scripts/common"/*.sh ; do
         if [ -f "$script_file" ] ; then
                 source "$script_file"
         fi
