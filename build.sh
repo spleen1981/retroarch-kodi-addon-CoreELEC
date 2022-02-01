@@ -1,6 +1,7 @@
 #!/bin/bash
 
 apply_patches(){
+	cd "${LAKKA_DIR}"
 	local message="Applying"
 	local argument=""
 	if [ "$1" = "revert" ]; then
@@ -8,14 +9,15 @@ apply_patches(){
 		argument="--reverse"
 	fi
 	shopt -s nullglob
-	for patch_path in "$SCRIPT_DIR/patches/common" "$SCRIPT_DIR/patches/$DEVICE" "$SCRIPT_DIR/patches/$PROJECT" "$SCRIPT_DIR/patches/$ARCH"; do
+	for patch_path in "$SCRIPT_DIR/patches/common" "$SCRIPT_DIR/patches/$DEVICE" "$SCRIPT_DIR/patches/$PROJECT" "$SCRIPT_DIR/patches/$ARCH" "$SCRIPT_DIR/patches/hooks/$HOOK" ; do
 		for patch_file in "$patch_path"/*.patch ; do
 			if [ -f "$patch_file" ]; then
 				echo "$message $patch_file"
-				git apply $argument "$patch_file"
+				git apply $argument "$patch_file" &>>"$LOG"
 			fi
 		done
 	done
+	cd - &>>"$LOG"
 }
 
 exit_script(){
@@ -342,6 +344,12 @@ sed -i "s/menu_show_configurations = \"true\"/menu_show_configurations = \"false
 sed -i "s/menu_show_restart_retroarch = \"true\"/menu_show_restart_retroarch = \"false\"/g" $CFG
 sed -i "s/menu_swap_ok_cancel_buttons = \"false\"/menu_swap_ok_cancel_buttons = \"true\"/g" $CFG
 [ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
+echo
+
+#Applying hook function if any
+[ "$(type -t hook_function)" = function ] && hook_function
+
+apply_patches revert
 
 echo
 echo -n "Creating archive..."

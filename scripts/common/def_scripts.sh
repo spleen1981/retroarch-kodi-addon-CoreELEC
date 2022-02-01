@@ -16,6 +16,7 @@ read -d '' retroarch_start <<EOF
 . /etc/profile
 
 oe_setup_addon ${ADDON_NAME}
+$HOOK_RETROARCH_START_0
 PATH="\$ADDON_DIR/bin:\$PATH"
 LD_LIBRARY_PATH="\$ADDON_DIR/lib:\$LD_LIBRARY_PATH"
 RA_CONFIG_DIR="/storage/.config/retroarch/"
@@ -75,6 +76,7 @@ if [ "\$ra_stop_kodi" = "true" ] ; then
 else
 	pgrep kodi.bin | xargs kill -SIGCONT
 fi
+$HOOK_RETROARCH_START_1
 exit 0
 EOF
 
