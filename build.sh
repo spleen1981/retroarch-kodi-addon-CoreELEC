@@ -350,8 +350,9 @@ echo
 [ "$(type -t hook_function)" = function ] && hook_function
 
 apply_patches revert
-
 echo
+
+#Archive creation
 echo -n "Creating archive..."
 cd ..
 zip -y -r "${ARCHIVE_NAME}" "${ADDON_NAME}" &>>"$LOG"
@@ -364,16 +365,9 @@ mv -vf "${ARCHIVE_NAME}" "${ADDON_BUILD_DIR}/${ADDON_NAME}/" &>>"$LOG"
 echo -ne "\tsymlink "
 ln -vsf "${ARCHIVE_NAME}" "${ADDON_BUILD_DIR}/${ADDON_NAME}/${ADDON_NAME}-LATEST.zip" &>>"$LOG"
 [ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
-echo -ne "\ticon.png "
-echo "$icon" | base64 --decode > "${ADDON_BUILD_DIR}/${ADDON_NAME}/resources/icon.png" &>>"$LOG"
-[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
-echo -ne "\tfanart.jpg "
-echo "$fanart" | base64 --decode > "${ADDON_BUILD_DIR}/${ADDON_NAME}/resources/fanart.jpg" &>>"$LOG"
-[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
-echo -ne "\taddon.xml "
-echo "$addon" > "${ADDON_BUILD_DIR}/${ADDON_NAME}/addon.xml"
-[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo
+
+#Cleanup
 echo "Cleaning up..."
 cd "${SCRIPT_DIR}"
 echo -ne "\tproject folder "
