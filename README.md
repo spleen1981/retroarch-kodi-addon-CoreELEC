@@ -34,8 +34,9 @@ Addon zip file will be placed in `build` subfolder, ready to be installed in [KO
    - `savefiles` for storing the saves (e.g. memory card files)
    - `remappings` for storing remapped controls
    - `playlists` for storing RetroArch playlists - lists of games per emulated system
-   - `system` this is not the default system location, must be set up in retroarch settings if needed. It is convenient to put BIOS files here to avoid deletion on addon removal. Original content of `system` in addon folder can be copied here or downloaded again through retroarch online updater again.
    - `thumbnails` Boxarts / Screenshots / Title screens will be stored here
+   - `system` alternate location for cores additional system files (e.g. BIOS). It is convenient to put BIOS files here and avoid deletion on addon removal. Original content of `system` in addon folder can be copied here or downloaded again through retroarch online updater again. If folder is not empty at first start, this path will override automatically the default one in retroarch.cfg
+   - `assets` alternate location for wallpapers, themes, icons, fonts, etc. Useful in case custom assets are used to avoid deletion on addon removal. If folder is not empty at first start, this path will override automatically the default one in retroarch.cfg 
 
 Put your ROM files to folder `/storage/roms`. You may put them in separate folders by systems, but it is not required by RetroArch.
 

@@ -21,7 +21,8 @@ PATH="\$ADDON_DIR/bin:\$PATH"
 LD_LIBRARY_PATH="\$ADDON_DIR/lib:\$LD_LIBRARY_PATH"
 RA_CONFIG_DIR="/storage/.config/retroarch/"
 RA_CONFIG_FILE="\$RA_CONFIG_DIR/retroarch.cfg"
-RA_CONFIG_SUBDIRS="savestates savefiles remappings playlists system thumbnails"
+RA_CONFIG_SUBDIRS="savestates savefiles remappings playlists system thumbnails assets"
+RA_CONFIG_CAN_OVERRIDE_SUBDIRS="assets system"
 RA_EXE="\$ADDON_DIR/bin/retroarch"
 RA_LOG=""
 ROMS_FOLDER="/storage/roms"
@@ -42,6 +43,19 @@ if [ ! -f "\$RA_CONFIG_FILE" ]; then
 		cp "\$ADDON_DIR/config/retroarch.cfg" "\$RA_CONFIG_FILE"
 	fi
 fi
+
+# First run only actions
+if [ ! -f \$ADDON_DIR/config/first_run_done ] ; then
+
+	#Override default settings to point to custom directories if not empty not empty
+	for subdir in \$RA_CONFIG_CAN_OVERRIDE_SUBDIRS ; do
+		[ ! -z "\$(ls -A \${RA_CONFIG_DIR}/\${subdir})" ] && sed -i "s|\${subdir}_directory = \\\".*\\\"|\${subdidr}_directory = \\\"\${RA_CONFIG_DIR}/\${subdir}\\\"|g" \$RA_CONFIG_FILE
+	done
+	$HOOK_RETROARCH_START_2
+
+	touch \$ADDON_DIR/config/first_run_done
+fi
+
 
 [ "\$ra_verbose" = "true" ] && RA_PARAMS="--verbose \$RA_PARAMS"
 
