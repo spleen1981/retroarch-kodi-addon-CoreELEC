@@ -97,5 +97,17 @@ PACKAGES_DEVEL="libcec"
 
 PACKAGES_SYSUTILS="$PACKAGES_SYSUTILS opengl-meson-coreelec"
 
-HOOK_RETROARCH_START_0="LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:\$ADDON_DIR/lib/lib64"
-HOOK_RETROARCH_START_1="LD_LIBRARY_PATH=\${LD_LIBRARY_PATH//\\:\${ADDON_DIR//\\//\\\\\\/}\\/lib\\/lib64}"
+HOOK_RETROARCH_START_0="LD_LIBRARY_PATH=\"\$LD_LIBRARY_PATH:\$ADDON_DIR/lib/lib64\""
+HOOK_RETROARCH_START_1="LD_LIBRARY_PATH=\"\${LD_LIBRARY_PATH//\\:\${ADDON_DIR//\\//\\\\\\/}\\/lib\\/lib64}\""
+
+read -d '' HOOK_RETROARCH_START_2 <<EOF
+cd \$ADDON_DIR/lib/lib64
+for file_src in * ; do
+	size_scr=\$(wc -c \$file_src)
+	if [ \${size_scr//" \$file_src"} -lt 100 -a ! -L \$file_src ]; then
+		[ -f \$(cat \$file_src) ] && ln -sf \$(cat \$file_src) \$file_src
+	fi
+	chmod +x \$file_src
+done
+cd - > /dev/null
+EOF
