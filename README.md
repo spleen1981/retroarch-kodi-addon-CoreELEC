@@ -55,6 +55,12 @@ The add-on includes also following subfolders in the addon `resources` folder (r
 
 The emulation cores are stored in `lib/libretro` subfolder of the add-on (removed on addon removal).
 
+## Experimental build options
+
+HOOK variable is used to apply experimental build options. Being experimental, those are not released as built addon zip package.
+
+   - `ARCH=aarch64 HOOK=aarch64_to_arm_userspace ./build.sh` This option will build a stand alone aarch64 package able to run in the 32bit arm CoreELEC userspace, e.g. to try cores available for 64bit systems only (e.g. dolphin)
+
 # Credits
 Thanks to [Lakka](http://lakka.tv) and [CoreELEC](https://coreelec.org/) for their work.
 
