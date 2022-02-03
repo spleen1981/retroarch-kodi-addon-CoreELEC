@@ -6,7 +6,7 @@ index 2b1c66165a..ea0e0c4874 100644
  ################################################################################
  
  PKG_NAME="retroarch"
--PKG_VERSION="06a2367"
+-PKG_VERSION="b71be7e"
 +PKG_VERSION="ffbbdbd256388d3d4f19fa63c5cdb5211e672ce5"
  PKG_ARCH="any"
  PKG_LICENSE="GPLv3"
