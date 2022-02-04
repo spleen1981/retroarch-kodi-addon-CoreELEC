@@ -39,7 +39,7 @@ BASE_NAME="$PROVIDER.retroarch"
 [ -z "$ADDON_VERSION" ] && ADDON_VERSION=$(date +%y.%m.%d)
 [ -z "$PROVIDER" ] && PROVIDER="${USER}"
 [ -z "$INCLUDE_DLC" ] && INCLUDE_DLC=""
-[ -z "$LAKKA_VERSION" ] && LAKKA_VERSION="958a0cce755434213033f2c40b6b744642e5b3f1"
+[ -z "$LAKKA_VERSION" ] && LAKKA_VERSION="638d0e9b9db07ebb7c90c55480d2b0613ffb6a7e"
 [ -z "$DISTRONAME" ] && DISTRONAME="Lakka"
 
 #Path and filename variables
