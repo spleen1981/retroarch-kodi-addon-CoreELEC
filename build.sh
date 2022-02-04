@@ -51,6 +51,8 @@ BASE_NAME="$PROVIDER.retroarch"
 if [ ! -d "$LAKKA_DIR" ] ; then
 	echo "Folder '$LAKKA_DIR' does not exist! Aborting!" >&2
 	exit_script 1
+else
+	LAKKA_DIR="$(cd "${LAKKA_DIR}"; pwd)"
 fi
 [ -n "$DEVICE" ] && RA_NAME_SUFFIX=${DEVICE}.${ARCH} ||	RA_NAME_SUFFIX=${PROJECT}.${ARCH}
 TMP_PROJECT_DIR="${SCRIPT_DIR}/retroarch_work"
