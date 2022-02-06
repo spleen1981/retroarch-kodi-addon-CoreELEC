@@ -13,9 +13,30 @@ EOF
 read -d '' retroarch_start <<EOF
 #!/bin/sh
 
+exit_script(){
+	[ "\$ra_cec_remote" = "true" ] && systemctl stop cec-kb.service
+
+	[ "\$ra_xbox360_shutdown" = "true" ] && "\$ADDON_DIR"/bin/xbox360-controllers-shutdown
+
+	[ "\$ra_roms_remote" = "true" ] && umount "\$ROMS_FOLDER"
+
+	if [ "\$ra_stop_kodi" = "true" ] ; then
+		systemctl start kodi
+	else
+		pgrep kodi.bin | xargs kill -SIGCONT
+	fi
+
+	$HOOK_RETROARCH_START_1
+
+	exit 0
+}
+
 . /etc/profile
 
 oe_setup_addon ${ADDON_NAME}
+
+trap exit_script SIGINT SIGTERM
+
 $HOOK_RETROARCH_START_0
 PATH="\$ADDON_DIR/bin:\$PATH"
 LD_LIBRARY_PATH="\$ADDON_DIR/lib:\$LD_LIBRARY_PATH"
@@ -56,7 +77,6 @@ if [ ! -f \$ADDON_DIR/config/first_run_done ] ; then
 	touch \$ADDON_DIR/config/first_run_done
 fi
 
-
 [ "\$ra_verbose" = "true" ] && RA_PARAMS="--verbose \$RA_PARAMS"
 
 [ "\$ra_log" = "true" ] && RA_PARAMS="--log-file=\$LOGFILE \$RA_PARAMS"
@@ -79,19 +99,8 @@ fi
 
 [ "\$ra_cec_remote" = "true" ] && systemd-run -u cec-kb "\$ADDON_DIR/bin/cec-mini-kb"
 \$RA_EXE \$RA_PARAMS
-[ "\$ra_cec_remote" = "true" ] && systemctl stop cec-kb.service
 
-[ "\$ra_xbox360_shutdown" = "true" ] && "\$ADDON_DIR"/bin/xbox360-controllers-shutdown
-
-[ "\$ra_roms_remote" = "true" ] && umount "\$ROMS_FOLDER"
-
-if [ "\$ra_stop_kodi" = "true" ] ; then
-	systemctl start kodi
-else
-	pgrep kodi.bin | xargs kill -SIGCONT
-fi
-$HOOK_RETROARCH_START_1
-exit 0
+exit_script
 EOF
 
 read -d '' addon_xml <<EOF
@@ -185,3 +194,4 @@ read -d '' settings_default_xml <<EOF
 	<setting id="ra_verbose" value="false" />
 </settings>
 EOF
+
