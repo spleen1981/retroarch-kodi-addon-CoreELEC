@@ -1,0 +1,13 @@
+diff --git a/packages/libretro/retroarch/package.mk b/packages/libretro/retroarch/package.mk
+index 4ea1fa9aac..e1ea9dccb0 100644
+--- a/packages/libretro/retroarch/package.mk
++++ b/packages/libretro/retroarch/package.mk
+@@ -123,7 +123,7 @@ if [[ "$TARGET_FPU" =~ "neon" ]]; then
+   fi
+ fi
+ 
+-PKG_CONFIGURE_OPTS_TARGET="--disable-vg \
++PKG_CONFIGURE_OPTS_TARGET="--disable-update_cores --disable-vg \
+                            --disable-sdl \
+                            --disable-sdl2 \
+                            --disable-ssl \
