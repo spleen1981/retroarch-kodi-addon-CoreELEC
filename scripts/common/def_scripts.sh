@@ -21,6 +21,7 @@ exit_script(){
 	[ "\$ra_roms_remote" = "true" ] && umount "\$ROMS_FOLDER"
 
 	if [ "\$ra_stop_kodi" = "true" ] ; then
+		sed -E -i "s/\${CAP_GROUP_CEC}(.*)\\\"/\${CAP_GROUP_CEC}\${CEC_SHUTDOWN_SETTING_PREV}\\\"/" \$KODI_CEC_SETTINGS_FILE
 		systemctl start kodi
 	else
 		pgrep kodi.bin | xargs kill -SIGCONT
@@ -50,6 +51,9 @@ ROMS_FOLDER="/storage/roms"
 DOWNLOADS="downloads"
 RA_PARAMS="--config=\$RA_CONFIG_FILE --menu"
 LOGFILE="/storage/retroarch.log"
+CAP_GROUP_CEC="<setting id=\\\"standby_devices\\\" value=\\\""
+CEC_SHUTDOWN_SETTING_NO="231"
+KODI_CEC_SETTINGS_FILE="\$(ls /storage/.kodi/userdata/peripheral_data/*CEC*.xml)"
 
 [ ! -d "\$RA_CONFIG_DIR" ] && mkdir -p "\$RA_CONFIG_DIR"
 [ ! -d "\$ROMS_FOLDER" ] && mkdir -p "\$ROMS_FOLDER"
@@ -82,6 +86,15 @@ fi
 [ "\$ra_log" = "true" ] && RA_PARAMS="--log-file=\$LOGFILE \$RA_PARAMS"
 
 if [ "\$ra_stop_kodi" = "true" ] ; then
+
+	CEC_SHUTDOWN_SETTING_PREV=\$(cat "\$KODI_CEC_SETTINGS_FILE" | grep "\${CAP_GROUP_CEC}" | grep -Eow "([0-9]+)")
+
+	if [ ! \$CEC_SHUTDOWN_SETTING_PREV == \$CEC_SHUTDOWN_SETTING_NO ] ; then
+		#Workaround, as peripherals settings cannot be changed through json-rpc
+		sed -E -i "s/\${CAP_GROUP_CEC}(.*)\\\"/\${CAP_GROUP_CEC}\${CEC_SHUTDOWN_SETTING_NO}\\\"/" \$KODI_CEC_SETTINGS_FILE
+		pgrep kodi.bin | xargs kill -SIGHUP
+	fi
+
 	systemctl stop kodi
 else
 	pgrep kodi.bin | xargs kill -SIGSTOP
