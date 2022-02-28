@@ -20,15 +20,19 @@ exit_script(){
 
 	[ "\$ra_roms_remote" = "true" ] && umount "\$ROMS_FOLDER"
 
+	if [ "\$ra_force_refresh_rate" = "true" -a ! -z "\$VIDEO_MODE_RES" ] ; then
+		VIDEO_MODE_OLD="\$VIDEO_MODE_RES"
+		[ ! -z \$VIDEO_MODE_RATE ] && VIDEO_MODE_OLD=\${VIDEO_MODE_OLD}\${VIDEO_MODE_RATE}hz
+		echo "\$VIDEO_MODE_OLD" > "/sys/class/display/mode"
+	fi
+
 	if [ "\$ra_stop_kodi" = "true" ] ; then
 		sed -E -i "s/\${CAP_GROUP_CEC}(.*)\\\"/\${CAP_GROUP_CEC}\${CEC_SHUTDOWN_SETTING_PREV}\\\"/" \$KODI_CEC_SETTINGS_FILE
 		systemctl start kodi
 	else
 		pgrep kodi.bin | xargs kill -SIGCONT
 	fi
-
 	$HOOK_RETROARCH_START_1
-
 	exit 0
 }
 
@@ -37,7 +41,6 @@ exit_script(){
 oe_setup_addon ${ADDON_NAME}
 
 trap exit_script SIGINT SIGTERM
-
 $HOOK_RETROARCH_START_0
 PATH="\$ADDON_DIR/bin:\$PATH"
 LD_LIBRARY_PATH="\$ADDON_DIR/lib:\$LD_LIBRARY_PATH"
@@ -54,6 +57,8 @@ LOGFILE="/storage/retroarch.log"
 CAP_GROUP_CEC="<setting id=\\\"standby_devices\\\" value=\\\""
 CEC_SHUTDOWN_SETTING_NO="231"
 KODI_CEC_SETTINGS_FILE="\$(ls /storage/.kodi/userdata/peripheral_data/*CEC*.xml)"
+VIDEO_MODE_RATE="\$(cat /sys/class/display/mode | grep -Eo [pi].+[h] | grep -Eo [0-9]+)"
+VIDEO_MODE_RES="\$(cat /sys/class/display/mode | grep -Eo .\+[pi])"
 
 [ ! -d "\$RA_CONFIG_DIR" ] && mkdir -p "\$RA_CONFIG_DIR"
 [ ! -d "\$ROMS_FOLDER" ] && mkdir -p "\$ROMS_FOLDER"
@@ -77,7 +82,6 @@ if [ ! -f \$ADDON_DIR/config/first_run_done ] ; then
 		[ ! -z "\$(ls -A \${RA_CONFIG_DIR}/\${subdir})" ] && sed -i "s|^\${subdir}_directory.*|\${subdir}_directory = \\\"\${RA_CONFIG_DIR}/\${subdir}\\\"|g" \$RA_CONFIG_FILE
 	done
 	$HOOK_RETROARCH_START_2
-
 	touch \$ADDON_DIR/config/first_run_done
 fi
 
@@ -109,6 +113,20 @@ if [ "\$ra_roms_remote" = "true" ] ; then
 	fi
 	[ ! -z "\$ra_roms_remote_path" ] && mount \$RA_REMOTE_OPTS_PRE "\$RA_REMOTE_OPTS" "\$ra_roms_remote_path" "\$ROMS_FOLDER"
 fi
+
+VIDEO_MODE_NEWRATE=\$VIDEO_MODE_RATE
+if [ "\$ra_force_refresh_rate" = "true" -a ! -z "\$VIDEO_MODE_RES" ] ; then
+		case \$ra_forced_refresh_rate in
+			"0")
+				VIDEO_MODE_NEWRATE="50"
+				;;
+			"1")
+				VIDEO_MODE_NEWRATE="60"
+				;;
+		esac
+		echo \${VIDEO_MODE_RES}\${VIDEO_MODE_NEWRATE}hz > "/sys/class/display/mode"
+fi
+sed -E -i "s|video_refresh_rate.+|video_refresh_rate = \"\${VIDEO_MODE_NEWRATE}\"|g" \$RA_CONFIG_FILE
 
 [ "\$ra_cec_remote" = "true" ] && systemd-run -u cec-kb "\$ADDON_DIR/bin/cec-mini-kb"
 \$RA_EXE \$RA_PARAMS
@@ -180,6 +198,8 @@ read -d '' settings_xml <<EOF
 		<setting id="ra_stop_kodi" label="Stop Kodi before launching RetroArch" type="bool" default="true" />
 		<setting id="ra_xbox360_shutdown" label="Turn off Xbox360 controllers after closing RetroArch" type="bool" default="true" />
 		<setting id="ra_cec_remote" label="Use CEC remote control with RetroArch" type="bool" default="true" />
+		<setting id="ra_force_refresh_rate" label="Override Kodi refresh rate settings" type="bool" default="true" />
+		<setting id="ra_forced_refresh_rate" label="RetroArch refresh rate" type="enum" values="50Hz (PAL)|60Hz (NTSC)" default="1" enable="eq(-1,true)" subsetting="true" />
 	</category>
 	<category label="Paths">
 		<setting id="ra_roms_remote" label="Mount remote path for RetroArch roms" type="bool" default="false" />
@@ -199,6 +219,8 @@ read -d '' settings_default_xml <<EOF
 	<setting id="ra_stop_kodi" value="true" />
 	<setting id="ra_xbox360_shutdown" value="true" />
 	<setting id="ra_cec_remote" value="true" />
+	<setting id="ra_force_refresh_rate" value="true" />
+	<setting id="ra_forced_refresh_rate" value="1" />
 	<setting id="ra_roms_remote" value="false" />
 	<setting id="ra_roms_remote_path" value="" />
 	<setting id="ra_roms_remote_user" value="" />
