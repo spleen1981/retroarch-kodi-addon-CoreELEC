@@ -1,0 +1,33 @@
+diff --git a/packages/libretro/retroarch/patches/02_alsa_freeze.patch b/packages/libretro/retroarch/patches/02_alsa_freeze.patch
+new file mode 100644
+index 0000000000..8e8e9a304d
+--- /dev/null
++++ b/packages/libretro/retroarch/patches/02_alsa_freeze.patch
+@@ -0,0 +1,26 @@
++diff --git a/audio/drivers/alsa.c b/audio/drivers/alsa.c
++index 8a60432484..9efb80ff77 100644
++--- a/audio/drivers/alsa.c
+++++ b/audio/drivers/alsa.c
++@@ -225,7 +225,8 @@ static ssize_t alsa_write(void *data, const void *buf_, size_t size_)
++       while (size)
++       {
++          snd_pcm_sframes_t frames;
++-         int rc = snd_pcm_wait(alsa->pcm, -1);
+++         /* 500ms timeout to fix random endless wait after game resume from menu */
+++         int rc = snd_pcm_wait(alsa->pcm, 500);
++
++          if (rc == -EPIPE || rc == -ESTRPIPE || rc == -EINTR)
++          {
++@@ -233,6 +234,12 @@ static ssize_t alsa_write(void *data, const void *buf_, size_t size_)
++                return -1;
++             continue;
++          }
+++         else if (!rc)
+++         {
+++            RARCH_LOG("[ALSA] snd_pcm_wait timeout occurred.\n");
+++            snd_pcm_reset(alsa->pcm);
+++            return -1;
+++         }
++
++          frames = snd_pcm_writei(alsa->pcm, buf, size);
+
