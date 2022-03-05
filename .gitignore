@@ -1,5 +1,6 @@
 build/
 build
+retroarch_work/
 local.conf
 *.swp
 *~
