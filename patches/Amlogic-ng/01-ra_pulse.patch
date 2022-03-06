@@ -1,0 +1,15 @@
+diff --git a/packages/libretro/retroarch/package.mk b/packages/libretro/retroarch/package.mk
+index 4ea1fa9aac..6cc64d2117 100644
+--- a/packages/libretro/retroarch/package.mk
++++ b/packages/libretro/retroarch/package.mk
+@@ -33,6 +33,10 @@ PKG_LONGDESC="RetroArch is the reference frontend for the libretro API. Popular
+ PKG_IS_ADDON="no"
+ PKG_AUTORECONF="no"
+ 
++PKG_CONFIGURE_OPTS_TARGET="$PKG_CONFIGURE_OPTS_TARGET --enable-pulse"
++PKG_DEPENDS_TARGET="$PKG_DEPENDS_TARGET pulseaudio"
++
++
+ if [ "$OPENGLES_SUPPORT" = yes ]; then
+   PKG_DEPENDS_TARGET+=" $OPENGLES"
+ fi
