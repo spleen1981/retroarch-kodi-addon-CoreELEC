@@ -13,6 +13,40 @@ EOF
 read -d '' retroarch_start <<EOF
 #!/bin/sh
 
+sync_audio_settings(){
+KODI_AUDIO_SETTING=\$(cat /storage/.kodi/userdata/guisettings.xml | grep "audiooutput.audiodevice" | tr "" " " | sed -E 's|</.*>||' | sed -E 's|<.*>||' | sed 's| ||g')
+KODI_AUDIO_DRIVER=\$(echo \$KODI_AUDIO_SETTING | sed -E 's|:.*||')
+KODI_AUDIO_DEVICE=\$(echo \$KODI_AUDIO_SETTING | sed "s|\$KODI_AUDIO_DRIVER:||")
+
+retroarch --features | tr "\\\\n" "|" |sed "s/|\\\\t\\\\t/ /g" | tr "|" "\\\\n" | grep -Eiq "\${KODI_AUDIO_DRIVER}.*yes"
+
+[ \$? -eq 1 ] && return 1
+
+case \$KODI_AUDIO_DRIVER in
+	ALSA)
+		RA_AUDIO_DRIVER=alsa
+		RA_AUDIO_DEVICE=\$KODI_AUDIO_DEVICE
+                #Double check device exists
+		aplay -L | grep -q \$RA_AUDIO_DEVICE
+		[ \$? -eq 1 ] && return 1
+		;;
+	PULSE)
+		RA_AUDIO_DRIVER=pulse
+		RA_AUDIO_DEVICE=""
+		;;
+	*)
+		#Additional cases TBD
+		return 1
+		;;
+esac
+
+#If current device is suitable, retain current setting
+cat \$RA_CONFIG_FILE | grep -Eq "audio_driver.*\$RA_AUDIO_DRIVER"
+[ \$? -eq 1 ] && sed -i "s|^audio_driver.*|audio_driver = \$RA_AUDIO_DRIVER|g" \$RA_CONFIG_FILE
+
+sed -i "s|^audio_device.*|audio_device = \$RA_AUDIO_DEVICE|g" \$RA_CONFIG_FILE
+}
+
 exit_script(){
 	[ "\$ra_cec_remote" = "true" ] && systemctl stop cec-kb.service
 
@@ -128,7 +162,9 @@ if [ "\$ra_force_refresh_rate" = "true" -a ! -z "\$VIDEO_MODE_RES" ] ; then
 fi
 sed -E -i "s|video_refresh_rate.+|video_refresh_rate = \"\${VIDEO_MODE_NEWRATE}\"|g" \$RA_CONFIG_FILE
 
-[ "\$ra_cec_remote" = "true" ] && systemd-run -u cec-kb "\$ADDON_DIR/bin/cec-mini-kb"
+[ "\$ra_sync_audio_settings" = "true" ] && sync_audio_settings
+
+[ "\$ra_cec_remote" = "true" ] && systemd-run -q -u cec-kb "\$ADDON_DIR/bin/cec-mini-kb"
 \$RA_EXE \$RA_PARAMS
 
 exit_script
@@ -200,6 +236,7 @@ read -d '' settings_xml <<EOF
 		<setting id="ra_cec_remote" label="Use CEC remote control with RetroArch" type="bool" default="true" />
 		<setting id="ra_force_refresh_rate" label="Override Kodi refresh rate settings" type="bool" default="true" />
 		<setting id="ra_forced_refresh_rate" label="RetroArch refresh rate" type="enum" values="50Hz (PAL)|60Hz (NTSC)" default="1" enable="eq(-1,true)" subsetting="true" />
+		<setting id="ra_sync_audio_settings" label="Sync RetroArch audio settings with Kodi" type="bool" default="true" />
 	</category>
 	<category label="Paths">
 		<setting id="ra_roms_remote" label="Mount remote path for RetroArch roms" type="bool" default="false" />
@@ -221,6 +258,7 @@ read -d '' settings_default_xml <<EOF
 	<setting id="ra_cec_remote" value="true" />
 	<setting id="ra_force_refresh_rate" value="true" />
 	<setting id="ra_forced_refresh_rate" value="1" />
+	<setting id="ra_sync_audio_settings" value="true" />
 	<setting id="ra_roms_remote" value="false" />
 	<setting id="ra_roms_remote_path" value="" />
 	<setting id="ra_roms_remote_user" value="" />
