@@ -1,0 +1,18 @@
+diff --git a/packages/libretro/retroarch/patches/03-fbdev_threaded_video_quickmenu_segfault.patch b/packages/libretro/retroarch/patches/03-fbdev_threaded_video_quickmenu_segfault.patch
+new file mode 100644
+index 0000000000..f666c3eae4
+--- /dev/null
++++ b/packages/libretro/retroarch/patches/03-fbdev_threaded_video_quickmenu_segfault.patch
+@@ -0,0 +1,12 @@
++diff --git a/gfx/drivers_context/mali_fbdev_ctx.c b/gfx/drivers_context/mali_fbdev_ctx.c
++index e2df5152be..27f7a4d341 100644
++--- a/gfx/drivers_context/mali_fbdev_ctx.c
+++++ b/gfx/drivers_context/mali_fbdev_ctx.c
++@@ -160,6 +160,7 @@ static void gfx_ctx_mali_fbdev_destroy(void *data)
++       gfx_ctx_mali_fbdev_global=NULL;
++       gfx_ctx_mali_fbdev_restart_pending=true;
++    }else if (gfx_ctx_mali_fbdev_was_threaded!=*video_driver_get_threaded()){
+++      gfx_ctx_mali_fbdev_global=NULL;
++       command_event(CMD_EVENT_RESTART_RETROARCH,NULL);
++    }
++ }
