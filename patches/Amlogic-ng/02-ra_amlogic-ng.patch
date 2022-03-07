@@ -21,7 +21,7 @@ index e4157c4510..584fb0e75c 100644
                             --enable-freetype \
                             --enable-translate \
 -                           --enable-cdrom \
-+                           --disable-cdrom \
++                           --disable-cdrom --disable-vulkan\
                             --enable-command \
                             --datarootdir=$SYSROOT_PREFIX/usr/share" # don't use host /usr/share!
  
