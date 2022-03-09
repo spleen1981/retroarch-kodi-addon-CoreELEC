@@ -30,6 +30,8 @@ Addon zip file will be placed in `build` subfolder, ready to be installed in [KO
    - Turn off Xbox360 wireless controllers when exiting Retroarch
    - Use remote location (e.g. SMB) as roms folder
    - Use TV remote controller (CEC) to navigate RetroArch menu (ref [here](https://github.com/spleen1981/cec-mini-kb) for key bindings)
+   - Set refresh rate for Retroarch independently from Kodi settings
+   - Sync Retroarch audio driver/device with Kodi settings
 
 ## Folders
 
