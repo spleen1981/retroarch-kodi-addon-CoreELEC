@@ -7,7 +7,7 @@ read -d '' retroarch_sh <<EOF
 
 oe_setup_addon ${ADDON_NAME}
 
-systemd-run -u retroarch \$ADDON_DIR/bin/retroarch.start "$@"
+systemd-run -u retroarch \$ADDON_DIR/bin/retroarch.start "\$@"
 EOF
 
 read -d '' retroarch_start <<EOF
@@ -165,7 +165,7 @@ sed -E -i "s|video_refresh_rate.+|video_refresh_rate = \"\${VIDEO_MODE_NEWRATE}\
 [ "\$ra_sync_audio_settings" = "true" ] && sync_audio_settings
 
 [ "\$ra_cec_remote" = "true" ] && systemd-run -q -u cec-kb "\$ADDON_DIR/bin/cec-mini-kb"
-\$RA_EXE \$RA_PARAMS "$@"
+\$RA_EXE \$RA_PARAMS "\$@"
 
 exit_script
 EOF
