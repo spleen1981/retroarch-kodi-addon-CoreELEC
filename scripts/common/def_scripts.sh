@@ -7,7 +7,7 @@ read -d '' retroarch_sh <<EOF
 
 oe_setup_addon ${ADDON_NAME}
 
-systemd-run -u retroarch \$ADDON_DIR/bin/retroarch.start
+systemd-run -u retroarch \$ADDON_DIR/bin/retroarch.start "\$@"
 EOF
 
 read -d '' retroarch_start <<EOF
@@ -86,7 +86,7 @@ RA_EXE="\$ADDON_DIR/bin/retroarch"
 RA_LOG=""
 ROMS_FOLDER="/storage/roms"
 DOWNLOADS="downloads"
-RA_PARAMS="--config=\$RA_CONFIG_FILE --menu"
+RA_PARAMS="--config=\$RA_CONFIG_FILE"
 LOGFILE="/storage/retroarch.log"
 CAP_GROUP_CEC="<setting id=\\\"standby_devices\\\" value=\\\""
 CEC_SHUTDOWN_SETTING_NO="231"
@@ -165,7 +165,7 @@ sed -E -i "s|video_refresh_rate.+|video_refresh_rate = \"\${VIDEO_MODE_NEWRATE}\
 [ "\$ra_sync_audio_settings" = "true" ] && sync_audio_settings
 
 [ "\$ra_cec_remote" = "true" ] && systemd-run -q -u cec-kb "\$ADDON_DIR/bin/cec-mini-kb"
-\$RA_EXE \$RA_PARAMS
+\$RA_EXE \$RA_PARAMS "\$@"
 
 exit_script
 EOF
