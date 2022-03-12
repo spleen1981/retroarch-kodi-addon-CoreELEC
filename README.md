@@ -4,6 +4,7 @@ This script creates a RetroArch add-on for Kodi from Lakka sources for CoreELEC 
 Resulting builds have been tested on following ARM devices:
    - S905X3
    - S922x (Odroid N2+)
+   - S905X
 
 up to CoreELEC 19.4.
 
