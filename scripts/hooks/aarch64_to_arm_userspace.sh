@@ -58,6 +58,15 @@ add_extra_pkg_src(){
 	exit_script 1
 }
 
+add_subdirs(){
+	for subdir in $1/* ; do
+		if [ -d $subdir ] ; then
+			TARG_DIR="$TARG_DIR $subdir"
+			add_subdirs $subdir
+		fi
+	done
+}
+
 hook_function(){
 if [[ "$PROJECT" == "Amlogic-ng" && "$ARCH" == aarch64 ]] ; then
 	#Patching ELF to set aarch64 local interpreter
@@ -77,7 +86,13 @@ if [[ "$PROJECT" == "Amlogic-ng" && "$ARCH" == aarch64 ]] ; then
 
 	LD64_SRC1="${LAKKA_DIR}/${LAKKA_BUILD_SUBDIR}/toolchain/aarch64-libreelec-linux-gnueabi/sysroot/usr/lib/"
 	LD64_SRC2="${LAKKA_DIR}/${LAKKA_BUILD_SUBDIR}/toolchain/aarch64-libreelec-linux-gnueabi/lib64/"
-	TARG_DIR="${ADDON_DIR}/lib/ ${ADDON_DIR}/bin/ ${SRC_EXTRA} ${LD64_SRC1} ${LD64_SRC2} ${ADDON_DIR}/usr/lib/libretro/"
+	TARG_DIR_SRC="${ADDON_DIR}/lib/ ${ADDON_DIR}/bin/ ${SRC_EXTRA} ${LD64_SRC1} ${LD64_SRC2} ${ADDON_DIR}/usr/lib/libretro/"
+	#crawl all subdirs in defined src paths
+	TARG_DIR=$TARG_DIR_SRC
+	for path in $TARG_DIR_SRC ; do
+		add_subdirs $path
+	done
+
 	echo -e "\tCreating lib64 directory"
 	DEST_DIR="${ADDON_DIR}/lib/lib64/"
 	mkdir -p "$DEST_DIR"
