@@ -208,10 +208,12 @@ read -d '' addon_xml <<EOF
 		<provides>executable game</provides>
 	</extension>
 	<extension point="xbmc.addon.metadata">
+		<platform>linux</platform>
 		<summary lang="en">RetroArch add-on for Kodi (${RA_NAME_SUFFIX}). RetroArch is a frontend for emulators, game engines and media players.</summary>
 		<description lang="en">The add-on provides binary, cores and basic settings to launch RetroArch from Kodi UI, plus additional features to improve user experience. It is built from Lakka sources.</description>
 		<disclaimer lang="en">This is an unofficial add-on. Use github.com/spleen1981/retroarch-kodi-addon-CoreELEC to submit issues.</disclaimer>
-		<platform>linux</platform>
+		<forum>https://discourse.coreelec.org/t/retroarch-kodi-add-on-for-coreelec/17482</forum>
+    		<source>https://github.com/spleen1981/retroarch-kodi-addon-CoreELEC</source>
 		<assets>
 			<icon>resources/icon.png</icon>
 			<fanart>resources/fanart.jpg</fanart>
