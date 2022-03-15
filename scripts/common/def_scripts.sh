@@ -3,15 +3,43 @@
 read -d '' retroarch_sh <<EOF
 #!/bin/sh
 
-. /etc/profile
-
-oe_setup_addon ${ADDON_NAME}
-
-systemd-run -u retroarch \$ADDON_DIR/bin/retroarch.start "\$@"
+systemd-run -u retroarch \$HOME/.kodi/addons/script.retroarch.launcher.Amlogic-ng.arm/bin/retroarch.start "\$@"
 EOF
 
 read -d '' retroarch_start <<EOF
 #!/bin/sh
+
+#Fixes a bug up to CoreELEC 19.4
+oe_setup_addon_new() {
+  if [ ! -z \$1 ] ; then
+    DEF="/storage/.kodi/addons/\$1/settings-default.xml"
+    CUR="/storage/.kodi/userdata/addon_data/\$1/settings.xml"
+
+    # export some useful variables
+    ADDON_DIR="\$HOME/.kodi/addons/\$1"
+    ADDON_HOME="\$HOME/.kodi/userdata/addon_data/\$1"
+    ADDON_LOG_FILE="\$ADDON_HOME/service.log"
+
+    [ ! -d \$ADDON_HOME ] && mkdir -p \$ADDON_HOME
+
+    # copy defaults
+    if [ -f "\$DEF" -a ! -f "\$CUR" ] ; then
+      cp "\$DEF" "\$CUR"
+    fi
+
+    # parse config
+    for xml_file in "\$DEF" "\$CUR"; do
+      if [ -f "\$xml_file" ]; then
+        XML_SETTINGS_VER="\$(xmlstarlet sel -t -m settings -v @version \$xml_file)"
+        if [ "\$XML_SETTINGS_VER" = "2" ]; then
+          eval \$(xmlstarlet sel -t -m settings/setting -v @id -o "=" -v . -n "\$xml_file" | sed -e "s/'/'\\\\\\\\\\\\\\\\''/g; s/=/='/; s/\$/'/")
+        else
+          eval \$(xmlstarlet sel -t -m settings -m setting -v @id -o "=" -v @value -n "\$xml_file" | sed -e "s/'/'\\\\\\\\\\\\\\\\''/g; s/=/='/; s/\$/'/")
+        fi
+      fi
+    done
+  fi
+}
 
 sync_audio_settings(){
 KODI_AUDIO_SETTING=\$(cat /storage/.kodi/userdata/guisettings.xml | grep "audiooutput.audiodevice" | tr "" " " | sed -E 's|</.*>||' | sed -E 's|<.*>||' | sed 's| ||g')
@@ -72,7 +100,7 @@ exit_script(){
 
 . /etc/profile
 
-oe_setup_addon ${ADDON_NAME}
+oe_setup_addon_new ${ADDON_NAME}
 
 trap exit_script SIGINT SIGTERM
 $HOOK_RETROARCH_START_0
