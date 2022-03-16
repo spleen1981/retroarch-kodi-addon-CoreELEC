@@ -3,7 +3,7 @@ This script creates a RetroArch add-on for Kodi from Lakka sources for CoreELEC 
 
 Resulting builds have been tested on following ARM devices:
    - S905X3
-   - S922x (Odroid N2+)
+   - S922X (Odroid N2+)
    - S905X
 
 up to CoreELEC 19.4.
@@ -68,6 +68,21 @@ The emulation cores are stored in `lib/libretro` subfolder of the add-on (remove
 HOOK variable is used to apply experimental build options. Being experimental, those are not released as built addon zip package.
 
    - `ARCH=aarch64 HOOK=aarch64_to_arm_userspace ./build.sh` This option will build a stand alone aarch64 package able to run in the 32bit arm CoreELEC userspace, e.g. to try cores available for 64bit systems only (e.g. dolphin)
+
+## Adding new translations
+
+New languages for the addon frontend can be added by modifying [this file](https://github.com/spleen1981/retroarch-kodi-addon-CoreELEC/blob/master/scripts/common/01-def_lang.sh).
+
+The new language code is to be added in the following variable, separated by space (adding italian language in the following examples, coded it_it):
+```
+LANG_list="en_gb it_it"
+```
+and the new translations for each string are to be added as follows, as per existing structure:
+```
+LANG_32001_en_gb="Stop Kodi service before launching RetroArch"
+LANG_32001_it_it="Ferma il servizio Kodi prima di lanciare RetroArch"
+```
+All language files needed by Kodi will be generated at build time.
 
 # Credits
 Thanks to [Lakka](http://lakka.tv) and [CoreELEC](https://coreelec.org/) for their work.

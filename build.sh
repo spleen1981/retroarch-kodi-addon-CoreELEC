@@ -287,6 +287,38 @@ echo "$icon" | base64 --decode > resources/icon.png
 [ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo
 
+#Creating language files
+echo "Creating languages files and folders..."
+echo -ne "\tlanguage "
+mkdir resources/language
+[ $? -eq 0 ] && echo -e "(ok)" || { echo -e "(failed)" ; exit_script 1 ; }
+for lang_item in $LANG_list ; do
+	echo -ne "\t$lang_item "
+	mkdir "resources/language/resource.language.$lang_item"
+	lang_file_output=$(printf "$LANG_header" ${ADDON_VERSION} $(echo "$lang_item" | sed -e 's/_\(.*\)/_\U\1/'))
+	for lang_msg_no in 0 1 2 $(seq 32000 $LANG_max) ; do
+		varname1="LANG_${lang_msg_no}_en_gb"
+		[ -z "${!varname1}" ] && continue
+		if [ $lang_msg_no -lt 32000 ] ; then
+			varname0="LANG_${lang_msg_no}_ctx"
+			lang_file_output="${lang_file_output}\nmsgctxt \"${!varname0}\""
+		else
+			lang_file_output="${lang_file_output}\nmsgctxt \"#${lang_msg_no}\""
+		fi
+		lang_file_output="${lang_file_output}\nmsgid \"${!varname1}\""
+		if [ "$lang_item" = en_gb ] ; then
+			lang_file_output="${lang_file_output}\nmsgstr \"\""
+		else
+			varname2="LANG_${lang_msg_no}_${lang_item}"
+			lang_file_output="${lang_file_output}\nmsgstr \"${!varname2}\""
+		fi
+		lang_file_output="${lang_file_output}\n"
+	done
+	echo -e "$lang_file_output" > resources/language/resource.language.${lang_item}/strings.po
+	[ $? -eq 0 ] && echo -e "(ok)" || { echo -e "(failed)" ; exit_script 1 ; }
+done
+echo
+
 #Customizing retroarch.cfg
 echo "Making modifications to retroarch.cfg..."
 CFG="config/retroarch.cfg"

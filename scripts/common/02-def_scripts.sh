@@ -198,6 +198,19 @@ sed -E -i "s|video_refresh_rate.+|video_refresh_rate = \"\${VIDEO_MODE_NEWRATE}\
 exit_script
 EOF
 
+ADDON_XML_LANG_CONTENT=""
+
+for lang_item in $LANG_list ; do
+	varname0="LANG_0_${lang_item}"
+	varname1="LANG_1_${lang_item}"
+	varname2="LANG_2_${lang_item}"
+	ADDON_XML_LANG_CONTENT="$ADDON_XML_LANG_CONTENT
+		\<summary lang=\"$(echo $lang_item | sed -e 's/_\(.*\)/_\U\1/')\"\>${!varname0}\</summary\>
+		\<description lang=\"$(echo $lang_item | sed -e 's/_\(.*\)/_\U\1/')\"\>${!varname1}\</description\>
+		\<disclaimer lang=\"$(echo $lang_item | sed -e 's/_\(.*\)/_\U\1/')\"\>${!varname2}\</disclaimer\>
+"
+done
+
 read -d '' addon_xml <<EOF
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addon id="${ADDON_NAME}" name="RetroArch" version="${ADDON_VERSION}" provider-name="${PROVIDER}">
@@ -209,9 +222,8 @@ read -d '' addon_xml <<EOF
 	</extension>
 	<extension point="xbmc.addon.metadata">
 		<platform>linux</platform>
-		<summary lang="en">RetroArch add-on for Kodi (${RA_NAME_SUFFIX}). RetroArch is a frontend for emulators, game engines and media players.</summary>
-		<description lang="en">The add-on provides binary, cores and basic settings to launch RetroArch from Kodi UI, plus additional features to improve user experience. It is built from Lakka sources.</description>
-		<disclaimer lang="en">This is an unofficial add-on. Use github.com/spleen1981/retroarch-kodi-addon-CoreELEC to submit issues.</disclaimer>
+		<reuselanguageinvoker>true</reuselanguageinvoker>
+		$ADDON_XML_LANG_CONTENT
 		<forum>https://discourse.coreelec.org/t/retroarch-kodi-add-on-for-coreelec/17482</forum>
     		<source>https://github.com/spleen1981/retroarch-kodi-addon-CoreELEC</source>
 		<assets>
@@ -259,24 +271,37 @@ EOF
 
 read -d '' settings_xml <<EOF
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <settings>
-	<category label="General">
-		<setting id="ra_stop_kodi" label="Stop Kodi before launching RetroArch" type="bool" default="true" />
-		<setting id="ra_xbox360_shutdown" label="Turn off Xbox360 controllers after closing RetroArch" type="bool" default="true" />
-		<setting id="ra_cec_remote" label="Use CEC remote control with RetroArch" type="bool" default="true" />
-		<setting id="ra_force_refresh_rate" label="Override Kodi refresh rate settings" type="bool" default="true" />
-		<setting id="ra_forced_refresh_rate" label="RetroArch refresh rate" type="enum" values="50Hz (PAL)|60Hz (NTSC)" default="1" enable="eq(-1,true)" subsetting="true" />
-		<setting id="ra_sync_audio_settings" label="Sync RetroArch audio settings with Kodi" type="bool" default="true" />
+	<category label="128"> <!-- General -->
+		<setting label="128" type="lsep"/>
+		<setting id="ra_stop_kodi" label="32001" type="bool" default="true" />
 	</category>
-	<category label="Paths">
-		<setting id="ra_roms_remote" label="Mount remote path for RetroArch roms" type="bool" default="false" />
-		<setting id="ra_roms_remote_path" label="Remote path" type="text" default="" enable="eq(-1,true)" subsetting="true"/>
-		<setting id="ra_roms_remote_user" label="Username" type="text" default="" enable="eq(-2,true)" subsetting="true"/>
-		<setting id="ra_roms_remote_password" label="Password" type="text" default="" enable="eq(-3,true)" subsetting="true"/>
+	<category label="35234"> <!-- Controls -->
+		<setting label="35234" type="lsep"/>
+		<setting id="ra_xbox360_shutdown" label="32002" type="bool" default="true" />
+		<setting id="ra_cec_remote" label="32003" type="bool" default="true" />
 	</category>
-	<category label="Logging">
-		<setting id="ra_log" label="Logging of RetroArch output" type="bool" default="false" />
-		<setting id="ra_verbose" label="Verbose logging (for debugging)" type="bool" default="false" />
+	<category label="157"><!-- Video -->
+		<setting label="157" type="lsep"/>
+		<setting id="ra_force_refresh_rate" label="32004" type="bool" default="true" />
+		<setting id="ra_forced_refresh_rate" label="32005" type="enum" values="50Hz (PAL)|60Hz (NTSC)" default="1" enable="eq(-1,true)" subsetting="true" />
+	</category>
+	<category label="292"> <!-- Audio -->
+		<setting label="292" type="lsep"/>
+		<setting id="ra_sync_audio_settings" label="32006" type="bool" default="true" />
+	</category>
+	<category label="573"> <!-- Paths -->
+		<setting label="573" type="lsep"/>
+		<setting id="ra_roms_remote" label="32007" type="bool" default="false" />
+		<setting id="ra_roms_remote_path" label="15311" type="text" default="" enable="eq(-1,true)" subsetting="true"/>
+		<setting id="ra_roms_remote_user" label="20142" type="text" default="" enable="eq(-2,true)" subsetting="true"/>
+		<setting id="ra_roms_remote_password" label="1048" type="text" default="" enable="eq(-3,true)" subsetting="true"/>
+	</category>
+	<category label="14092"> <!-- Log -->
+		<setting label="14092" type="lsep"/>
+		<setting id="ra_log" label="32008" type="bool" default="false" />
+		<setting id="ra_verbose" label="20191" type="bool" default="false" />
 	</category>
 </settings>
 EOF
@@ -297,4 +322,3 @@ read -d '' settings_default_xml <<EOF
 	<setting id="ra_verbose" value="false" />
 </settings>
 EOF
-
