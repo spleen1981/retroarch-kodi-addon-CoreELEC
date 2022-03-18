@@ -3,7 +3,7 @@
 read -d '' retroarch_sh <<EOF
 #!/bin/sh
 
-systemd-run -u retroarch \$HOME/.kodi/addons/script.retroarch.launcher.Amlogic-ng.arm/bin/retroarch.start "\$@"
+systemd-run -u retroarch \$HOME/.kodi/addons/${ADDON_NAME}/bin/retroarch.start "\$@"
 EOF
 
 read -d '' retroarch_start <<EOF
