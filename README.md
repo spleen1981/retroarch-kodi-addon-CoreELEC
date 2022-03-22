@@ -8,42 +8,33 @@ Resulting builds have been tested on following ARM devices:
 
 up to CoreELEC 19.4.
 
-# Usage
-[Lakka repository](https://github.com/libretro/Lakka-LibreELEC) is included as a submodule by default.
-To build the addon with default settings type the following:
+# Add-on usage
+   - Download the latest zip file from [releases page](https://github.com/spleen1981/retroarch-kodi-addon-CoreELEC/releases) and install following [Kodi instructions](https://kodi.wiki/view/Add-on_manager#How_to_install_from_a_ZIP_file). Once installed, starting from v 1.5.0 the addon comes with an internal online updater and can be updated from within Kodi.
+   - The addon will be shown in the "Game" group, customize the settings as needed and launch RetroArch
+   - By default the add-on includes only RetroArch and cores to reduce the zip size, use RetroArch internal online updater to download resources as needed.
+   - If you are new to RetroArch refer to [their documentation](https://docs.libretro.com/start/understanding/) for all how-to-use and how-to-setup info.
 
-```bash
-git clone --recursive https://github.com/spleen1981/retroarch-kodi-addon-CoreELEC
-cd retroarch-kodi-addon-CoreELEC
-./build.sh
-```
+Core list included by default is same as [Lakka](https://github.com/libretro/Lakka-LibreELEC/blob/a0f1b57bb36fa1feb50ff006ca7b46c1b7b7cb45/distributions/Lakka/options#L176-L296).
 
-By default the add-on includes only RetroArch and cores.
-Other dowloadable contents as `retroarch-assets retroarch-joypad-autoconfig retroarch-overlays libretro-database glsl-shaders` are not included by default to reduce addon size, but can be included setting `INCLUDE_DLC="Y"`(or can be downloaded from RetroArch online updater otherwise).
-Core list included by default is same as Lakka. This can be customized setting `LIBRERETRO_CORES_ADD` and `LIBRERETRO_CORES_RM` variables.
-
-First time the building/compiling process will take a lot of time (the whole toolchain will be compiled with the first package).
-
-Addon zip file will be placed in `build` subfolder, ready to be installed in [KODI](https://kodi.wiki/view/Add-on_manager#How_to_install_from_a_ZIP_file).
-
-## Addon settings/features
+## Settings/features
    - Stop Kodi when Retroarch is launched, to freeup memory
    - Turn off Xbox360 wireless controllers when exiting Retroarch
-   - Use remote location (e.g. SMB) as roms folder
+   - Use remote location (e.g. SMB) as roms folder. Remote path to be as follows `//server_IP/path_to_roms_folder`
    - Use TV remote controller (CEC) to navigate RetroArch menu (ref [here](https://github.com/spleen1981/cec-mini-kb) for key bindings)
    - Set refresh rate for Retroarch independently from Kodi settings
    - Sync Retroarch audio driver/device with Kodi settings
+   - Auto update. Check for updates will be performed everytime RetroArch is launched
 
 ## Folders
 
-`/storage/.config/retroarch` is the root folder for RetroArch configurations. It is not deleted when addon is removed (remove the folder manually in this case). It includes the `retroarch.cfg` main configuration file and following subfolders:
+`/storage/.config/retroarch` is the root folder for RetroArch configurations. It is an external folder to the addon, hence it is not deleted when the addon is removed (remove the folder manually for a full clean up). It includes the `retroarch.cfg` main configuration file and following subfolders:
 
    - `savestates` for storing the savestates
    - `savefiles` for storing the saves (e.g. memory card files)
    - `remappings` for storing remapped controls
    - `playlists` for storing RetroArch playlists - lists of games per emulated system
    - `thumbnails` Boxarts / Screenshots / Title screens will be stored here
-   - `system` alternate location for cores additional system files (e.g. BIOS). It is convenient to put BIOS files here and avoid deletion on addon removal. Original content of `system` in addon folder can be copied here or downloaded again through retroarch online updater again. If folder is not empty at first start, this path will override automatically the default one in retroarch.cfg
+   - `system` alternate location for cores additional system files (e.g. BIOS). It is convenient to put BIOS files here and avoid deletion on addon removal. Base files can be copied from the `system` folder inside the addon folder or can be downloaded from retroarch online updater. If folder is not empty at first start, this path will override automatically the default one in retroarch.cfg
    - `assets` alternate location for wallpapers, themes, icons, fonts, etc. Useful in case custom assets are used to avoid deletion on addon removal. If folder is not empty at first start, this path will override automatically the default one in retroarch.cfg 
 
 Put your ROM files to folder `/storage/roms`. You may put them in separate folders by systems, but it is not required by RetroArch.
@@ -62,6 +53,26 @@ The add-on includes also following subfolders in the addon `resources` folder (r
    - `system` default location containing cores additional system files (e.g. BIOS) if any and as per core list built. Additional user BIOS/data can be added (see same bullet above).
 
 The emulation cores are stored in `lib/libretro` subfolder of the add-on (removed on addon removal).
+
+# Development and build script usage
+[Lakka repository](https://github.com/libretro/Lakka-LibreELEC) is included as a submodule by default.
+To build the addon with default settings type the following:
+
+```bash
+git clone --recursive https://github.com/spleen1981/retroarch-kodi-addon-CoreELEC
+cd retroarch-kodi-addon-CoreELEC
+./build.sh
+```
+
+Extra dowloadable contents as `retroarch-assets retroarch-joypad-autoconfig retroarch-overlays libretro-database glsl-shaders` are not included by default to reduce addon size, but can be included setting `INCLUDE_DLC="Y"`(or can be downloaded from RetroArch online updater otherwise).
+
+Default core list can be customized setting `LIBRERETRO_CORES_ADD` and `LIBRERETRO_CORES_RM` variables.
+
+Refer to the script source for all other configuration parameters.
+
+First time the building/compiling process will take a lot of time (the whole toolchain will be compiled with the first package).
+
+Addon zip file will be placed in `build` subfolder.
 
 ## Experimental build options
 
