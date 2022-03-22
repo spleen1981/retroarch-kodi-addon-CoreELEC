@@ -1,5 +1,9 @@
 #!/bin/bash
 
+NOTIFICATIONS_TITLE=RetroArch
+LONG_NOTIFICATION=600000
+SHORT_NOTIFICATION=2000
+
 read -d '' retroarch_sh <<EOF
 #!/bin/sh
 
@@ -198,13 +202,126 @@ sed -E -i "s|video_refresh_rate.+|video_refresh_rate = \"\${VIDEO_MODE_NEWRATE}\
 exit_script
 EOF
 
+read -d '' ra_update_utils_sh <<EOF
+#!/bin/sh
+
+ra_updater_create(){
+result="#!/bin/sh
+#unzip addon to folder
+unzip -q -o \$RA_TMP_PATH/\$file_name -d \$HOME/.kodi/addons/
+if [ ! \\\\\$? -eq 0 ] ; then
+	kodi-send --action=\\\"Notification($NOTIFICATIONS_TITLE, \$FAILED_MESSAGE, $SHORT_NOTIFICATION, \$RA_ICON)\\\"
+	return 31
+fi
+rm \$RA_TMP_PATH/\$file_name
+rm \$RA_UPDATER
+kodi-send --action=\\\"Notification($NOTIFICATIONS_TITLE, \$SUCCEEDED_MESSAGE, $SHORT_NOTIFICATION, \$RA_ICON)\\\"
+kodi-send --action='UpdateLocalAddons'"
+if [ \$1 = 'install_restart' ] ; then
+	result=\${result}"
+kodi-send --action=\\\"RunAddon(${ADDON_NAME})\\\""
+fi
+echo "\$result"
+}
+
+validate_url(){
+	if [ -z "\$( wget -S --spider \$1  2>&1 | grep 'HTTP/1.1 200 OK' )" ]; then
+		return 1
+	else
+		return 0
+	fi
+}
+
+get_version(){
+	[ -z \$( echo \$1 | grep ^v[0-9+]\\\.[0-9+]\\\.[0-9+]$ ) ] && return 0
+	string_version=\$( echo \$1 | sed "s/v//; s/\\\./ /g" )
+	n=10000
+	tot=0
+	for y in \$string_version; do
+		let tot=tot+y*n
+		let n=n/100
+	done
+	echo \$tot
+}
+
+get_update_url(){
+	#check server can be reached
+	validate_url \$SERVER_URL
+	if [ ! \$? -eq 0 ] ; then
+		return 2
+	fi
+
+	#check if a compatible download link exists, first one assumed as latest
+	LATEST_URL=\$( curl --silent \${SERVER_URL}/spleen1981/\${REPO_NAME}/releases | grep href=.*download.*${ADDON_NAME}.*zip | sed 1q | sed "s/.*href=[\\\"\\\']//; s/zip.*/zip/")
+	if [ -z \$LATEST_URL ] ; then
+		return 3;
+	fi
+
+	#check if current addon is older than latest
+	if [ ! \$( get_version $ADDON_VERSION ) -lt \$( get_version \$( echo \$LATEST_URL | sed "s/.*${ADDON_NAME}-//g;s/.zip.*//" ) ) ] ; then
+		return 1
+	fi
+
+	#check latest addon link is valid
+	echo \${SERVER_URL}\${LATEST_URL}
+	validate_url \${SERVER_URL}\${LATEST_URL}
+	if [ ! \$? -eq 0 ] ; then
+		return 6
+	fi
+
+	return 0
+}
+
+ra_install(){
+	get_update_url
+	[ ! \$? -eq 0 ] && return 11
+	[ -z \$2 ] && DOWNLOAD_MESSAGE='Downloading update...' || DOWNLOAD_MESSAGE="\$2"
+	[ -z \$3 ] && INSTALL_MESSAGE='Installing update...' || INSTALL_MESSAGE="\$3"
+	[ -z \$4 ] && FAILED_MESSAGE='Update failed' || FAILED_MESSAGE="\$4"
+	[ -z \$5 ] && SUCCEEDED_MESSAGE='Update completed' || SUCCEEDED_MESSAGE="\$5"
+
+
+	RA_UPDATER='/tmp/ra_updater.start'
+	RA_TMP_PATH='/tmp'
+	file_name=\$( echo \${LATEST_URL} | sed s/.*${ADDON_NAME}/${ADDON_NAME}/ )
+
+	#download zip update
+	kodi-send --action="Notification($NOTIFICATIONS_TITLE, \$DOWNLOAD_MESSAGE, $LONG_NOTIFICATION, \$RA_ICON)"
+	wget -q -t 5 \${SERVER_URL}\${LATEST_URL} -O /\$RA_TMP_PATH/\$file_name 2>&1
+	if [ ! \$? -eq 0 ] ; then
+		return 12
+	fi
+
+	kodi-send --action="Notification($NOTIFICATIONS_TITLE, \$INSTALL_MESSAGE, $LONG_NOTIFICATION, \$RA_ICON)"
+
+	ra_updater_create "\$1" > \$RA_UPDATER
+	chmod +x \$RA_UPDATER
+	systemd-run \$RA_UPDATER
+	[ ! \$? -eq 0 ] && return 13 || return 0
+}
+
+SERVER_URL='https://github.com'
+REPO_NAME='retroarch-kodi-addon-CoreELEC'
+RA_ICON=\$HOME/.kodi/addons/${ADDON_NAME}/resources/icon.png
+
+case \$1 in
+	check)
+		get_update_url
+		exit \$?
+		;;
+	install*)
+		ra_install "\$1" "\$2" "\$3" "\$4" "\$5"
+		exit \$?
+		;;
+esac
+
+EOF
+
 read -d '' default_py <<EOF
 import xbmc, xbmcgui, xbmcplugin, xbmcaddon
-import os
+import os, sys
 import util
 
-dialog = xbmcgui.Dialog()
-dialog.notification('RetroArch', 'Launching....', xbmcgui.NOTIFICATION_INFO, 500)
 ADDON_ID = '${ADDON_NAME}'
 
 addon = xbmcaddon.Addon(id=ADDON_ID)
@@ -214,21 +331,69 @@ addonfolder = addon.getAddonInfo('path')
 icon    = addonfolder + 'resources/icon.png'
 fanart  = addonfolder + 'resources/fanart.jpg'
 
+dialog = xbmcgui.Dialog()
+
+manual_update=False
+if len(sys.argv) > 1:
+	if sys.argv[1] == 'check_updates':
+		manual_update=True
+
+if (addon.getSetting("ra_autoupdate")=='true' or manual_update):
+	if not util.runUpdaterMenu(manual_update) or manual_update:
+		quit()
+
+dialog.notification(\'$NOTIFICATIONS_TITLE\', util.getLocalizedString(20186), icon, $LONG_NOTIFICATION)
 util.runRetroarchMenu()
 EOF
 
 read -d '' util_py <<EOF
-import os, xbmc, xbmcaddon
+import os, subprocess, xbmc, xbmcgui, xbmcaddon
 
 ADDON_ID = '${ADDON_NAME}'
 BIN_FOLDER="bin"
 RETROARCH_EXEC="retroarch.sh"
+UPDATER_EXEC="ra_update_utils.sh"
 
 addon = xbmcaddon.Addon(id=ADDON_ID)
+addon_dir = xbmc.translatePath( addon.getAddonInfo('path') )
+addonfolder = addon.getAddonInfo('path')
+bin_folder = os.path.join(addon_dir,BIN_FOLDER)
+
+icon    = addonfolder + 'resources/icon.png'
+dialog = xbmcgui.Dialog()
+
+def getLocalizedString(id):
+	if (id < 32000):
+		return xbmc.getLocalizedString(id)
+	else:
+		return addon.getLocalizedString(id)
 
 def runRetroarchMenu():
-	addon_dir = xbmc.translatePath( addon.getAddonInfo('path') )
-	bin_folder = os.path.join(addon_dir,BIN_FOLDER)
 	retroarch_exe = os.path.join(bin_folder,RETROARCH_EXEC)
-	os.system(retroarch_exe)
+	subprocess.run(retroarch_exe)
+
+def runUpdaterMenu(manual_update=False):
+	updater_exe = os.path.join(bin_folder,UPDATER_EXEC)
+	dialog.notification(\'$NOTIFICATIONS_TITLE\', getLocalizedString(24092), icon, $LONG_NOTIFICATION)
+	resp = subprocess.run([updater_exe, "check"])
+	ret=resp.returncode
+
+	if manual_update:
+		arg1="install"
+	else:
+		arg1="install_restart"
+	if not ret:
+		if(dialog.yesno(getLocalizedString(24061), getLocalizedString(24101))):
+			resp = subprocess.run([updater_exe, arg1, str(getLocalizedString(24078)), getLocalizedString(24086), getLocalizedString(113), getLocalizedString(24065)])
+			ret=resp.returncode
+			if ret:
+				dialog.notification(\'$NOTIFICATIONS_TITLE\', getLocalizedString(113) + ' (' + str(ret) + ')', icon, $SHORT_NOTIFICATION)
+		else:
+			dialog.notification(\'$NOTIFICATIONS_TITLE\', getLocalizedString(16024), icon, $SHORT_NOTIFICATION)
+			ret=1
+	elif ret == 1:
+		dialog.notification(\'$NOTIFICATIONS_TITLE\', getLocalizedString(21341), icon, 1000)
+	else:
+		dialog.notification(\'$NOTIFICATIONS_TITLE\', getLocalizedString(113) + ' (' + str(ret) + ')', icon, $SHORT_NOTIFICATION)
+	return ret
 EOF

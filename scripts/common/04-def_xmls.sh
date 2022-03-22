@@ -42,6 +42,8 @@ read -d '' settings_xml <<EOF
 	<category label="128"> <!-- General -->
 		<setting label="128" type="lsep"/>
 		<setting id="ra_stop_kodi" label="32001" type="bool" default="true" />
+		<setting id="ra_autoupdate" label="24063" type="bool" default="true" />
+		<setting id="ra_updatenow" type="action" label="24034" action="RunScript(${ADDON_NAME},check_updates)"/>
 	</category>
 	<category label="35234"> <!-- Controls -->
 		<setting label="35234" type="lsep"/>
@@ -84,6 +86,7 @@ read -d '' settings_default_xml <<EOF
 	<setting id="ra_roms_remote_path" value="" />
 	<setting id="ra_roms_remote_user" value="" />
 	<setting id="ra_roms_remote_password" value="" />
+	<setting id="ra_autoupdate" value="true" />
 	<setting id="ra_log" value="false" />
 	<setting id="ra_verbose" value="false" />
 </settings>

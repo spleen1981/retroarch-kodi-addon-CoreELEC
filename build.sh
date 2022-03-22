@@ -264,6 +264,9 @@ echo -ne "\tretroarch.start "
 echo "$retroarch_start" > bin/retroarch.start
 [ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 chmod +x bin/retroarch.start
+echo "$ra_update_utils_sh" > bin/ra_update_utils.sh
+[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
+chmod +x bin/ra_update_utils.sh
 echo -ne "\taddon.xml "
 echo "$addon_xml" > addon.xml
 [ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
