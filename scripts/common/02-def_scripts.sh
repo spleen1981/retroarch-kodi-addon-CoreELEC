@@ -3,6 +3,8 @@
 NOTIFICATIONS_TITLE=RetroArch
 LONG_NOTIFICATION=600000
 SHORT_NOTIFICATION=2000
+FIRST_RUN_FLAG_PREFIX=first_run_done
+FIRST_RUN_FLAG_SUFFIX=10501
 
 read -d '' retroarch_sh <<EOF
 #!/bin/sh
@@ -14,7 +16,7 @@ read -d '' retroarch_start <<EOF
 #!/bin/sh
 
 #Fixes a bug up to CoreELEC 19.4
-oe_setup_addon_new() {
+oe_setup_addon_fix() {
   if [ ! -z \$1 ] ; then
     DEF="/storage/.kodi/addons/\$1/settings-default.xml"
     CUR="/storage/.kodi/userdata/addon_data/\$1/settings.xml"
@@ -98,13 +100,13 @@ exit_script(){
 	else
 		pgrep kodi.bin | xargs kill -SIGCONT
 	fi
-	$HOOK_RETROARCH_START_1
+$HOOK_RETROARCH_START_1
 	exit 0
 }
 
 . /etc/profile
 
-oe_setup_addon_new ${ADDON_NAME}
+oe_setup_addon_fix ${ADDON_NAME}
 
 trap exit_script SIGINT SIGTERM
 $HOOK_RETROARCH_START_0
@@ -113,8 +115,10 @@ LD_LIBRARY_PATH="\$ADDON_DIR/lib:\$LD_LIBRARY_PATH"
 RA_CONFIG_DIR="/storage/.config/retroarch"
 RA_CONFIG_FILE="\$RA_CONFIG_DIR/retroarch.cfg"
 RA_CONFIG_SUBDIRS="savestates savefiles remappings playlists system thumbnails assets"
-RA_CONFIG_CAN_OVERRIDE_SUBDIRS="assets system"
-RA_EXE="\$ADDON_DIR/bin/retroarch"
+RA_RES_CAN_OVERRIDE_SUBDIRS="assets joypads shaders database overlays"
+RA_RES_CAN_MERGE_SUBDIRS="system"
+RA_ADDON_BIN_FOLDER="\$ADDON_DIR/bin"
+RA_EXE="\$RA_ADDON_BIN_FOLDER/retroarch"
 RA_LOG=""
 ROMS_FOLDER="/storage/roms"
 DOWNLOADS="downloads"
@@ -141,14 +145,23 @@ if [ ! -f "\$RA_CONFIG_FILE" ]; then
 fi
 
 # First run only actions
-if [ ! -f \$ADDON_DIR/config/first_run_done ] ; then
-
-	#Override default settings to point to custom directories if not empty not empty
-	for subdir in \$RA_CONFIG_CAN_OVERRIDE_SUBDIRS ; do
+if [ ! -f \${ADDON_DIR}/config/${FIRST_RUN_FLAG_PREFIX}_${FIRST_RUN_FLAG_SUFFIX} ] ; then
+	$RA_ADDON_BIN_FOLDER/ra_update_utils.sh clean_flags
+	#Override default settings to point to custom directories if not empty
+	for subdir in \$RA_RES_CAN_OVERRIDE_SUBDIRS ; do
 		[ ! -z "\$(ls -A \${RA_CONFIG_DIR}/\${subdir})" ] && sed -i "s|^\${subdir}_directory.*|\${subdir}_directory = \\\"\${RA_CONFIG_DIR}/\${subdir}\\\"|g" \$RA_CONFIG_FILE
 	done
-	$HOOK_RETROARCH_START_2
-	touch \$ADDON_DIR/config/first_run_done
+
+	#Override default settings to point to custom directories if not empty and add/overwrite new content
+	for subdir in \$RA_RES_CAN_MERGE_SUBDIRS ; do
+		if [ ! -z "\$(ls -A \${RA_CONFIG_DIR}/\${subdir})" ]; then
+			sed -i "s|^\${subdir}_directory.*|\${subdir}_directory = \\\"\${RA_CONFIG_DIR}/\${subdir}\\\"|g" \$RA_CONFIG_FILE
+			cp -r -n \${ADDON_DIR}/resources/\${subdir} \${RA_CONFIG_DIR}/
+		fi
+	done
+
+$HOOK_RETROARCH_START_2
+	touch \$ADDON_DIR/config/${FIRST_RUN_FLAG_PREFIX}_${FIRST_RUN_FLAG_SUFFIX}
 fi
 
 [ "\$ra_verbose" = "true" ] && RA_PARAMS="--verbose \$RA_PARAMS"
@@ -300,13 +313,34 @@ ra_install(){
 	[ ! \$? -eq 0 ] && return 13 || return 0
 }
 
+clear_flags(){
+	eval(\$CLEAN_FLAGS_CMD)
+}
+
+ra_cfg_backup_clear(){
+	[ ! -f \$RA_CONFIG_FILE ] && return 1
+	mv \$RA_CONFIG_FILE \${RA_CONFIG_FILE}_\$(date +%y_%m_%d_%s)
+	return \$?
+}
+
 SERVER_URL='https://github.com'
 REPO_NAME='retroarch-kodi-addon-CoreELEC'
 RA_ICON=\$HOME/.kodi/addons/${ADDON_NAME}/resources/icon.png
+CLEAN_FLAGS_CMD="rm $HOME/.kodi/addons/${ADDON_NAME}/config/${FIRST_RUN_FLAG_PREFIX}*"
+RA_CONFIG_DIR=\$HOME/.config/retroarch
+RA_CONFIG_FILE=\$RA_CONFIG_DIR/retroarch.cfg
 
 case \$1 in
 	check)
 		get_update_url
+		exit \$?
+		;;
+	clear_flags)
+		clear_flags
+		exit \$?
+		;;
+	clear_cfg)
+		ra_cfg_backup_clear
 		exit \$?
 		;;
 	install*)
