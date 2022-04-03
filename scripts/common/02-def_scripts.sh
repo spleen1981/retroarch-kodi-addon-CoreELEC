@@ -146,15 +146,15 @@ fi
 
 # First run only actions
 if [ ! -f \${ADDON_DIR}/config/${FIRST_RUN_FLAG_PREFIX}_${FIRST_RUN_FLAG_SUFFIX} ] ; then
-	$RA_ADDON_BIN_FOLDER/ra_update_utils.sh clean_flags
+	\$RA_ADDON_BIN_FOLDER/ra_update_utils.sh clear_flags
 	#Override default settings to point to custom directories if not empty
 	for subdir in \$RA_RES_CAN_OVERRIDE_SUBDIRS ; do
-		[ ! -z "\$(ls -A \${RA_CONFIG_DIR}/\${subdir})" ] && sed -i "s|^\${subdir}_directory.*|\${subdir}_directory = \\\"\${RA_CONFIG_DIR}/\${subdir}\\\"|g" \$RA_CONFIG_FILE
+		[ ! -z "\$(ls -A \${RA_CONFIG_DIR}/\${subdir} 2>/dev/null)" ] && sed -i "s|^\${subdir}_directory.*|\${subdir}_directory = \\\"\${RA_CONFIG_DIR}/\${subdir}\\\"|g" \$RA_CONFIG_FILE
 	done
 
 	#Override default settings to point to custom directories if not empty and add/overwrite new content
 	for subdir in \$RA_RES_CAN_MERGE_SUBDIRS ; do
-		if [ ! -z "\$(ls -A \${RA_CONFIG_DIR}/\${subdir})" ]; then
+		if [ ! -z "\$(ls -A \${RA_CONFIG_DIR}/\${subdir} 2>/dev/null)" ]; then
 			sed -i "s|^\${subdir}_directory.*|\${subdir}_directory = \\\"\${RA_CONFIG_DIR}/\${subdir}\\\"|g" \$RA_CONFIG_FILE
 			cp -r -n \${ADDON_DIR}/resources/\${subdir} \${RA_CONFIG_DIR}/
 		fi
@@ -314,7 +314,7 @@ ra_install(){
 }
 
 clear_flags(){
-	eval(\$CLEAN_FLAGS_CMD)
+	[ ! -z "\$(ls -A \$CLEAR_FLAGS_SRC 2>/dev/null)" ] && eval rm \$CLEAR_FLAGS_SRC
 }
 
 ra_cfg_backup_clear(){
@@ -326,7 +326,7 @@ ra_cfg_backup_clear(){
 SERVER_URL='https://github.com'
 REPO_NAME='retroarch-kodi-addon-CoreELEC'
 RA_ICON=\$HOME/.kodi/addons/${ADDON_NAME}/resources/icon.png
-CLEAN_FLAGS_CMD="rm $HOME/.kodi/addons/${ADDON_NAME}/config/${FIRST_RUN_FLAG_PREFIX}*"
+CLEAR_FLAGS_SRC="\$HOME/.kodi/addons/${ADDON_NAME}/config/${FIRST_RUN_FLAG_PREFIX}*"
 RA_CONFIG_DIR=\$HOME/.config/retroarch
 RA_CONFIG_FILE=\$RA_CONFIG_DIR/retroarch.cfg
 
@@ -371,7 +371,9 @@ manual_update=False
 if len(sys.argv) > 1:
 	if sys.argv[1] == 'check_updates':
 		manual_update=True
-
+	elif sys.argv[1] == 'reset':
+		util.resetToDefaults()
+		quit()
 if (addon.getSetting("ra_autoupdate")=='true' or manual_update):
 	if not util.runUpdaterMenu(manual_update) or manual_update:
 		quit()
@@ -392,6 +394,9 @@ addon = xbmcaddon.Addon(id=ADDON_ID)
 addon_dir = xbmc.translatePath( addon.getAddonInfo('path') )
 addonfolder = addon.getAddonInfo('path')
 bin_folder = os.path.join(addon_dir,BIN_FOLDER)
+#usersettings_dir = xbmc.translatePath( addon.getAddonInfo('profile') ) #not needed as relevant function for kodi addon settings is already available in UI
+updater_exe = os.path.join(bin_folder,UPDATER_EXEC)
+retroarch_exe = os.path.join(bin_folder,RETROARCH_EXEC)
 
 icon    = addonfolder + 'resources/icon.png'
 dialog = xbmcgui.Dialog()
@@ -403,11 +408,15 @@ def getLocalizedString(id):
 		return addon.getLocalizedString(id)
 
 def runRetroarchMenu():
-	retroarch_exe = os.path.join(bin_folder,RETROARCH_EXEC)
 	subprocess.run(retroarch_exe)
 
+def resetToDefaults():
+	if(dialog.yesno(getLocalizedString(13007) + \' (retroarch.cfg / setup)\', getLocalizedString(750))):
+		#subprocess.run(['rm', '-rf', usersettings_dir]) #not needed as relevant function for kodi addon settings is already available in UI
+		subprocess.run([updater_exe, "clear_cfg"])
+		subprocess.run([updater_exe, "clear_flags"])
+		dialog.notification(\'$NOTIFICATIONS_TITLE\', getLocalizedString(13007) + \' (retroarch.cfg / setup)\', icon, $SHORT_NOTIFICATION)
 def runUpdaterMenu(manual_update=False):
-	updater_exe = os.path.join(bin_folder,UPDATER_EXEC)
 	dialog.notification(\'$NOTIFICATIONS_TITLE\', getLocalizedString(24092), icon, $LONG_NOTIFICATION)
 	resp = subprocess.run([updater_exe, "check"])
 	ret=resp.returncode
@@ -418,7 +427,7 @@ def runUpdaterMenu(manual_update=False):
 		arg1="install_restart"
 	if not ret:
 		if(dialog.yesno(getLocalizedString(24061), getLocalizedString(24101))):
-			resp = subprocess.run([updater_exe, arg1, str(getLocalizedString(24078)), getLocalizedString(24086), getLocalizedString(113), getLocalizedString(24065)])
+			resp = subprocess.run([updater_exe, arg1, getLocalizedString(24078), getLocalizedString(24086), getLocalizedString(113), getLocalizedString(24065)])
 			ret=resp.returncode
 			if ret:
 				dialog.notification(\'$NOTIFICATIONS_TITLE\', getLocalizedString(113) + ' (' + str(ret) + ')', icon, $SHORT_NOTIFICATION)
@@ -426,7 +435,7 @@ def runUpdaterMenu(manual_update=False):
 			dialog.notification(\'$NOTIFICATIONS_TITLE\', getLocalizedString(16024), icon, $SHORT_NOTIFICATION)
 			ret=1
 	elif ret == 1:
-		dialog.notification(\'$NOTIFICATIONS_TITLE\', getLocalizedString(21341), icon, 1000)
+		dialog.notification(\'$NOTIFICATIONS_TITLE\', getLocalizedString(21341), icon, $SHORT_NOTIFICATION)
 	else:
 		dialog.notification(\'$NOTIFICATIONS_TITLE\', getLocalizedString(113) + ' (' + str(ret) + ')', icon, $SHORT_NOTIFICATION)
 	return ret

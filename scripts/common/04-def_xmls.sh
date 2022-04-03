@@ -44,6 +44,8 @@ read -d '' settings_xml <<EOF
 		<setting id="ra_stop_kodi" label="32001" type="bool" default="true" />
 		<setting id="ra_autoupdate" label="24063" type="bool" default="true" />
 		<setting id="ra_updatenow" type="action" label="24034" action="RunScript(${ADDON_NAME},check_updates)"/>
+		<setting id="ra_reset" type="action" label="13007" action="RunScript(${ADDON_NAME},reset)"/>
+resetToDefaults
 	</category>
 	<category label="35234"> <!-- Controls -->
 		<setting label="35234" type="lsep"/>
