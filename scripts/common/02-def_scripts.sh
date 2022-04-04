@@ -15,6 +15,26 @@ EOF
 read -d '' retroarch_start <<EOF
 #!/bin/sh
 
+#substitutes 'cp -n' as not available
+merge_dirs_no_clobber(){
+	[ ! -d "\$1" ] && return 1
+	[ ! -d "\$2" ] && return 2
+
+	for item in "\$1/"*; do
+		item_basename=\$( basename "\$item" )
+		if [ -d "\$item" ]; then
+			if [ -d "\$2/\$item_basename" ]; then
+				merge_dirs_no_clobber "\$item" "\$2/\$item_basename"
+			else
+				cp -r "\$item" "\$2/"
+			fi
+		elif [ -f "\$item" ]; then
+			[ ! -f "\$2/\$item_basename" ] && cp "\$item" "\$2/"
+		fi
+	done
+	return 0
+}
+
 #Fixes a bug up to CoreELEC 19.4
 oe_setup_addon_fix() {
   if [ ! -z \$1 ] ; then
@@ -156,7 +176,7 @@ if [ ! -f \${ADDON_DIR}/config/${FIRST_RUN_FLAG_PREFIX}_${FIRST_RUN_FLAG_SUFFIX}
 	for subdir in \$RA_RES_CAN_MERGE_SUBDIRS ; do
 		if [ ! -z "\$(ls -A \${RA_CONFIG_DIR}/\${subdir} 2>/dev/null)" ]; then
 			sed -i "s|^\${subdir}_directory.*|\${subdir}_directory = \\\"\${RA_CONFIG_DIR}/\${subdir}\\\"|g" \$RA_CONFIG_FILE
-			cp -r -n \${ADDON_DIR}/resources/\${subdir} \${RA_CONFIG_DIR}/
+			merge_dirs_no_clobber "\${ADDON_DIR}/resources/\${subdir}" "\${RA_CONFIG_DIR}/\${subdir}"
 		fi
 	done
 
