@@ -352,18 +352,17 @@ esac
 EOF
 
 read -d '' default_py <<EOF
-import xbmc, xbmcgui, xbmcplugin, xbmcaddon
+import xbmcgui, xbmcaddon
 import os, sys
 import util
 
 ADDON_ID = '${ADDON_NAME}'
 
 addon = xbmcaddon.Addon(id=ADDON_ID)
-addon_dir = xbmc.translatePath( addon.getAddonInfo('path') )
-addonfolder = addon.getAddonInfo('path')
+addon_dir = addon.getAddonInfo('path')
 
-icon    = addonfolder + 'resources/icon.png'
-fanart  = addonfolder + 'resources/fanart.jpg'
+icon = os.path.join(addon_dir, 'resources', 'icon.png')
+fanart = os.path.join(addon_dir, 'resources', 'fanart.png')
 
 dialog = xbmcgui.Dialog()
 
@@ -391,14 +390,13 @@ RETROARCH_EXEC="retroarch.sh"
 UPDATER_EXEC="ra_update_utils.sh"
 
 addon = xbmcaddon.Addon(id=ADDON_ID)
-addon_dir = xbmc.translatePath( addon.getAddonInfo('path') )
-addonfolder = addon.getAddonInfo('path')
+addon_dir = addon.getAddonInfo('path')
 bin_folder = os.path.join(addon_dir,BIN_FOLDER)
-#usersettings_dir = xbmc.translatePath( addon.getAddonInfo('profile') ) #not needed as relevant function for kodi addon settings is already available in UI
+#usersettings_dir = addon.getAddonInfo('profile') #not needed as relevant function for kodi addon settings is already available in UI
 updater_exe = os.path.join(bin_folder,UPDATER_EXEC)
 retroarch_exe = os.path.join(bin_folder,RETROARCH_EXEC)
 
-icon    = addonfolder + 'resources/icon.png'
+icon = os.path.join(addon_dir, 'resources', 'icon.png')
 dialog = xbmcgui.Dialog()
 
 def getLocalizedString(id):
