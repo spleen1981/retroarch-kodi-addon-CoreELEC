@@ -6,7 +6,7 @@ index aee751a9b7..bf7d508985 100644
  ################################################################################
  
  PKG_NAME="play"
--PKG_VERSION="9866486"
+-PKG_VERSION="a37d98b"
 +PKG_VERSION="30a3978"
  PKG_ARCH="any"
  PKG_LICENSE="GPLv2"
