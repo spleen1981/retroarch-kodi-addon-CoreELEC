@@ -383,6 +383,7 @@ sed -i "s/menu_driver = \"ozone\"/menu_driver = \"xmb\"/g" $CFG
 sed -i "s/menu_show_configurations = \"true\"/menu_show_configurations = \"false\"/g" $CFG
 sed -i "s/menu_show_restart_retroarch = \"true\"/menu_show_restart_retroarch = \"false\"/g" $CFG
 sed -i "s/menu_swap_ok_cancel_buttons = \"false\"/menu_swap_ok_cancel_buttons = \"true\"/g" $CFG
+sed -i "s/video_threaded = \"true\"/video_threaded = \"false\"/g" $CFG
 [ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo
 
