@@ -370,6 +370,9 @@ sed -i "s/\/tmp\/joypads/${RA_RES_DIR}\/joypads/g" $CFG
 echo -ne "\tdatabase "
 sed -i "s/\/tmp\/database/${RA_RES_DIR}\/database/g" $CFG
 [ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
+echo -ne "\toverlays "
+sed -i "s/\/tmp\/overlays/${RA_RES_DIR}\/overlays/g" $CFG
+[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo -ne "\tmisc settings "
 sed -i "s/all_users_control_menu = \"false\"/all_users_control_menu = \"true\"/g" $CFG
 sed -i "s/content_show_images = \"true\"/content_show_images = \"false\"/g" $CFG
