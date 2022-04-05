@@ -124,6 +124,17 @@ $HOOK_RETROARCH_START_1
 	exit 0
 }
 
+ra_config_override(){
+	[ -z "\$(ls -A \${RA_CONFIG_DIR}/\$1 2>/dev/null)" ] && return 1
+	sed -i "s|=.*/resources/\$1|=\\\"\${RA_CONFIG_DIR}/\$1|g" \$RA_CONFIG_FILE
+	[ ! -d "\${ADDON_DIR}/resources/\$1" ] && return 2
+	if [ \$2 == 'merge_no_clobber' ]; then
+		merge_dirs_no_clobber "\${ADDON_DIR}/resources/\$1" "\${RA_CONFIG_DIR}/\$1"
+	else
+		cp -rf "\${ADDON_DIR}/resources/\$1" "\${RA_CONFIG_DIR}/\$1"
+	fi
+}
+
 . /etc/profile
 
 oe_setup_addon_fix ${ADDON_NAME}
@@ -135,8 +146,6 @@ LD_LIBRARY_PATH="\$ADDON_DIR/lib:\$LD_LIBRARY_PATH"
 RA_CONFIG_DIR="/storage/.config/retroarch"
 RA_CONFIG_FILE="\$RA_CONFIG_DIR/retroarch.cfg"
 RA_CONFIG_SUBDIRS="savestates savefiles remappings playlists system thumbnails assets"
-RA_RES_CAN_OVERRIDE_SUBDIRS="assets joypads shaders database overlays"
-RA_RES_CAN_MERGE_SUBDIRS="system"
 RA_ADDON_BIN_FOLDER="\$ADDON_DIR/bin"
 RA_EXE="\$RA_ADDON_BIN_FOLDER/retroarch"
 RA_LOG=""
@@ -167,18 +176,13 @@ fi
 # First run only actions
 if [ ! -f \${ADDON_DIR}/config/${FIRST_RUN_FLAG_PREFIX}_${FIRST_RUN_FLAG_SUFFIX} ] ; then
 	\$RA_ADDON_BIN_FOLDER/ra_update_utils.sh clear_flags
-	#Override default settings to point to custom directories if not empty
-	for subdir in \$RA_RES_CAN_OVERRIDE_SUBDIRS ; do
-		[ ! -z "\$(ls -A \${RA_CONFIG_DIR}/\${subdir} 2>/dev/null)" ] && sed -i "s|^\${subdir}_directory.*|\${subdir}_directory = \\\"\${RA_CONFIG_DIR}/\${subdir}\\\"|g" \$RA_CONFIG_FILE
-	done
 
-	#Override default settings to point to custom directories if not empty and add/overwrite new content
-	for subdir in \$RA_RES_CAN_MERGE_SUBDIRS ; do
-		if [ ! -z "\$(ls -A \${RA_CONFIG_DIR}/\${subdir} 2>/dev/null)" ]; then
-			sed -i "s|^\${subdir}_directory.*|\${subdir}_directory = \\\"\${RA_CONFIG_DIR}/\${subdir}\\\"|g" \$RA_CONFIG_FILE
-			merge_dirs_no_clobber "\${ADDON_DIR}/resources/\${subdir}" "\${RA_CONFIG_DIR}/\${subdir}"
-		fi
-	done
+	ra_config_override 'system' merge_no_clobber
+	ra_config_override 'assets'
+	ra_config_override 'joypads'
+	ra_config_override 'shaders'
+	ra_config_override 'database'
+	ra_config_override 'overlays'
 
 $HOOK_RETROARCH_START_2
 	touch \$ADDON_DIR/config/${FIRST_RUN_FLAG_PREFIX}_${FIRST_RUN_FLAG_SUFFIX}
