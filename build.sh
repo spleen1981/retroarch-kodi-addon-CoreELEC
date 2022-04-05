@@ -264,6 +264,7 @@ echo -ne "\tretroarch.start "
 echo "$retroarch_start" > bin/retroarch.start
 [ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 chmod +x bin/retroarch.start
+echo -ne "\tra_update_utils_sh "
 echo "$ra_update_utils_sh" > bin/ra_update_utils.sh
 [ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 chmod +x bin/ra_update_utils.sh
@@ -374,16 +375,16 @@ echo -ne "\toverlays "
 sed -i "s/\/tmp\/overlays/${RA_RES_DIR}\/overlays/g" $CFG
 [ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo -ne "\tmisc settings "
-sed -i "s/all_users_control_menu = \"false\"/all_users_control_menu = \"true\"/g" $CFG
-sed -i "s/content_show_images = \"true\"/content_show_images = \"false\"/g" $CFG
-sed -i "s/content_show_music = \"true\"/content_show_music = \"false\"/g" $CFG
-sed -i "s/content_show_video = \"true\"/content_show_video = \"false\"/g" $CFG
-sed -i "s/input_menu_toggle_gamepad_combo = \"0\"/input_menu_toggle_gamepad_combo = \"4\"/g" $CFG
-sed -i "s/menu_driver = \"ozone\"/menu_driver = \"xmb\"/g" $CFG
-sed -i "s/menu_show_configurations = \"true\"/menu_show_configurations = \"false\"/g" $CFG
-sed -i "s/menu_show_restart_retroarch = \"true\"/menu_show_restart_retroarch = \"false\"/g" $CFG
-sed -i "s/menu_swap_ok_cancel_buttons = \"false\"/menu_swap_ok_cancel_buttons = \"true\"/g" $CFG
-sed -i "s/video_threaded = \"true\"/video_threaded = \"false\"/g" $CFG
+sed -i "s/all_users_control_menu =.*/all_users_control_menu = \"true\"/g" $CFG
+sed -i "s/content_show_images =.*/content_show_images = \"false\"/g" $CFG
+sed -i "s/content_show_music =.*/content_show_music = \"false\"/g" $CFG
+sed -i "s/content_show_video =.*/content_show_video = \"false\"/g" $CFG
+sed -i "s/input_menu_toggle_gamepad_combo =.*/input_menu_toggle_gamepad_combo = \"4\"/g" $CFG
+sed -i "s/menu_driver =.*/menu_driver = \"xmb\"/g" $CFG
+sed -i "s/menu_show_configurations =.*/menu_show_configurations = \"false\"/g" $CFG
+sed -i "s/menu_show_restart_retroarch =.*/menu_show_restart_retroarch = \"false\"/g" $CFG
+sed -i "s/menu_swap_ok_cancel_buttons =.*/menu_swap_ok_cancel_buttons = \"true\"/g" $CFG
+sed -i "s/video_threaded =.*/video_threaded = \"false\"/g" $CFG
 [ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo
 
