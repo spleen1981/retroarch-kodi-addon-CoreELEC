@@ -379,14 +379,15 @@ echo -ne "\toverlays "
 sed -i "s|/.*/overlays|${RA_RES_DIR}/overlays|g" $CFG
 [ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo -ne "\tmisc settings "
-sed -i "s|all_users_control_menu =.*|all_users_control_menu = \"true\"|g" $CFG
-sed -i "s|content_show_images =.*|content_show_images = \"false\"|g" $CFG
-sed -i "s|content_show_music =.*|content_show_music = \"false\"|g" $CFG
-sed -i "s|content_show_video =.*|content_show_video = \"false\"|g" $CFG
-sed -i "s|input_menu_toggle_gamepad_combo =.*|input_menu_toggle_gamepad_combo = \"4\"|g" $CFG
-sed -i "s|menu_driver =.*|menu_driver = \"xmb\"|g" $CFG
-sed -i "s|menu_swap_ok_cancel_buttons =.*|menu_swap_ok_cancel_buttons = \"true\"|g" $CFG
-sed -i "s|video_threaded =.*|video_threaded = \"false\"|g" $CFG
+sed -i "s|^.*all_users_control_menu =.*|all_users_control_menu = \"true\"|g" $CFG
+sed -i "s|^.*content_show_images =.*|content_show_images = \"false\"|g" $CFG
+sed -i "s|^.*content_show_music =.*|content_show_music = \"false\"|g" $CFG
+sed -i "s|^.*content_show_video =.*|content_show_video = \"false\"|g" $CFG
+sed -i "s|^.*input_menu_toggle_gamepad_combo =.*|input_menu_toggle_gamepad_combo = \"4\"|g" $CFG
+sed -i "s|^.*menu_driver =.*|menu_driver = \"xmb\"|g" $CFG
+sed -i "s|^.*menu_swap_ok_cancel_buttons =.*|menu_swap_ok_cancel_buttons = \"true\"|g" $CFG
+sed -i "s|^.*video_threaded =.*|video_threaded = \"false\"|g" $CFG
+sed -i "s|^.*menu_core_enable =.*|menu_core_enable = \"true\"|g" $CFG
 [ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo
 
