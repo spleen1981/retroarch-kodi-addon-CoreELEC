@@ -268,6 +268,10 @@ echo -ne "\tra_update_utils_sh "
 echo "$ra_update_utils_sh" > bin/ra_update_utils.sh
 [ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 chmod +x bin/ra_update_utils.sh
+echo -ne "\tra_language_utils_sh "
+echo "$ra_language_utils_sh" > bin/ra_language_utils.sh
+[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
+chmod +x bin/ra_language_utils.sh
 echo -ne "\taddon.xml "
 echo "$addon_xml" > addon.xml
 [ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }

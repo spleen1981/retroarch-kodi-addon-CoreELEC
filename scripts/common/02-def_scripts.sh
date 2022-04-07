@@ -38,8 +38,8 @@ merge_dirs_no_clobber(){
 #Fixes a bug up to CoreELEC 19.4
 oe_setup_addon_fix() {
   if [ ! -z \$1 ] ; then
-    DEF="/storage/.kodi/addons/\$1/settings-default.xml"
-    CUR="/storage/.kodi/userdata/addon_data/\$1/settings.xml"
+    DEF="\$HOME/.kodi/addons/\$1/settings-default.xml"
+    CUR="\$HOME/.kodi/userdata/addon_data/\$1/settings.xml"
 
     # export some useful variables
     ADDON_DIR="\$HOME/.kodi/addons/\$1"
@@ -68,7 +68,7 @@ oe_setup_addon_fix() {
 }
 
 sync_audio_settings(){
-KODI_AUDIO_SETTING=\$(cat /storage/.kodi/userdata/guisettings.xml | grep "audiooutput.audiodevice" | tr "" " " | sed -E 's|</.*>||' | sed -E 's|<.*>||' | sed 's| ||g')
+KODI_AUDIO_SETTING=\$(cat \$HOME/.kodi/userdata/guisettings.xml | grep "audiooutput.audiodevice" | tr "" " " | sed -E 's|</.*>||' | sed -E 's|<.*>||' | sed 's| ||g')
 KODI_AUDIO_DRIVER=\$(echo \$KODI_AUDIO_SETTING | sed -E 's|:.*||')
 KODI_AUDIO_DEVICE=\$(echo \$KODI_AUDIO_SETTING | sed "s|\$KODI_AUDIO_DRIVER:||")
 
@@ -126,7 +126,7 @@ $HOOK_RETROARCH_START_1
 
 ra_config_override(){
 	[ -z "\$(ls -A \${RA_CONFIG_DIR}/\$1 2>/dev/null)" ] && return 1
-	sed -i "s|=.*/resources/\$1|=\\\"\${RA_CONFIG_DIR}/\$1|g" \$RA_CONFIG_FILE
+	sed -i "s|=.*/resources/\$1|= \\\"\${RA_CONFIG_DIR}/\$1|g" \$RA_CONFIG_FILE
 	[ ! -d "\${ADDON_DIR}/resources/\$1" ] && return 2
 	if [ \$2 == 'merge_no_clobber' ]; then
 		merge_dirs_no_clobber "\${ADDON_DIR}/resources/\$1" "\${RA_CONFIG_DIR}/\$1"
@@ -143,19 +143,19 @@ trap exit_script SIGINT SIGTERM
 $HOOK_RETROARCH_START_0
 PATH="\$ADDON_DIR/bin:\$PATH"
 LD_LIBRARY_PATH="\$ADDON_DIR/lib:\$LD_LIBRARY_PATH"
-RA_CONFIG_DIR="/storage/.config/retroarch"
+RA_CONFIG_DIR="\$HOME/.config/retroarch"
 RA_CONFIG_FILE="\$RA_CONFIG_DIR/retroarch.cfg"
 RA_CONFIG_SUBDIRS="savestates savefiles remappings playlists system thumbnails assets overlays"
 RA_ADDON_BIN_FOLDER="\$ADDON_DIR/bin"
 RA_EXE="\$RA_ADDON_BIN_FOLDER/retroarch"
 RA_LOG=""
-ROMS_FOLDER="/storage/roms"
+ROMS_FOLDER="\$HOME/roms"
 DOWNLOADS="downloads"
 RA_PARAMS="--config=\$RA_CONFIG_FILE"
-LOGFILE="/storage/retroarch.log"
+LOGFILE="\$HOME/retroarch.log"
 CAP_GROUP_CEC="<setting id=\\\"standby_devices\\\" value=\\\""
 CEC_SHUTDOWN_SETTING_NO="231"
-KODI_CEC_SETTINGS_FILE="\$(ls /storage/.kodi/userdata/peripheral_data/*CEC*.xml)"
+KODI_CEC_SETTINGS_FILE="\$(ls \$HOME/.kodi/userdata/peripheral_data/*CEC*.xml)"
 VIDEO_MODE_RATE="\$(cat /sys/class/display/mode | grep -Eo [pi].+[h] | grep -Eo [0-9]+)"
 VIDEO_MODE_RES="\$(cat /sys/class/display/mode | grep -Eo .\+[pi])"
 
@@ -175,7 +175,19 @@ fi
 
 # First run only actions
 if [ ! -f \${ADDON_DIR}/config/${FIRST_RUN_FLAG_PREFIX}_${FIRST_RUN_FLAG_SUFFIX} ] ; then
+
+
+
 	\$RA_ADDON_BIN_FOLDER/ra_update_utils.sh clear_flags
+
+	. \$RA_ADDON_BIN_FOLDER/ra_language_utils.sh
+
+	kodi_locale=\$(cat \$HOME/.kodi/userdata/guisettings.xml | grep locale.language | sed "s/.*resource.language.//;s/<.*>//")
+	if [ -z \$(echo \$RA_CONFIG_FILE | grep user_language) ]; then
+		echo "user_language = \\\"\$(ra_get_language \$kodi_locale)\\\"" >> \$RA_CONFIG_FILE
+	else
+		sed -i "s|user_language.*|user_language = \\\"\$(ra_get_language \$kodi_locale)\\\"|" \$RA_CONFIG_FILE
+	fi
 
 	ra_config_override 'system' merge_no_clobber
 	ra_config_override 'assets'
@@ -372,6 +384,131 @@ case \$1 in
 		exit \$?
 		;;
 esac
+
+EOF
+
+read -d '' ra_language_utils_sh <<EOF
+#!/bin/sh
+
+ra_get_language(){
+	#ref. libretro.h
+	RETRO_LANGUAGE_ENGLISH=0
+	RETRO_LANGUAGE_JAPANESE=1
+	RETRO_LANGUAGE_FRENCH=2
+	RETRO_LANGUAGE_SPANISH=3
+	RETRO_LANGUAGE_GERMAN=4
+	RETRO_LANGUAGE_ITALIAN=5
+	RETRO_LANGUAGE_DUTCH=6
+	RETRO_LANGUAGE_PORTUGUESE_BRAZIL=7
+	RETRO_LANGUAGE_PORTUGUESE_PORTUGAL=8
+	RETRO_LANGUAGE_RUSSIAN=9
+	RETRO_LANGUAGE_KOREAN=10
+	RETRO_LANGUAGE_CHINESE_TRADITIONAL=11
+	RETRO_LANGUAGE_CHINESE_SIMPLIFIED=12
+	RETRO_LANGUAGE_ESPERANTO=13
+	RETRO_LANGUAGE_POLISH=14
+	RETRO_LANGUAGE_VIETNAMESE=15
+	RETRO_LANGUAGE_ARABIC=16
+	RETRO_LANGUAGE_GREEK=17
+	RETRO_LANGUAGE_TURKISH=18
+	RETRO_LANGUAGE_SLOVAK=19
+	RETRO_LANGUAGE_PERSIAN=20
+	RETRO_LANGUAGE_HEBREW=21
+	RETRO_LANGUAGE_ASTURIAN=22
+	RETRO_LANGUAGE_FINNISH=23
+	RETRO_LANGUAGE_INDONESIAN=24
+	RETRO_LANGUAGE_SWEDISH=25
+	RETRO_LANGUAGE_UKRAINIAN=26
+	RETRO_LANGUAGE_CZECH=27
+	RETRO_LANGUAGE_VALENCIAN=28
+
+	case \$1 in
+		ja*)
+			echo \$RETRO_LANGUAGE_JAPANESE
+			;;
+		fr*)
+			echo \$RETRO_LANGUAGE_FRENCH
+			;;
+		es*)
+			echo \$RETRO_LANGUAGE_SPANISH
+			;;
+		de*)
+			echo \$RETRO_LANGUAGE_GERMAN
+			;;
+		it*)
+			echo \$RETRO_LANGUAGE_ITALIAN
+			;;
+		pt_br)
+			echo \$RETRO_LANGUAGE_PORTUGUESE_BRAZIL
+			;;
+		pt*)
+			echo \$RETRO_LANGUAGE_PORTUGUESE_PORTUGAL
+			;;
+		ru*)
+			echo \$RETRO_LANGUAGE_RUSSIAN
+			;;
+		ko*)
+			echo \$RETRO_LANGUAGE_KOREAN
+			;;
+		zh_tw)
+			echo \$RETRO_LANGUAGE_CHINESE_TRADITIONAL
+			;;
+		zh*)
+			echo \$RETRO_LANGUAGE_CHINESE_SIMPLIFIED
+			;;
+		eo*)
+			echo \$RETRO_LANGUAGE_ESPERANTO
+			;;
+		pl*)
+			echo \$RETRO_LANGUAGE_POLISH
+			;;
+		vi*)
+			echo \$RETRO_LANGUAGE_VIETNAMESE
+			;;
+		ar*)
+			echo \$RETRO_LANGUAGE_ARABIC
+			;;
+		el*)
+			echo \$RETRO_LANGUAGE_GREEK
+			;;
+		tr*)
+			echo \$RETRO_LANGUAGE_TURKISH
+			;;
+		sk*)
+			echo \$RETRO_LANGUAGE_SLOVAK
+			;;
+		fa*)
+			echo \$RETRO_LANGUAGE_PERSIAN
+			;;
+		he*)
+			echo \$RETRO_LANGUAGE_HEBREW
+			;;
+		ast*)
+			echo \$RETRO_LANGUAGE_ASTURIAN
+			;;
+		fi*)
+			echo \$RETRO_LANGUAGE_FINNISH
+			;;
+		id*)
+			echo \$RETRO_LANGUAGE_INDONESIAN
+			;;
+		sv*)
+			echo \$RETRO_LANGUAGE_SWEDISH
+			;;
+		uk*)
+			echo \$RETRO_LANGUAGE_UKRAINIAN
+			;;
+		cs*)
+			echo \$RETRO_LANGUAGE_CZECH
+			;;
+		ca*)
+			echo \$RETRO_LANGUAGE_VALENCIAN
+			;;
+		*)
+			echo \$RETRO_LANGUAGE_ENGLISH
+			;;
+	esac
+}
 
 EOF
 
