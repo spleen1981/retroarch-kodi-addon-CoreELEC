@@ -326,65 +326,63 @@ echo
 #Customizing retroarch.cfg
 echo "Making modifications to retroarch.cfg..."
 CFG="config/retroarch.cfg"
-RA_CFG_DIR="\/storage\/\.config\/retroarch"
-RA_CORES_DIR="\/storage\/\.kodi\/addons\/${ADDON_NAME}\/lib\/libretro"
-RA_RES_DIR="\/storage\/\.kodi\/addons\/${ADDON_NAME}\/resources"
+RA_CFG_DIR="/storage/\.config/retroarch"
+RA_CORES_DIR="/storage/\.kodi/addons/${ADDON_NAME}/lib/libretro"
+RA_RES_DIR="/storage/\.kodi/addons/${ADDON_NAME}/resources"
 echo -ne "\tsavefiles "
-sed -i "s/\/storage\/savefiles/${RA_CFG_DIR}\/savefiles/g" $CFG
+sed -i "s|/.*/savefiles|${RA_CFG_DIR}/savefiles|g" $CFG
 [ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo -ne "\tsavestates "
-sed -i "s/\/storage\/savestates/${RA_CFG_DIR}\/savestates/g" $CFG
+sed -i "s|/.*/savestates|${RA_CFG_DIR}/savestates|g" $CFG
 [ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo -ne "\tremappings "
-sed -i "s/\/storage\/remappings/${RA_CFG_DIR}\/remappings/g" $CFG
+sed -i "s|/.*/remappings|${RA_CFG_DIR}/remappings|g" $CFG
 [ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo -ne "\tplaylists "
-sed -i "s/\/storage\/playlists/${RA_CFG_DIR}\/playlists/g" $CFG
+sed -i "s|/.*/playlists|${RA_CFG_DIR}/playlists|g" $CFG
 [ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo -ne "\tcores "
-sed -i "s/\/tmp\/cores/${RA_CORES_DIR}/g" $CFG
+sed -i "s|/.*/cores|${RA_CORES_DIR}|g" $CFG
 [ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo -ne "\tsystem "
-sed -i "s/\/storage\/system/${RA_RES_DIR}\/system/g" $CFG
+sed -i "s|/.*/system|${RA_RES_DIR}/system|g" $CFG
 [ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo -ne "\tassets "
-sed -i "s/\/tmp\/assets/${RA_RES_DIR}\/assets/g" $CFG
+sed -i -E "s#([= \"])/.*?/assets#\1${RA_RES_DIR}/assets#g" $CFG
 [ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo -ne "\tthumbnails "
-sed -i "s/\/storage\/thumbnails/${RA_CFG_DIR}\/thumbnails/g" $CFG
+sed -i "s|/.*/thumbnails|${RA_CFG_DIR}/thumbnails|g" $CFG
 [ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo -ne "\tshaders "
-sed -i "s/\/tmp\/shaders/${RA_RES_DIR}\/shaders/g" $CFG
+sed -i "s|/.*/shaders|${RA_RES_DIR}/shaders|g" $CFG
 [ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo -ne "\tvideo_filters "
-sed -i "s/\/usr\/share\/video_filters/${RA_RES_DIR}\/video_filters/g" $CFG
+sed -i "s|/.*/video_filters|${RA_RES_DIR}/video_filters|g" $CFG
 [ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo -ne "\taudio_filters "
-sed -i "s/\/usr\/share\/audio_filters/${RA_RES_DIR}\/audio_filters/g" $CFG
+sed -i "s|/.*/audio_filters|${RA_RES_DIR}/audio_filters|g" $CFG
 [ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo -ne "\tretroarch-assets "
-sed -i "s/\/usr\/share\/retroarch-assets/${RA_RES_DIR}\/assets/g" $CFG
+sed -i "s|/.*/retroarch-assets|${RA_RES_DIR}/assets|g" $CFG
 [ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo -ne "\tjoypads "
-sed -i "s/\/tmp\/joypads/${RA_RES_DIR}\/joypads/g" $CFG
+sed -i "s|/.*/joypads|${RA_RES_DIR}/joypads|g" $CFG
 [ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo -ne "\tdatabase "
-sed -i "s/\/tmp\/database/${RA_RES_DIR}\/database/g" $CFG
+sed -i "s|/.*/database|${RA_RES_DIR}/database|g" $CFG
 [ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo -ne "\toverlays "
-sed -i "s/\/tmp\/overlays/${RA_RES_DIR}\/overlays/g" $CFG
+sed -i "s|/.*/overlays|${RA_RES_DIR}/overlays|g" $CFG
 [ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo -ne "\tmisc settings "
-sed -i "s/all_users_control_menu =.*/all_users_control_menu = \"true\"/g" $CFG
-sed -i "s/content_show_images =.*/content_show_images = \"false\"/g" $CFG
-sed -i "s/content_show_music =.*/content_show_music = \"false\"/g" $CFG
-sed -i "s/content_show_video =.*/content_show_video = \"false\"/g" $CFG
-sed -i "s/input_menu_toggle_gamepad_combo =.*/input_menu_toggle_gamepad_combo = \"4\"/g" $CFG
-sed -i "s/menu_driver =.*/menu_driver = \"xmb\"/g" $CFG
-sed -i "s/menu_show_configurations =.*/menu_show_configurations = \"false\"/g" $CFG
-sed -i "s/menu_show_restart_retroarch =.*/menu_show_restart_retroarch = \"false\"/g" $CFG
-sed -i "s/menu_swap_ok_cancel_buttons =.*/menu_swap_ok_cancel_buttons = \"true\"/g" $CFG
-sed -i "s/video_threaded =.*/video_threaded = \"false\"/g" $CFG
+sed -i "s|all_users_control_menu =.*|all_users_control_menu = \"true\"|g" $CFG
+sed -i "s|content_show_images =.*|content_show_images = \"false\"|g" $CFG
+sed -i "s|content_show_music =.*|content_show_music = \"false\"|g" $CFG
+sed -i "s|content_show_video =.*|content_show_video = \"false\"|g" $CFG
+sed -i "s|input_menu_toggle_gamepad_combo =.*|input_menu_toggle_gamepad_combo = \"4\"|g" $CFG
+sed -i "s|menu_driver =.*|menu_driver = \"xmb\"|g" $CFG
+sed -i "s|menu_swap_ok_cancel_buttons =.*|menu_swap_ok_cancel_buttons = \"true\"|g" $CFG
+sed -i "s|video_threaded =.*|video_threaded = \"false\"|g" $CFG
 [ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }
 echo
 
