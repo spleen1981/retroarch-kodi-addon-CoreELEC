@@ -1,0 +1,13 @@
+diff --git a/packages/libretro/retroarch/package.mk b/packages/libretro/retroarch/package.mk
+index ec9c156984..3131cff3a3 100644
+--- a/packages/libretro/retroarch/package.mk
++++ b/packages/libretro/retroarch/package.mk
+@@ -19,7 +19,7 @@
+ ################################################################################
+ 
+ PKG_NAME="retroarch"
+-PKG_VERSION="de4e56e"
++PKG_VERSION="f9d0a49d424381a767ada5bfd2fa2587df6f8cb8"
+ PKG_ARCH="any"
+ PKG_LICENSE="GPLv3"
+ PKG_SITE="https://github.com/libretro/RetroArch"
