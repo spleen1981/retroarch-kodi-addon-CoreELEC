@@ -125,13 +125,29 @@ $HOOK_RETROARCH_START_1
 }
 
 ra_config_override(){
-	[ -z "\$(ls -A \${RA_CONFIG_DIR}/\$1 2>/dev/null)" ] && return 1
-	sed -i "s|=.*/resources/\$1|= \\\"\${RA_CONFIG_DIR}/\$1|g" \$RA_CONFIG_FILE
-	[ ! -d "\${ADDON_DIR}/resources/\$1" ] && return 2
-	if [ \$2 == 'merge_no_clobber' ]; then
-		merge_dirs_no_clobber "\${ADDON_DIR}/resources/\$1" "\${RA_CONFIG_DIR}/\$1"
-	else
-		cp -rf "\${ADDON_DIR}/resources/\$1" "\${RA_CONFIG_DIR}/\$1"
+	[ -d "\${RA_CONFIG_DIR}/\$1" ]
+	local config_res_dir_exists=\$?
+	[ ! -z "\$(ls -A \${RA_CONFIG_DIR}/\$1 2>/dev/null)" ]
+	local config_res_dir_exists_not_empty=\$?
+	[ -d "\${ADDON_DIR}/resources/\$1" ]
+	local addon_res_dir_exists=\$?
+
+	if [ ! \$addon_res_dir_exists -eq 0 ] && [ ! \$config_res_dir_exists -eq 0 ]; then
+		return 1
+	fi
+
+	#if resources are not included in the build, local config path is always preferred.
+	#if resources are included in the addon but local config path is not empty, the latter is chosen and content is merged as needed
+	if [ ! \$addon_res_dir_exists -eq 0 ] || [ \$config_res_dir_exists_not_empty -eq 0 ]; then
+		sed -i "s|=.*/resources/\$1|= \\\"\${RA_CONFIG_DIR}/\$1|g" \$RA_CONFIG_FILE
+	fi
+
+	if [ \$addon_res_dir_exists -eq 0 ] && [ \$config_res_dir_exists -eq 0 ]; then
+		if [ \$2 == 'merge_no_clobber' ]; then
+			merge_dirs_no_clobber "\${ADDON_DIR}/resources/\$1" "\${RA_CONFIG_DIR}/\$1"
+		else
+			cp -rf "\${ADDON_DIR}/resources/\$1" "\${RA_CONFIG_DIR}/\$1"
+		fi
 	fi
 }
 
@@ -145,7 +161,7 @@ PATH="\$ADDON_DIR/bin:\$PATH"
 LD_LIBRARY_PATH="\$ADDON_DIR/lib:\$LD_LIBRARY_PATH"
 RA_CONFIG_DIR="\$HOME/.config/retroarch"
 RA_CONFIG_FILE="\$RA_CONFIG_DIR/retroarch.cfg"
-RA_CONFIG_SUBDIRS="savestates savefiles remappings playlists system thumbnails assets overlays"
+RA_CONFIG_SUBDIRS="savestates savefiles remappings playlists thumbnails system assets joypads shaders database overlays"
 RA_ADDON_BIN_FOLDER="\$ADDON_DIR/bin"
 RA_EXE="\$RA_ADDON_BIN_FOLDER/retroarch"
 RA_LOG=""
@@ -175,8 +191,6 @@ fi
 
 # First run only actions
 if [ ! -f \${ADDON_DIR}/config/${FIRST_RUN_FLAG_PREFIX}_${FIRST_RUN_FLAG_SUFFIX} ] ; then
-
-
 
 	\$RA_ADDON_BIN_FOLDER/ra_update_utils.sh clear_flags
 
