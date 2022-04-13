@@ -24,35 +24,53 @@ Core list included by default is same as [Lakka](https://github.com/libretro/Lak
    - Set refresh rate for Retroarch independently from Kodi settings
    - Sync Retroarch audio driver/device with Kodi settings
    - Auto update. Check for updates will be performed everytime RetroArch is launched
+   - Reset Retroarch configuration. Restores `retroarch.cfg` to defaults and addon to first run condition
 
 ## Folders
 
-`/storage/.config/retroarch` is the root folder for RetroArch configurations. It is an external folder to the addon, hence it is not deleted when the addon is removed (remove the folder manually for a full clean up). It includes the `retroarch.cfg` main configuration file and following subfolders:
+### Resources
 
-   - `savestates` for storing the savestates
-   - `savefiles` for storing the saves (e.g. memory card files)
-   - `remappings` for storing remapped controls
-   - `playlists` for storing RetroArch playlists - lists of games per emulated system
+The addon uses an internal `resources` folder as well as one external local folder `/storage/.config/retroarch`. Internal folder will be wiped on addon removal/update.
+
+`/storage/.config/retroarch` should include the `retroarch.cfg` main configuration file and following subfolders. If not there, empty folders and default `retroarch.cfg` will be created automatically.
+
+   - `savestates`
+   - `savefiles` (e.g. memory card files)
+   - `remappings` to store remapped controls
+   - `playlists` to store RetroArch playlists - lists of games per emulated system
    - `thumbnails` Boxarts / Screenshots / Title screens will be stored here
-   - `system` alternate location for cores additional system files (e.g. BIOS). It is convenient to put BIOS files here and avoid deletion on addon removal. Base files can be copied from the `system` folder inside the addon folder or can be downloaded from retroarch online updater. If folder is not empty at first start, this path will override automatically the default one in retroarch.cfg
-   - `assets` alternate location for wallpapers, themes, icons, fonts, etc. Useful in case custom assets are used to avoid deletion on addon removal. If folder is not empty at first start, this path will override automatically the default one in retroarch.cfg 
+   - `assets` wallpapers, themes, icons, fonts, etc. will be stored here
+   - `database` contains subfolders `cht` (cheats), `cursors` (saved searches) and `rdb` (games databases for scanning your files)
+   - `joypads` configuration files for autoconfiguration of attached joysticks and gamepads will be stored here
+   - `overlays` on screen overlays will be stored here
+   - `shaders` shaders to enhance the visuals of the emulated systems on current display devices will be stored here
+   - `system` cores additional system files (e.g. BIOS) will be stored here
 
-Put your ROM files to folder `/storage/roms`. You may put them in separate folders by systems, but it is not required by RetroArch.
+The internal `resources` folder includes:
+   - `audio_filters` various audio filters from relevant repositories
+   - `video_filters` various video filters from relevant repositories
+   - `system` includes contents from relevant repositories per build configured core list.
+
+Depending on build configuration (not by default) also the following may be included in the internal folder, with the content from relevant repositories:
+   - `assets`
+   - `database`
+   - `joypads`
+   - `overlays`
+   - `shaders`
+
+In case same subfolder is present both in external and internal resource folders, external will be used and internal content will be merged as needed.
+
+### Roms
+
+Default ROM folder is `/storage/roms`. This folder can be mapped to a remote location using addon settings.
+
+### Cores
+
+Cores are stored in `lib/libretro` internal subfolder (removed on addon removal).
+
+### Other folders
 
 Screenshots are stored in `/storage/screenshots`.
-
-The add-on includes also following subfolders in the addon `resources` folder (removed on addon removal):
-
-   - `assets` contains wallpapers, themes, icons, fonts, etc.
-   - `audio_filters` various audio filters
-   - `database` contains subfolders `cht` (cheats), `cursors` (saved searches) and `rdb` (games databases for scanning your files)
-   - `joypads` configuration files for autoconfiguration of attached joystics and gamepads
-   - `overlays` for touch-devices only - on screen gamepad overlays
-   - `shaders` various shaders to enhance the visuals of the emulated systems on current display devices
-   - `video_filters` various video filters
-   - `system` default location containing cores additional system files (e.g. BIOS) if any and as per core list built. Additional user BIOS/data can be added (see same bullet above).
-
-The emulation cores are stored in `lib/libretro` subfolder of the add-on (removed on addon removal).
 
 # Development and build script usage
 [Lakka repository](https://github.com/libretro/Lakka-LibreELEC) is included as a submodule by default.
