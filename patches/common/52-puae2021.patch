@@ -1,0 +1,25 @@
+diff --git a/packages/libretro/puae/package.mk b/packages/libretro/puae/package.mk
+old mode 100644
+new mode 100755
+index e3796f9505..0c8b3781c8
+--- a/packages/libretro/puae/package.mk
++++ b/packages/libretro/puae/package.mk
+@@ -19,7 +19,8 @@
+ ################################################################################
+ 
+ PKG_NAME="puae"
+-PKG_VERSION="fd52745"
++PKG_VERSION="22d39901e51a90a8dff685d087ed473c64eb6ca1"
++PKG_GIT_CLONE_BRANCH="2.6.1"
+ PKG_ARCH="any"
+ PKG_LICENSE="GPL"
+ PKG_SITE="https://github.com/libretro/libretro-uae"
+@@ -43,7 +44,7 @@ pre_make_target() {
+ 
+ makeinstall_target() {
+   mkdir -p $INSTALL/usr/lib/libretro
+-  cp puae_libretro.so $INSTALL/usr/lib/libretro/
++  cp puae2021_libretro.so $INSTALL/usr/lib/libretro/
+   mkdir -p $INSTALL/usr/share/retroarch-system/uae_data
+   cp -R $PKG_BUILD/sources/uae_data/* $INSTALL/usr/share/retroarch-system/uae_data/
+ }
