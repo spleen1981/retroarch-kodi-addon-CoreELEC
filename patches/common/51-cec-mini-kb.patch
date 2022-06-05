@@ -8,7 +8,7 @@ index 0000000000..71335fefd0
 +# 2021 Giovanni Cascione
 +
 +PKG_NAME="cec-mini-kb"
-+PKG_VERSION="b72019c"
++PKG_VERSION="3fb45d50afc1ab61885ae87b641fddf8b9bd8211"
 +PKG_SHA256=""
 +PKG_REV=""
 +PKG_ARCH="any"
