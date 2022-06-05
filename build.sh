@@ -39,7 +39,7 @@ BASE_NAME="$PROVIDER.retroarch"
 [ -z "$ADDON_VERSION" ] && ADDON_VERSION=$(date +%y.%m.%d)
 [ -z "$PROVIDER" ] && PROVIDER="${USER}"
 [ -z "$INCLUDE_DLC" ] && INCLUDE_DLC=""
-[ -z "$LAKKA_VERSION" ] && LAKKA_VERSION="fbd04578a40927d293598feb9e78ca39ab11410e"
+[ -z "$LAKKA_VERSION" ] && LAKKA_VERSION="0e10802c8a983800671d1e4eba1fdf1e4a8138ac"
 [ -z "$DISTRONAME" ] && DISTRONAME="Lakka"
 
 #Path and filename variables
@@ -80,8 +80,8 @@ done
 
 #Building libretro core variable list from Lakka sources
 source "${LAKKA_DIR}/distributions/Lakka/options"
-[ -z "$LIBRERETRO_CORES_ADD" ] && LIBRERETRO_CORES_ADD=""
-[ -z "$LIBRERETRO_CORES_RM" ] && LIBRERETRO_CORES_RM=""
+[ -z "$LIBRERETRO_CORES_ADD" ] && LIBRERETRO_CORES_ADD="puae2021"
+[ -z "$LIBRERETRO_CORES_RM" ] && LIBRERETRO_CORES_RM="puae"
 for CORE in $LIBRERETRO_CORES_RM $LIBRERETRO_CORES_ADD ; do
 	LIBRETRO_CORES="${LIBRETRO_CORES// $CORE /}"
 done
