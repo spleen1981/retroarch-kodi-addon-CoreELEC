@@ -45,12 +45,13 @@ read -d '' settings_xml <<EOF
 		<setting id="ra_autoupdate" label="24063" type="bool" default="true" />
 		<setting id="ra_updatenow" type="action" label="24034" action="RunScript(${ADDON_NAME},check_updates)"/>
 		<setting id="ra_reset" type="action" label="13007" action="RunScript(${ADDON_NAME},reset)"/>
-resetToDefaults
 	</category>
 	<category label="35234"> <!-- Controls -->
 		<setting label="35234" type="lsep"/>
 		<setting id="ra_xbox360_shutdown" label="32002" type="bool" default="true" />
 		<setting id="ra_cec_remote" label="32003" type="bool" default="true" />
+		<setting id="ra_cec_poweroff" label="36029" type="enum" lvalues="13005|36028" default="13005" enable="eq(-1,true)" subsetting="true" />
+
 	</category>
 	<category label="157"><!-- Video -->
 		<setting label="157" type="lsep"/>
@@ -81,6 +82,7 @@ read -d '' settings_default_xml <<EOF
 	<setting id="ra_stop_kodi" value="true" />
 	<setting id="ra_xbox360_shutdown" value="true" />
 	<setting id="ra_cec_remote" value="true" />
+	<setting id="ra_cec_poweroff" value="13005" />
 	<setting id="ra_force_refresh_rate" value="true" />
 	<setting id="ra_forced_refresh_rate" value="1" />
 	<setting id="ra_sync_audio_settings" value="true" />

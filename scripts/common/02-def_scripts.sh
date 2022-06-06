@@ -259,7 +259,15 @@ sed -E -i "s|video_refresh_rate.+|video_refresh_rate = \"\${VIDEO_MODE_NEWRATE}\
 
 [ "\$ra_sync_audio_settings" = "true" ] && sync_audio_settings
 
-[ "\$ra_cec_remote" = "true" ] && systemd-run -q -u cec-kb "\$ADDON_DIR/bin/cec-mini-kb"
+#CEC remote
+RA_POWEROFF_OPTS_PRE=""
+RA_POWEROFF_OPTS_CMD=""
+if [ "\$ra_cec_poweroff" = '0' ] ; then
+	RA_POWEROFF_OPTS_PRE="--poweroff"
+	[ "\$ra_xbox360_shutdown" = "true" ] && RA_POWEROFF_OPTS_CMD="\${ADDON_DIR}/bin/xbox360-controllers-shutdown;"
+	RA_POWEROFF_OPTS_CMD="\${RA_POWEROFF_OPTS_CMD}shutdown -P now"
+fi
+[ "\$ra_cec_remote" = "true" ] && systemd-run -q -u cec-kb "\$ADDON_DIR/bin/cec-mini-kb" \$RA_POWEROFF_OPTS_PRE "\$RA_POWEROFF_OPTS_CMD"
 \$RA_EXE \$RA_PARAMS "\$@"
 
 exit_script
