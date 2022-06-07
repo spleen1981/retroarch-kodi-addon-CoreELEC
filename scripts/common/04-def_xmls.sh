@@ -88,7 +88,7 @@ read -d '' settings_default_xml <<EOF
 	<setting id="ra_stop_kodi" value="true" />
 	<setting id="ra_xbox360_shutdown" value="true" />
 	<setting id="ra_cec_remote" value="true" />
-	<setting id="ra_cec_poweroff" value="13005" />
+	<setting id="ra_cec_poweroff" value="0" />
 	<setting id="ra_force_refresh_rate" value="true" />
 	<setting id="ra_forced_refresh_rate" value="1" />
 	<setting id="ra_sync_audio_settings" value="true" />
