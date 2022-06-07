@@ -13,6 +13,8 @@ for lang_item in $LANG_list ; do
 "
 done
 
+CHANGELOG="$(cat ${SCRIPT_DIR}/CHANGELOG.md | sed "s#&#\&amp;#g" | sed "s#\"#\&quot;#g" | sed "s#'#\&apos;#g" | sed "s#<#\&lt;#g" | sed "s#>#\&gt;#g")"
+
 read -d '' addon_xml <<EOF
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addon id="${ADDON_NAME}" name="RetroArch" version="${ADDON_VERSION}" provider-name="${PROVIDER}">
@@ -32,6 +34,10 @@ read -d '' addon_xml <<EOF
 			<icon>resources/icon.png</icon>
 			<fanart>resources/fanart.jpg</fanart>
 		</assets>
+<news>
+$CHANGELOG
+</news>
+
 	</extension>
 </addon>
 EOF
