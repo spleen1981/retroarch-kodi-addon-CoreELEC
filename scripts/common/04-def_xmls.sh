@@ -55,6 +55,7 @@ read -d '' settings_xml <<EOF
 	<category label="35234"> <!-- Controls -->
 		<setting label="35234" type="lsep"/>
 		<setting id="ra_xbox360_shutdown" label="32002" type="bool" default="true" />
+		<setting id="ra_bt_shutdown" label="32009" type="bool" default="false" />
 		<setting id="ra_cec_remote" label="32003" type="bool" default="true" />
 		<setting id="ra_cec_poweroff" label="36029" type="enum" lvalues="13005|36028" default="13005" enable="eq(-1,true)" subsetting="true" />
 
@@ -87,6 +88,7 @@ read -d '' settings_default_xml <<EOF
 <settings>
 	<setting id="ra_stop_kodi" value="true" />
 	<setting id="ra_xbox360_shutdown" value="true" />
+	<setting id="ra_bt_shutdown" value="false" />
 	<setting id="ra_cec_remote" value="true" />
 	<setting id="ra_cec_poweroff" value="0" />
 	<setting id="ra_force_refresh_rate" value="true" />

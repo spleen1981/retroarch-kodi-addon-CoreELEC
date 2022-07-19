@@ -106,6 +106,8 @@ exit_script(){
 
 	[ "\$ra_xbox360_shutdown" = "true" ] && "\$ADDON_DIR"/bin/xbox360-controllers-shutdown
 
+	[ "\$ra_bt_shutdown" = "true" ] && bluetoothctl power off && bluetoothctl power on
+
 	[ "\$ra_roms_remote" = "true" ] && umount "\$ROMS_FOLDER"
 
 	if [ "\$ra_force_refresh_rate" = "true" -a ! -z "\$VIDEO_MODE_RES" ] ; then

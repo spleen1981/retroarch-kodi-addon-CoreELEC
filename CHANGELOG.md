@@ -1,3 +1,6 @@
+v1.5.5
+ - Added BT controllers shutdown function on RetroArch exit.
+
 v1.5.4
  - Added shutdown function on TV power-off (CEC)
  - Added CEC remote controller numeric pads support 
