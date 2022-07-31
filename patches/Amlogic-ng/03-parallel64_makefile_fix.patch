@@ -1,0 +1,139 @@
+diff --git a/packages/libretro/parallel-n64/package.mk b/packages/libretro/parallel-n64/package.mk
+index 18b8ba1864..80e420d392 100644
+--- a/packages/libretro/parallel-n64/package.mk
++++ b/packages/libretro/parallel-n64/package.mk
+@@ -19,7 +19,7 @@
+ ################################################################################
+
+ PKG_NAME="parallel-n64"
+-PKG_VERSION="b804ab1"
++PKG_VERSION="28ef8ff960efef4fc3c462ddc52707e140fee3be"
+ PKG_ARCH="any"
+ PKG_LICENSE="GPLv2"
+ PKG_SITE="https://github.com/libretro/parallel-n64"
+@@ -31,52 +31,12 @@ PKG_SHORTDESC="Optimized/rewritten Nintendo 64 emulator made specifically for Li
+ PKG_LONGDESC="Optimized/rewritten Nintendo 64 emulator made specifically for Libretro. Originally based on Mupen64 Plus."
+ PKG_BUILD_FLAGS="-lto"
+
+-PKG_IS_ADDON="no"
+-PKG_AUTORECONF="no"
++PKG_MAKE_OPTS_TARGET=" platform=${DEVICE}"
+
+-if [ "$OPENGL_SUPPORT" = yes ]; then
+-  PKG_DEPENDS_TARGET+=" $OPENGL"
++if [ "${DEVICE}" == "OdroidGoAdvance" ]; then
++PKG_MAKE_OPTS_TARGET=" platform=Odroidgoa"
+ fi
+
+-if [ "$OPENGLES_SUPPORT" = yes ]; then
+-  PKG_DEPENDS_TARGET+=" $OPENGLES"
+-fi
+-
+-make_target() {
+-  DYNAREC=$ARCH
+-
+-  if [ "$ARCH" == "i386" ]; then
+-    DYNAREC=x86
+-  fi
+-
+-  if [ "$ARCH" = "arm" -o "$ARCH" = "aarch64" ]; then
+-    CFLAGS="$CFLAGS -DARM_FIX"
+-  fi
+-
+-  if [ "$DEVICE" == "RPi" ]; then
+-    make platform=rpi
+-  elif [ "$DEVICE" = "RPi3" -o "${DEVICE:0:4}" = "RPi4" -o "$DEVICE" = "Pi02GPi" ]; then
+-    LDFLAGS="$LDFLAGS -lpthread"
+-    if [ "$ARCH" = "aarch64" ]; then
+-      make WITH_DYNAREC=$DYNAREC FORCE_GLES=1 HAVE_PARALLEL=1 HAVE_OPENGL=0
+-    else
+-      make platform=armv-neon WITH_DYNAREC=$DYNAREC HAVE_PARALLEL=1
+-    fi
+-  elif [ "$PROJECT" = "Generic" ]; then
+-    LDFLAGS="$LDFLAGS -lpthread"
+-    make WITH_DYNAREC=$DYNAREC HAVE_PARALLEL=1 HAVE_PARALLEL_RSP=1 HAVE_THR_AL=1
+-  elif [[ "$TARGET_FPU" =~ "neon" ]]; then
+-    CFLAGS="$CFLAGS -DGL_BGRA_EXT=0x80E1" # Fix build for platforms where GL_BGRA_EXT is not defined
+-    make platform=armv-gles-neon
+-  elif [ "$ARCH" == "aarch64" ]; then
+-    LDFLAGS="$LDFLAGS -lpthread"
+-    make FORCE_GLES=1 HAVE_PARALLEL=1
+-  else
+-    LDFLAGS="$LDFLAGS -lpthread"
+-    make WITH_DYNAREC=$DYNAREC HAVE_PARALLEL=0
+-  fi
+-}
+-
+ makeinstall_target() {
+   mkdir -p $INSTALL/usr/lib/libretro
+   cp parallel_n64_libretro.so $INSTALL/usr/lib/libretro/
+diff --git a/packages/libretro/parallel-n64/patches/parallel64_fix_amlogic.patch b/packages/libretro/parallel-n64/patches/parallel64_fix_amlogic.patch
+new file mode 100644
+index 0000000000..75a73fe1bf
+--- /dev/null
++++ b/packages/libretro/parallel-n64/patches/parallel64_fix_amlogic.patch
+@@ -0,0 +1,64 @@
++diff --git a/Makefile b/Makefile
++index 43652cee..777588dc 100644
++--- a/Makefile
+++++ b/Makefile
++@@ -285,6 +285,59 @@ else ifneq (,$(findstring imx6,$(platform)))
++    WITH_DYNAREC=arm
++    HAVE_NEON=1
++
+++# Amlogic
+++else ifneq (,$(findstring AMLG,$(platform)))
+++   TARGET := $(TARGET_NAME)_libretro.so
+++   LDFLAGS += -shared -Wl,--version-script=$(LIBRETRO_DIR)/link.T
+++   fpic = -fPIC
+++   GLES = 1
+++   GL_LIB := -lGLESv2
+++   CPUFLAGS += -DNO_ASM -DARM -D__arm__ -DARM_ASM -D__NEON_OPT -DNOSSE -DARM_FIX -DCLASSIC
+++   PLATFORM_EXT := unix
+++   WITH_DYNAREC=arm
+++   HAVE_NEON=1
+++
+++	ifneq (,$(findstring AMLG12,$(platform)))
+++		ASFLAGS += -D__ARM_NEON__ -marm -mcpu=cortex-a73 -mtune=cortex-a73.cortex-a53 -mfpu=neon-fp-armv8 -mfloat-abi=hard
+++	else
+++		ASFLAGS += -D__ARM_NEON__ -marm -mcpu=cortex-a53 -mtune=cortex-a53 -mfpu=neon-fp-armv8 -mfloat-abi=hard
+++	endif
+++
+++   CPUFLAGS += -O2 \
+++      -fno-lto -fuse-linker-plugin -fno-semantic-interposition -fno-trapping-math \
+++      -fdata-sections -ffunction-sections -Wl,--gc-sections \
+++      -fno-stack-protector -fno-ident -fomit-frame-pointer \
+++      -falign-functions=32 -falign-jumps=1 -falign-loops=1 \
+++      -fno-unwind-tables -fno-asynchronous-unwind-tables -fno-unroll-loops \
+++      -fno-strict-aliasing -fmerge-all-constants -fno-math-errno
+++	ifneq (,$(findstring AMLG12,$(platform)))
+++		CPUFLAGS += -marm -mtune=cortex-a73.cortex-a53 -mfpu=neon-fp-armv8 -mfloat-abi=hard
+++	else
+++		CPUFLAGS += -marm -mtune=cortex-a53 -mfpu=neon-fp-armv8 -mfloat-abi=hard
+++	endif
+++
+++# OdroidGoA
+++else ifneq (,$(findstring Odroidgoa,$(platform)))
+++   TARGET := $(TARGET_NAME)_libretro.so
+++   LDFLAGS += -shared -Wl,--version-script=$(LIBRETRO_DIR)/link.T
+++   fpic = -fPIC
+++   GLES = 1
+++   GL_LIB := -lGLESv2
+++   CPUFLAGS += -DNO_ASM -DARM -D__arm__ -DARM_ASM -D__NEON_OPT -DNOSSE -DARM_FIX -DCLASSIC
+++   PLATFORM_EXT := unix
+++   WITH_DYNAREC=arm
+++   HAVE_NEON=1
+++   ASFLAGS += -D__ARM_NEON__ -marm -mcpu=cortex-a35 -mtune=cortex-a35 -mfpu=neon-fp-armv8 -mfloat-abi=hard
+++
+++   CPUFLAGS += -O2 \
+++      -fno-lto -fuse-linker-plugin -fno-semantic-interposition -fno-trapping-math \
+++      -fdata-sections -ffunction-sections -Wl,--gc-sections \
+++      -fno-stack-protector -fno-ident -fomit-frame-pointer \
+++      -falign-functions=32 -falign-jumps=1 -falign-loops=1 \
+++      -fno-unwind-tables -fno-asynchronous-unwind-tables -fno-unroll-loops \
+++      -fno-strict-aliasing -fmerge-all-constants -fno-math-errno
+++   CPUFLAGS += -marm -mtune=cortex-a35 -mfpu=neon-fp-armv8 -mfloat-abi=hard
+++
++ # OS X
++ else ifneq (,$(findstring osx,$(platform)))
++    TARGET := $(TARGET_NAME)_libretro.dylib
