@@ -1,5 +1,7 @@
 v1.5.5
  - Added BT controllers shutdown function on RetroArch exit.
+ - Fixed parallel-n64 segfault
+ - Replaced mupen64plus_next with old mupen64plus for amlogic-ng
 
 v1.5.4
  - Added shutdown function on TV power-off (CEC)

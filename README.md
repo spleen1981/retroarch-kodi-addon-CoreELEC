@@ -19,6 +19,7 @@ Core list included by default is same as [Lakka](https://github.com/libretro/Lak
 ## Settings/features
    - Stop Kodi when Retroarch is launched, to freeup memory
    - Turn off Xbox360 wireless controllers when exiting Retroarch
+   - Added BT controllers shutdown function on RetroArch exit. This option will power off and power back on device bluetooth controller, which may result in paired BT gamepad shutdown if supported (e.g. Sony DS4 controller).
    - Use remote location (e.g. SMB) as roms folder. Remote path to be as follows `//server_IP/path_to_roms_folder`
    - Use TV remote controller (CEC) to navigate RetroArch menu (ref [here](https://github.com/spleen1981/cec-mini-kb) for key bindings)
    - Set refresh rate for Retroarch independently from Kodi settings
