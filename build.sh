@@ -80,8 +80,15 @@ done
 
 #Building libretro core variable list from Lakka sources
 source "${LAKKA_DIR}/distributions/Lakka/options"
-[ -z "$LIBRERETRO_CORES_ADD" ] && LIBRERETRO_CORES_ADD="puae2021"
-[ -z "$LIBRERETRO_CORES_RM" ] && LIBRERETRO_CORES_RM="puae"
+[ -z "$LIBRERETRO_CORES_ADD" ] && LIBRERETRO_CORES_ADD="puae2021 mupen64plus"
+[ -z "$LIBRERETRO_CORES_RM" ] && LIBRERETRO_CORES_RM=""
+
+#Disable specific cores for Amlogic-ng
+if [ "$PROJECT" = "Amlogic-ng" ]; then
+	LIBRERETRO_CORES_RM="$LIBRERETRO_CORES_RM puae mupen64plus_next"
+fi
+
+
 for CORE in $LIBRERETRO_CORES_RM $LIBRERETRO_CORES_ADD ; do
 	LIBRETRO_CORES="${LIBRETRO_CORES// $CORE /}"
 done
