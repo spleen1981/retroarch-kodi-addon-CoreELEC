@@ -26,6 +26,9 @@ exit_script(){
 }
 trap exit_script SIGINT SIGTERM
 
+GIT_SSL_NO_VERIFY=1
+echo "GIT_SSL_NO_VERIFY set to 1"
+
 #Source local overrides
 if [ -f "${SCRIPT_DIR}/local.conf" ] ; then
 	source "${SCRIPT_DIR}/local.conf"
