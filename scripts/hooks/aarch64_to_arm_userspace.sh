@@ -68,7 +68,7 @@ add_subdirs(){
 }
 
 hook_function(){
-if [[ "$PROJECT" == "Amlogic-ng" && "$ARCH" == aarch64 ]] ; then
+if [[ "$DEVICE" == "Amlogic-ng" && "$ARCH" == aarch64 ]] ; then
 	#Patching ELF to set aarch64 local interpreter
 	echo "Applying arm64_to_arm32_userspace hack"
 

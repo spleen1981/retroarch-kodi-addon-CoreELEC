@@ -1,10 +1,10 @@
-diff --git a/packages/libretro/retroarch/package.mk b/packages/libretro/retroarch/package.mk
-index 4ea1fa9aac..e1ea9dccb0 100644
---- a/packages/libretro/retroarch/package.mk
-+++ b/packages/libretro/retroarch/package.mk
-@@ -123,7 +123,7 @@ if [[ "$TARGET_FPU" =~ "neon" ]]; then
-   fi
- fi
+diff --git a/packages/lakka/retroarch_base/retroarch/package.mk b/packages/lakka/retroarch_base/retroarch/package.mk
+index bccb5787ba..f6e58236de 100644
+--- a/packages/lakka/retroarch_base/retroarch/package.mk
++++ b/packages/lakka/retroarch_base/retroarch/package.mk
+@@ -7,7 +7,7 @@ PKG_DEPENDS_TARGET="toolchain freetype zlib ffmpeg libass libvdpau libxkbcommon
+ PKG_LONGDESC="Reference frontend for the libretro API."
+ PKG_LR_UPDATE_TAG="yes"
  
 -PKG_CONFIGURE_OPTS_TARGET="--disable-vg \
 +PKG_CONFIGURE_OPTS_TARGET="--disable-update_cores --disable-vg \

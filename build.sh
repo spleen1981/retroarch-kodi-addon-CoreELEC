@@ -36,27 +36,16 @@ fi
 
 #Platform and general settings variables
 BASE_NAME="$PROVIDER.retroarch"
-[ -z "$PROJECT" ] && PROJECT=Amlogic-ng
+[ -z "$PROJECT" ] && PROJECT="Amlogic-ce"
 [ -z "$ARCH" ] && ARCH=arm
-[ -z "$DEVICE" ] && DEVICE=""
-[ -z "$ADDON_VERSION" ] && ADDON_VERSION=$(date +%y.%m.%d)
+[ -z "$DEVICE" ] && DEVICE="Amlogic-ng"
+[ -z "$ADDON_VERSION" ] && read -p "Enter version tag [e.g. v1.0.0]: " ADDON_VERSION
 [ -z "$PROVIDER" ] && PROVIDER="${USER}"
 [ -z "$INCLUDE_DLC" ] && INCLUDE_DLC=""
-[ -z "$LAKKA_VERSION" ] && LAKKA_VERSION="0e10802c8a983800671d1e4eba1fdf1e4a8138ac"
-[ -z "$DISTRONAME" ] && DISTRONAME="Lakka"
 
-#Path and filename variables
+#Addon path and filename variables
 [ -z "$SCRIPT_DIR" ] && SCRIPT_DIR=$(pwd)
-[ -z "$DISTRO_PACKAGES_SUBDIR" ] && DISTRO_PACKAGES_SUBDIR="packages"
 [ -z "$ADDON_BUILD_DIR" ] && ADDON_BUILD_DIR="${SCRIPT_DIR}/build"
-[ -z "$DISTRO_BUILD_SCRIPT" ] && DISTRO_BUILD_SCRIPT="scripts/build"
-[ -z "$LAKKA_DIR" ] && LAKKA_DIR="${SCRIPT_DIR}/Lakka-LibreELEC"
-if [ ! -d "$LAKKA_DIR" ] ; then
-	echo "Folder '$LAKKA_DIR' does not exist! Aborting!" >&2
-	exit_script 1
-else
-	LAKKA_DIR="$(cd "${LAKKA_DIR}"; pwd)"
-fi
 [ -n "$DEVICE" ] && RA_NAME_SUFFIX=${DEVICE}.${ARCH} ||	RA_NAME_SUFFIX=${PROJECT}.${ARCH}
 TMP_PROJECT_DIR="${SCRIPT_DIR}/retroarch_work"
 TMP_TARGET_DIR="${TMP_PROJECT_DIR}/`date +%Y-%m-%d_%H%M%S`"
@@ -65,21 +54,24 @@ ADDON_DIR="${TMP_PROJECT_DIR}/${ADDON_NAME}"
 ARCHIVE_NAME="${ADDON_NAME}-${ADDON_VERSION}.zip"
 LOG="${SCRIPT_DIR}/retroarch-kodi_`date +%Y%m%d_%H%M%S`.log"
 
-#Misc packages variables
-[ -z "$PKG_TYPES" ] && PKG_TYPES="LIBRETRO TOOLS NETWORK SYSUTILS"
-[ -z "$PKG_SUBDIR_TOOLS" ] && PKG_SUBDIR_TOOLS="tools"
-[ -z "$PKG_SUBDIR_NETWORK" ] && PKG_SUBDIR_NETWORK="network"
-[ -z "$PKG_SUBDIR_SYSUTILS" ] && PKG_SUBDIR_SYSUTILS="sysutils"
-[ -z "$PACKAGES_TOOLS" ] && PACKAGES_TOOLS="joyutils xbox360-controllers-shutdown cec-mini-kb"
-[ -z "$PACKAGES_NETWORK" ] && PACKAGES_NETWORK="sixpair"
-[ -z "$PACKAGES_SYSUTILS" ] && PACKAGES_SYSUTILS="empty"
+#Lakka variables
+[ -z "$DISTRONAME" ] && DISTRONAME="Lakka"
+[ -z "$LAKKA_VERSION" ] && LAKKA_VERSION="9e969c418db8e428ff1b71330c3d12ac6a668a6e"
+[ -z "$DISTRO_BUILD_SCRIPT" ] && DISTRO_BUILD_SCRIPT="scripts/build"
+[ -z "$LAKKA_DIR" ] && LAKKA_DIR="${SCRIPT_DIR}/Lakka-LibreELEC"
+if [ ! -d "$LAKKA_DIR" ] ; then
+	echo "Folder '$LAKKA_DIR' does not exist! Aborting!" >&2
+	exit_script 1
+else
+	LAKKA_DIR="$(cd "${LAKKA_DIR}"; pwd)"
+fi
 
-#Applying auxiliary scripts
-for script_file in "$SCRIPT_DIR/scripts/hooks/$HOOK.sh" "$SCRIPT_DIR/scripts/common"/*.sh ; do
-        if [ -f "$script_file" ] ; then
-                source "$script_file"
-        fi
-done
+#Misc packages variables
+[ -z "$DISTRO_PACKAGES_SUBDIR" ] && DISTRO_PACKAGES_SUBDIR="packages/lakka"
+[ -z "$PKG_TYPES" ] && PKG_TYPES="LIBRETRO_BASE LIBRETRO_CORES LAKKA_TOOLS"
+[ -z "$PKG_SUBDIR_LIBRETRO_CORES" ] && PKG_SUBDIR_LIBRETRO_CORES="libretro_cores"
+[ -z "$PKG_SUBDIR_LIBRETRO_BASE" ] && PKG_SUBDIR_LIBRETRO_BASE="retroarch_base"
+[ -z "$PKG_SUBDIR_LAKKA_TOOLS" ] && PKG_SUBDIR_LAKKA_TOOLS="lakka_tools"
 
 #Building libretro core variable list from Lakka sources
 source "${LAKKA_DIR}/distributions/Lakka/options"
@@ -87,29 +79,37 @@ source "${LAKKA_DIR}/distributions/Lakka/options"
 [ -z "$LIBRERETRO_CORES_RM" ] && LIBRERETRO_CORES_RM=""
 
 #Disable specific cores for Amlogic-ng
-if [ "$PROJECT" = "Amlogic-ng" ]; then
-	LIBRERETRO_CORES_RM="$LIBRERETRO_CORES_RM puae mupen64plus_next"
+if [ "$DEVICE" = "Amlogic-ng" ]; then
+	LIBRERETRO_CORES_RM="$LIBRERETRO_CORES_RM puae mupen64plus-next mame"
 fi
-
-
 for CORE in $LIBRERETRO_CORES_RM $LIBRERETRO_CORES_ADD ; do
 	LIBRETRO_CORES="${LIBRETRO_CORES// $CORE /}"
 done
 for CORE in $LIBRERETRO_CORES_ADD ; do
 	LIBRETRO_CORES+=" $CORE "
 done
+PACKAGES_LIBRETRO_CORES="$LIBRETRO_CORES"
 
-#Others libretro packages variables
-[ -z "$LIBRETRO_BASE" ] && LIBRETRO_BASE="retroarch core-info"
-[ ! -z "$INCLUDE_DLC" ] && LIBRETRO_BASE="$LIBRETRO_BASE retroarch-assets retroarch-joypad-autoconfig retroarch-overlays libretro-database glsl-shaders"
+#Building retroarch core list
+[ -z "$LIBRETRO_BASE" ] && LIBRETRO_BASE="retroarch core_info"
+[ ! -z "$INCLUDE_DLC" ] && LIBRETRO_BASE="$LIBRETRO_BASE retroarch_assets retroarch_joypad_autoconfig retroarch_overlays libretro_database glsl_shaders slang_shaders"
+PACKAGES_LIBRETRO_BASE="$LIBRETRO_BASE"
+
+#Building lakka tools list
+[ -z "$PACKAGES_LAKKA_TOOLS" ] && PACKAGES_LAKKA_TOOLS="joyutils sixpair empty xbox360_controllers_shutdown cec-mini-kb"
 
 #Aggregate entire package list
-[ -z "$PKG_SUBDIR_LIBRETRO" ] && PKG_SUBDIR_LIBRETRO="libretro"
-PACKAGES_LIBRETRO="$LIBRETRO_BASE $LIBRETRO_CORES"
 PACKAGES_ALL=""
 for suffix in $PKG_TYPES ; do
 	varname="PACKAGES_$suffix"
 	PACKAGES_ALL="$PACKAGES_ALL ${!varname}"
+done
+
+#Applying auxiliary scripts
+for script_file in "$SCRIPT_DIR/scripts/hooks/$HOOK.sh" "$SCRIPT_DIR/scripts/common"/*.sh ; do
+        if [ -f "$script_file" ] ; then
+                source "$script_file"
+        fi
 done
 
 read -d '' message <<EOF
@@ -137,9 +137,9 @@ done
 echo
 
 #Translating PROJECT/DEVICES in Lakka ones if needed
-if [ "$PROJECT" = "Amlogic-ng" ]; then
+if [ "$DEVICE" = "Amlogic-ng" ]; then
 	PROJECT_LAKKA=Amlogic
-	DEVICE_LAKKA=AMLG12
+	DEVICE_LAKKA=AMLGX
 fi
 LAKKA_BUILD_SUBDIR="build.${DISTRONAME}-${DEVICE_LAKKA:-$PROJECT_LAKKA}.${ARCH}"
 
@@ -192,7 +192,7 @@ for suffix in $PKG_TYPES ; do
 			echo "(skipped - no package.mk)"
 			continue
 		fi
-		PKG_FOLDER="${LAKKA_BUILD_SUBDIR}/${package}-${PKG_VERSION}/.install_pkg"
+		PKG_FOLDER="${LAKKA_BUILD_SUBDIR}/install_pkg/${package}-${PKG_VERSION}"
 		if [ -d "$PKG_FOLDER" ] ; then
 			cp -Rf "${PKG_FOLDER}/"* "${TMP_TARGET_DIR}/" &>>"$LOG"
 			[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; exit_script 1 ; }

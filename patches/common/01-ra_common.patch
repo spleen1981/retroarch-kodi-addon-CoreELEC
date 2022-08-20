@@ -1,16 +1,13 @@
-diff --git a/packages/libretro/retroarch/package.mk b/packages/libretro/retroarch/package.mk
-index 2346fe8d91..349f5ff181 100644
---- a/packages/libretro/retroarch/package.mk
-+++ b/packages/libretro/retroarch/package.mk
-@@ -163,9 +163,9 @@ pre_make_target() {
+diff --git a/packages/lakka/retroarch_base/retroarch/package.mk b/packages/lakka/retroarch_base/retroarch/package.mk
+index bccb5787ba..0a029a70c3 100644
+--- a/packages/lakka/retroarch_base/retroarch/package.mk
++++ b/packages/lakka/retroarch_base/retroarch/package.mk
+@@ -21,7 +21,7 @@ PKG_CONFIGURE_OPTS_TARGET="--disable-vg \
+                            --datarootdir=${SYSROOT_PREFIX}/usr/share" # don't use host /usr/share!
  
- make_target() {
-   if [ "$DEVICE" = "Switch" ]; then
--    make V=1 HAVE_LAKKA=1 HAVE_LAKKA_SWITCH=1 HAVE_ZARCH=0 HAVE_WIFI=1 HAVE_BLUETOOTH=1 HAVE_FREETYPE=1 $HAVE_LAKKA_NIGHTLY
-+    make V=1 HAVE_LAKKA_SWITCH=1 HAVE_ZARCH=0 HAVE_WIFI=1 HAVE_BLUETOOTH=1 HAVE_FREETYPE=1
-   else
--    make V=1 HAVE_LAKKA=1 HAVE_ZARCH=0 HAVE_WIFI=1 HAVE_BLUETOOTH=1 HAVE_FREETYPE=1 $HAVE_LAKKA_NIGHTLY
-+    make V=1 HAVE_ZARCH=0 HAVE_WIFI=1 HAVE_BLUETOOTH=1 HAVE_FREETYPE=1 HAVE_FLOATHARD=1
-   fi
-   make -C gfx/video_filters compiler=$CC extra_flags="$CFLAGS"
-   make -C libretro-common/audio/dsp_filters compiler=$CC extra_flags="$CFLAGS"
+ PKG_MAKE_OPTS_TARGET="V=1 \
+-                      HAVE_LAKKA=1 \
++                      HAVE_LAKKA=0 HAVE_DEBUG='yes'\
+                       HAVE_HAVE_ZARCH=0 \
+                       HAVE_WIFI=1 \
+                       HAVE_BLUETOOTH=1 \

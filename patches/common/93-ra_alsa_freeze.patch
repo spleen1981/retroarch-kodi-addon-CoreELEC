@@ -1,8 +1,8 @@
-diff --git a/packages/libretro/retroarch/patches/02_alsa_freeze.patch b/packages/libretro/retroarch/patches/02_alsa_freeze.patch
+diff --git a/packages/lakka/retroarch_base/retroarch/patches/02_alsa_freeze.patch b/packages/lakka/retroarch_base/retroarch/patches/02_alsa_freeze.patch
 new file mode 100644
 index 0000000000..8e8e9a304d
 --- /dev/null
-+++ b/packages/libretro/retroarch/patches/02_alsa_freeze.patch
++++ b/packages/lakka/retroarch_base/retroarch/patches/02_alsa_freeze.patch
 @@ -0,0 +1,26 @@
 +diff --git a/audio/drivers/alsa.c b/audio/drivers/alsa.c
 +index 8a60432484..9efb80ff77 100644

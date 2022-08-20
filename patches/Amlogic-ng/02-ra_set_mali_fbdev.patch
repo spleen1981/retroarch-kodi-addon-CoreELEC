@@ -1,0 +1,16 @@
+diff --git a/packages/lakka/retroarch_base/retroarch/package.mk b/packages/lakka/retroarch_base/retroarch/package.mk
+index bccb5787ba..b0facae8ec 100644
+--- a/packages/lakka/retroarch_base/retroarch/package.mk
++++ b/packages/lakka/retroarch_base/retroarch/package.mk
+@@ -30,6 +30,11 @@ PKG_MAKE_OPTS_TARGET="V=1 \
+ if [ "${OPENGLES_SUPPORT}" = yes ]; then
+   PKG_DEPENDS_TARGET+=" ${OPENGLES}"
+   PKG_CONFIGURE_OPTS_TARGET+=" --enable-opengles"
++  if [ "${DEVICE}" = AMLGX ]; then
++    PKG_CONFIGURE_OPTS_TARGET=${PKG_CONFIGURE_OPTS_TARGET//--enable-kms/--disable-kms}
++    PKG_CONFIGURE_OPTS_TARGET=${PKG_CONFIGURE_OPTS_TARGET//--enable-cdrom/--disable-cdrom}
++    PKG_CONFIGURE_OPTS_TARGET+=" --enable-mali_fbdev"
++  fi
+   if [[ ${DEVICE} =~ ^RPi4.* ]] || [ ${DEVICE} = "RK3288" ] || [ "${DEVICE}" = "RK3399" ] || [ "${DEVICE}" = "Odin" ]; then
+     PKG_CONFIGURE_OPTS_TARGET+=" --enable-opengles3 \
+                                  --enable-opengles3_1"

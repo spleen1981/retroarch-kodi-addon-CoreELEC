@@ -1,0 +1,19 @@
+diff --git a/packages/lakka/libretro_cores/parallel_n64/patches/buildfix.patch b/packages/lakka/libretro_cores/parallel_n64/patches/buildfix.patch
+new file mode 100644
+index 0000000000..ae69e8b98b
+--- /dev/null
++++ b/packages/lakka/libretro_cores/parallel_n64/patches/buildfix.patch
+@@ -0,0 +1,13 @@
++diff --git a/Makefile b/Makefile
++index 43652cee..8a719d55 100644
++--- a/Makefile
+++++ b/Makefile
++@@ -1009,7 +1009,7 @@ ASFLAGS     := $(ASFLAGS) $(CFLAGS) $(CPUFLAGS)
++ ### Finalize ###
++ OBJECTS     += $(SOURCES_CXX:.cpp=.o) $(SOURCES_C:.c=.o) $(SOURCES_ASM:.S=.o)
++ CXXFLAGS    += $(CPUOPTS) $(COREFLAGS) $(INCFLAGS) $(INCFLAGS_PLATFORM) $(fpic) $(PLATCFLAGS) $(CPUFLAGS) $(GLFLAGS) $(DYNAFLAGS)
++-CFLAGS      += $(CPUOPTS) $(COREFLAGS) $(INCFLAGS) $(INCFLAGS_PLATFORM) $(fpic) $(PLATCFLAGS) $(CPUFLAGS) $(GLFLAGS) $(DYNAFLAGS)
+++CFLAGS      += -fcommon $(CPUOPTS) $(COREFLAGS) $(INCFLAGS) $(INCFLAGS_PLATFORM) $(fpic) $(PLATCFLAGS) $(CPUFLAGS) $(GLFLAGS) $(DYNAFLAGS)
++ 
++ ifeq ($(findstring Haiku,$(UNAME)),)
++ ifeq (,$(findstring msvc,$(platform)))
