@@ -1,0 +1,11 @@
+diff --git a/packages/lakka/retroarch_base/retroarch/package.mk b/packages/lakka/retroarch_base/retroarch/package.mk
+index 198efd384b..75ba995236 100644
+--- a/packages/lakka/retroarch_base/retroarch/package.mk
++++ b/packages/lakka/retroarch_base/retroarch/package.mk
+@@ -1,5 +1,5 @@
+ PKG_NAME="retroarch"
+-PKG_VERSION="9b282aa742b6c3d2f2925ae5a12e2cd7c6b6ad38"
++PKG_VERSION="093432d6c4191e2521a87d6397d9c3626f49a687"
+ PKG_LICENSE="GPLv3"
+ PKG_SITE="https://github.com/libretro/RetroArch"
+ PKG_URL="${PKG_SITE}.git"
