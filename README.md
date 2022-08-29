@@ -6,7 +6,7 @@ Resulting builds have been tested on following ARM devices:
    - S922X (Odroid N2+)
    - S905X
 
-up to CoreELEC 19.4.
+with CoreELEC 19 and 20 versions.
 
 # Add-on usage
    - Download the latest zip file from [releases page](https://github.com/spleen1981/retroarch-kodi-addon-CoreELEC/releases) and install following [Kodi instructions](https://kodi.wiki/view/Add-on_manager#How_to_install_from_a_ZIP_file). Once installed, starting from v 1.5.0 the addon comes with an internal online updater and can be updated from within Kodi.

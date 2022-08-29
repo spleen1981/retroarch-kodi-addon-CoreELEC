@@ -4,7 +4,7 @@ NOTIFICATIONS_TITLE=RetroArch
 LONG_NOTIFICATION=600000
 SHORT_NOTIFICATION=2000
 FIRST_RUN_FLAG_PREFIX=first_run_done
-FIRST_RUN_FLAG_SUFFIX=10502
+FIRST_RUN_FLAG_SUFFIX=10506
 
 read -d '' retroarch_sh <<EOF
 #!/bin/sh
@@ -211,6 +211,10 @@ if [ ! -f \${ADDON_DIR}/config/${FIRST_RUN_FLAG_PREFIX}_${FIRST_RUN_FLAG_SUFFIX}
 	ra_config_override 'shaders'
 	ra_config_override 'database'
 	ra_config_override 'overlays'
+
+	#workaround for CE20 missing symlinks
+	ln -sf /lib/libssl.so \${ADDON_DIR}/lib/libssl.so.1.1
+	ln -sf /lib/libcrypto.so \${ADDON_DIR}/lib/libcrypto.so.1.1
 
 $HOOK_RETROARCH_START_2
 	touch \$ADDON_DIR/config/${FIRST_RUN_FLAG_PREFIX}_${FIRST_RUN_FLAG_SUFFIX}
