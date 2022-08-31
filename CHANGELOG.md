@@ -1,3 +1,8 @@
+v1.5.6
+ - Added compatibility with CoreELEC 20-Nexus
+ - Fixed RetroArch crash on video threaded switch
+ - Migrated build scripts to Lakka-v4.x build system
+
 v1.5.5
  - Added BT controllers shutdown function on RetroArch exit.
  - Fixed parallel-n64 segfault
