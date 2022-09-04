@@ -3,20 +3,42 @@
 apply_patches(){
 	cd "${LAKKA_DIR}"
 	local message="Applying"
-	local argument=""
+	local argument_apply=""
+	local i=0
+	local patch_files_sorted=""
+	local patch_files=""
+
 	if [ "$1" = "revert" ]; then
 		message="Reverting"
-		argument="--reverse"
+		argument_apply="--reverse"
 	fi
 	shopt -s nullglob
+
+	#Retrieving patches array
 	for patch_path in "$SCRIPT_DIR/patches/common" "$SCRIPT_DIR/patches/$DEVICE" "$SCRIPT_DIR/patches/$PROJECT" "$SCRIPT_DIR/patches/$ARCH" "$SCRIPT_DIR/patches/hooks/$HOOK" ; do
-		for patch_file in "$patch_path"/*.patch ; do
+		for patch_file in $patch_path/*.patch ; do
 			if [ -f "$patch_file" ]; then
-				echo "$message $patch_file"
-				git apply $argument "$patch_file" &>>"$LOG"
+				patch_files[i++]="$patch_file"
 			fi
 		done
 	done
+
+	#Sorting patches array
+	if [ "$1" = "revert" ]; then
+		for ((j=0 ; j<i; j++ )); do
+			patch_files_sorted[j]=${patch_files[i-j-1]}
+		done
+	else
+		patch_files_sorted=("${patch_files[@]}")
+	fi
+
+	#Processing patches
+	for patch_file in "${patch_files_sorted[@]}" ; do
+		echo -ne "$message $patch_file "
+		git apply $argument_apply "$patch_file" &>>"$LOG"
+		[ $? -eq 0 ] && echo "(ok)" || { echo "(failed)" ; [ "$1" = "revert" ] || exit_script 1 ; }
+	done
+
 	cd - &>>"$LOG"
 }
 
