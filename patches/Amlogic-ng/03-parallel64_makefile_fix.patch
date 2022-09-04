@@ -1,14 +1,7 @@
 diff --git a/packages/lakka/libretro_cores/parallel_n64/package.mk b/packages/lakka/libretro_cores/parallel_n64/package.mk
-index 2b3954a4a4..60a1074163 100644
+index 2b3954a4a4..21eacaff1b 100644
 --- a/packages/lakka/libretro_cores/parallel_n64/package.mk
 +++ b/packages/lakka/libretro_cores/parallel_n64/package.mk
-@@ -1,5 +1,5 @@
- PKG_NAME="parallel_n64"
--PKG_VERSION="b804ab1a199d6ff1f8fef4aa7dfcf663990e430b"
-+PKG_VERSION="28ef8ff960efef4fc3c462ddc52707e140fee3be"
- PKG_LICENSE="GPLv2"
- PKG_SITE="https://github.com/libretro/parallel-n64"
- PKG_URL="${PKG_SITE}.git"
 @@ -7,44 +7,11 @@ PKG_DEPENDS_TARGET="toolchain"
  PKG_LONGDESC="Optimized/rewritten Nintendo 64 emulator made specifically for Libretro. Originally based on Mupen64 Plus."
  PKG_TOOLCHAIN="make"
@@ -59,7 +52,7 @@ index 2b3954a4a4..60a1074163 100644
      cp -v parallel_n64_libretro.so ${INSTALL}/usr/lib/libretro/
 diff --git a/packages/lakka/libretro_cores/parallel_n64/patches/parallel64_fix_amlogic.patch b/packages/lakka/libretro_cores/parallel_n64/patches/parallel64_fix_amlogic.patch
 new file mode 100644
-index 0000000000..75a73fe1bf
+index 0000000000..6940f15c3e
 --- /dev/null
 +++ b/packages/lakka/libretro_cores/parallel_n64/patches/parallel64_fix_amlogic.patch
 @@ -0,0 +1,64 @@
