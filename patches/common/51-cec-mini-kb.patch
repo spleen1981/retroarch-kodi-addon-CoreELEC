@@ -8,18 +8,18 @@ index 0000000000..71335fefd0
 +# 2021 Giovanni Cascione
 +
 +PKG_NAME="cec-mini-kb"
-+PKG_VERSION="3fb45d50afc1ab61885ae87b641fddf8b9bd8211"
-+PKG_SHA256=""
++PKG_VERSION="7f7a8a4e9f3e2742a7285b1792ee9cd36c895e26"
++PKG_SHA256="23469648041721343ebd2d4287a050be46147989fd5c48287ea759b8e3d7b07c"
 +PKG_REV=""
 +PKG_ARCH="any"
 +PKG_LICENSE="MIT"
 +PKG_SITE="https://github.com/spleen1981/cec-mini-kb"
 +PKG_URL="$PKG_SITE".git
-+PKG_DEPENDS_TARGET="toolchain"
++PKG_DEPENDS_TARGET="toolchain libcec"
 +PKG_SECTION="tools"
 +PKG_SHORTDESC="Small utility to use a CEC remote controller as a mini keyboard"
 +PKG_LONGDESC="Small utility to use a CEC remote controller as a mini keyboard"
-+PKG_TOOLCHAIN="auto"
++PKG_TOOLCHAIN="make"
 +
 +PKG_IS_ADDON="no"
 +PKG_AUTORECONF="no"
