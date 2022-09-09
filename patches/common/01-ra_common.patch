@@ -7,7 +7,7 @@ index bccb5787ba..0a029a70c3 100644
  
  PKG_MAKE_OPTS_TARGET="V=1 \
 -                      HAVE_LAKKA=1 \
-+                      HAVE_LAKKA=0 HAVE_DEBUG='yes'\
++                      HAVE_LAKKA=0 \
                        HAVE_HAVE_ZARCH=0 \
                        HAVE_WIFI=1 \
                        HAVE_BLUETOOTH=1 \
