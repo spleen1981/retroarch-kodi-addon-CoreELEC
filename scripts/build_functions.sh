@@ -75,7 +75,7 @@ setup_general(){
 	[ -z "$INCLUDE_DLC" ] && INCLUDE_DLC=""
 
 	#Addon path and filename variables
-	[ -z "$SCRIPT_DIR" ] && SCRIPT_DIR=$(pwd)
+	SCRIPT_DIR=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )/..
 	[ -z "$ADDON_BUILD_DIR" ] && ADDON_BUILD_DIR="${SCRIPT_DIR}/build"
 	[ -n "$DEVICE" ] && RA_NAME_SUFFIX=${DEVICE}.${ARCH} ||	RA_NAME_SUFFIX=${PROJECT}.${ARCH}
 	TMP_PROJECT_DIR="${SCRIPT_DIR}/retroarch_work"
