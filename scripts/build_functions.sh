@@ -101,11 +101,12 @@ setup_general(){
 
 setup_packages(){
 	#Misc packages variables
-	[ -z "$DISTRO_PACKAGES_SUBDIR" ] && DISTRO_PACKAGES_SUBDIR="packages/lakka"
-	[ -z "$PKG_TYPES" ] && PKG_TYPES="LIBRETRO_BASE LIBRETRO_CORES LAKKA_TOOLS"
-	[ -z "$PKG_SUBDIR_LIBRETRO_CORES" ] && PKG_SUBDIR_LIBRETRO_CORES="libretro_cores"
-	[ -z "$PKG_SUBDIR_LIBRETRO_BASE" ] && PKG_SUBDIR_LIBRETRO_BASE="retroarch_base"
-	[ -z "$PKG_SUBDIR_LAKKA_TOOLS" ] && PKG_SUBDIR_LAKKA_TOOLS="lakka_tools"
+	[ -z "$DISTRO_PACKAGES_SUBDIR" ] && DISTRO_PACKAGES_SUBDIR="packages"
+	[ -z "$PKG_TYPES" ] && PKG_TYPES="LIBRETRO_BASE LIBRETRO_CORES LAKKA_TOOLS AUDIO"
+	[ -z "$PKG_SUBDIR_LIBRETRO_CORES" ] && PKG_SUBDIR_LIBRETRO_CORES="lakka/libretro_cores"
+	[ -z "$PKG_SUBDIR_LIBRETRO_BASE" ] && PKG_SUBDIR_LIBRETRO_BASE="lakka/retroarch_base"
+	[ -z "$PKG_SUBDIR_LAKKA_TOOLS" ] && PKG_SUBDIR_LAKKA_TOOLS="lakka/lakka_tools"
+        [ -z "$PKG_SUBDIR_AUDIO" ] && PKG_SUBDIR_AUDIO="audio"
 
 	#Building libretro core variable list from Lakka sources
 	source "${LAKKA_DIR}/distributions/Lakka/options"
@@ -129,8 +130,9 @@ setup_packages(){
 	[ ! -z "$INCLUDE_DLC" ] && LIBRETRO_BASE="$LIBRETRO_BASE retroarch_assets retroarch_joypad_autoconfig retroarch_overlays libretro_database glsl_shaders slang_shaders"
 	PACKAGES_LIBRETRO_BASE="$LIBRETRO_BASE"
 
-	#Building lakka tools list
+	#Building other pkgs list
 	[ -z "$PACKAGES_LAKKA_TOOLS" ] && PACKAGES_LAKKA_TOOLS="joyutils sixpair empty xbox360_controllers_shutdown cec-mini-kb"
+        [ -z "$PACKAGES_AUDIO" ] && PACKAGES_AUDIO="flac libogg"
 
 	#Aggregate entire package list
 	PACKAGES_ALL=""
