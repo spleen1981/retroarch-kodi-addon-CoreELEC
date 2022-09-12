@@ -4,7 +4,7 @@ NOTIFICATIONS_TITLE=RetroArch
 LONG_NOTIFICATION=600000
 SHORT_NOTIFICATION=2000
 FIRST_RUN_FLAG_PREFIX=first_run_done
-FIRST_RUN_FLAG_SUFFIX=10506
+FIRST_RUN_FLAG_SUFFIX=10507
 
 read -d '' retroarch_sh <<EOF
 #!/bin/sh
@@ -14,6 +14,23 @@ EOF
 
 read -d '' retroarch_start <<EOF
 #!/bin/sh
+
+#restore symlinks as they seem to get broken by kodi addon installer
+restore_flattened_symlinks(){
+	cd \$1
+	[ \$? -eq 0 ] || { echo "symlinks restoring in $1 failed" ; return 1 ; }
+
+	for file_src in * ; do
+		if [ ! -d \$file_src -a ! -L \$file_src ]; then
+			size_scr=\$(wc -c \$file_src)
+			if [ \${size_scr//" \$file_src"} -lt 100 ]; then
+				[ -f \$(cat \$file_src) ] && ln -sf \$(cat \$file_src) \$file_src
+			fi
+		fi
+		#chmod +x \$file_src
+	done
+	cd - > /dev/null
+}
 
 #substitutes 'cp -n' as not available
 merge_dirs_no_clobber(){
@@ -211,6 +228,8 @@ if [ ! -f \${ADDON_DIR}/config/${FIRST_RUN_FLAG_PREFIX}_${FIRST_RUN_FLAG_SUFFIX}
 	ra_config_override 'shaders'
 	ra_config_override 'database'
 	ra_config_override 'overlays'
+
+	restore_flattened_symlinks \$ADDON_DIR/lib
 
 	#workaround for CE20 missing symlinks
 	ln -sf /lib/libssl.so \${ADDON_DIR}/lib/libssl.so.1.1
