@@ -4,7 +4,6 @@ NOTIFICATIONS_TITLE=RetroArch
 LONG_NOTIFICATION=600000
 SHORT_NOTIFICATION=2000
 FIRST_RUN_FLAG_PREFIX=first_run_done
-FIRST_RUN_FLAG_SUFFIX=10507
 
 read -d '' retroarch_sh <<EOF
 #!/bin/sh
@@ -209,7 +208,7 @@ if [ ! -f "\$RA_CONFIG_FILE" ]; then
 fi
 
 # First run only actions
-if [ ! -f \${ADDON_DIR}/config/${FIRST_RUN_FLAG_PREFIX}_${FIRST_RUN_FLAG_SUFFIX} ] ; then
+if [ ! -f \${ADDON_DIR}/config/${FIRST_RUN_FLAG_PREFIX} ] ; then
 
 	\$RA_ADDON_BIN_FOLDER/ra_update_utils.sh clear_flags
 
@@ -236,7 +235,7 @@ if [ ! -f \${ADDON_DIR}/config/${FIRST_RUN_FLAG_PREFIX}_${FIRST_RUN_FLAG_SUFFIX}
 	ln -sf /lib/libcrypto.so \${ADDON_DIR}/lib/libcrypto.so.1.1
 
 $HOOK_RETROARCH_START_2
-	touch \$ADDON_DIR/config/${FIRST_RUN_FLAG_PREFIX}_${FIRST_RUN_FLAG_SUFFIX}
+	touch \$ADDON_DIR/config/${FIRST_RUN_FLAG_PREFIX}
 fi
 
 [ "\$ra_verbose" = "true" ] && RA_PARAMS="--verbose \$RA_PARAMS"
@@ -304,11 +303,17 @@ read -d '' ra_update_utils_sh <<EOF
 ra_updater_create(){
 result="#!/bin/sh
 #unzip addon to folder
-unzip -q -o \$RA_TMP_PATH/\$file_name -d \$HOME/.kodi/addons/
+mv \$ADDON_SRC \${ADDON_SRC}_bkp
+[ \\\\\$? -eq 0 ] && unzip -q -o \$RA_TMP_PATH/\$file_name -d \$HOME/.kodi/addons/
 if [ ! \\\\\$? -eq 0 ] ; then
 	kodi-send --action=\\\"Notification($NOTIFICATIONS_TITLE, \$FAILED_MESSAGE, $SHORT_NOTIFICATION, \$RA_ICON)\\\"
+	if [ -d \${ADDON_SRC}_bkp ] ; then
+		[ -d \${ADDON_SRC} ] && rm -rf \${ADDON_SRC}
+		mv \${ADDON_SRC}_bkp \${ADDON_SRC}
+	fi
 	return 31
 fi
+rm -rf \${ADDON_SRC}_bkp
 rm \$RA_TMP_PATH/\$file_name
 rm \$RA_UPDATER
 kodi-send --action=\\\"Notification($NOTIFICATIONS_TITLE, \$SUCCEEDED_MESSAGE, $SHORT_NOTIFICATION, \$RA_ICON)\\\"
@@ -320,6 +325,18 @@ fi
 echo "\$result"
 }
 
+#no array support in busybox shell
+get_array_element(){
+	local i=0
+	local temp=""
+	for element in \$1; do
+		temp=\$element
+		[ \$i -eq \$2 ] && break
+		i=\$((\$i + 1))
+	done
+	[ -z \$temp ] || echo \$temp
+}
+
 validate_url(){
 	if [ -z "\$( wget -S --spider \$1  2>&1 | grep 'HTTP/1.1 200 OK' )" ]; then
 		return 1
@@ -329,7 +346,7 @@ validate_url(){
 }
 
 get_version(){
-	[ -z \$( echo \$1 | grep ^v[0-9+]\\\.[0-9+]\\\.[0-9+]$ ) ] && return 0
+	[ -z \$( echo \$1 | grep -E ^v[0-9]+\\\.[0-9]+\\\.[0-9]+$ ) ] && return 0
 	string_version=\$( echo \$1 | sed "s/v//; s/\\\./ /g" )
 	n=10000
 	tot=0
@@ -342,25 +359,37 @@ get_version(){
 
 get_update_url(){
 	#check server can be reached
-	validate_url \$SERVER_URL
+	validate_url \$REPO_INFO_URL
 	if [ ! \$? -eq 0 ] ; then
 		return 2
 	fi
 
-	#check if a compatible download link exists, first one assumed as latest
-	LATEST_URL=\$( curl --silent \${SERVER_URL}/spleen1981/\${REPO_NAME}/releases | grep href=.*download.*${ADDON_NAME}.*zip | sed 1q | sed "s/.*href=[\\\"\\\']//; s/zip.*/zip/")
+	source /etc/os-release
+
+	local VERSION_QUERY=" and @min_ver<=\$VERSION_ID"
+
+	[ -z \$( echo \$VERSION_ID | grep -E ^[0-9]+\\\.[0-9]+\$ ) -a -z \$( echo \$VERSION_ID | grep -E ^[0-9]+\$ ) ] && VERSION_QUERY=""
+	local BASE_QUERY="//updates/latest[@arch=\\\"$RA_NAME_SUFFIX\\\" and @distro=\\\"\${ID}\\\"\${VERSION_QUERY}]/"
+
+	local TEMP_XML="\$( curl --silent \$REPO_INFO_URL )"
+
+	#check if compatible update is available and get download url
+	#last element is selected in case of multiple possibilities
+
+	local LATEST_VER=\$( echo \$TEMP_XML | xmlstarlet sel -t -v "\${BASE_QUERY}"version )
+	LATEST_VER=\$( get_array_element "\$LATEST_VER" -1 )
+
+	[ \$( get_version $ADDON_VERSION ) -lt \$( get_version \$LATEST_VER ) ] 1>/dev/null 2>&1
+	[ ! \$? -eq 0 ] && return 1
+
+	LATEST_URL=\$( echo \$TEMP_XML | xmlstarlet sel -t -v "\${BASE_QUERY}"download_url )
+	LATEST_URL=\$( get_array_element "\$LATEST_URL" -1 )
 	if [ -z \$LATEST_URL ] ; then
 		return 3;
 	fi
 
-	#check if current addon is older than latest
-	if [ ! \$( get_version $ADDON_VERSION ) -lt \$( get_version \$( echo \$LATEST_URL | sed "s/.*${ADDON_NAME}-//g;s/.zip.*//" ) ) ] ; then
-		return 1
-	fi
-
-	#check latest addon link is valid
-	echo \${SERVER_URL}\${LATEST_URL}
-	validate_url \${SERVER_URL}\${LATEST_URL}
+	#check update url is valid
+	validate_url \${LATEST_URL}
 	if [ ! \$? -eq 0 ] ; then
 		return 6
 	fi
@@ -383,7 +412,7 @@ ra_install(){
 
 	#download zip update
 	kodi-send --action="Notification($NOTIFICATIONS_TITLE, \$DOWNLOAD_MESSAGE, $LONG_NOTIFICATION, \$RA_ICON)"
-	wget -q -t 5 \${SERVER_URL}\${LATEST_URL} -O /\$RA_TMP_PATH/\$file_name 2>&1
+	wget -q -t 5 \${LATEST_URL} -O /\$RA_TMP_PATH/\$file_name 2>&1
 	if [ ! \$? -eq 0 ] ; then
 		return 12
 	fi
@@ -406,10 +435,10 @@ ra_cfg_backup_clear(){
 	return \$?
 }
 
-SERVER_URL='https://github.com'
-REPO_NAME='retroarch-kodi-addon-CoreELEC'
+REPO_INFO_URL='https://raw.githubusercontent.com/spleen1981/retroarch-kodi-addon-CoreELEC/master/addon.xml'
 RA_ICON=\$HOME/.kodi/addons/${ADDON_NAME}/resources/icon.png
-CLEAR_FLAGS_SRC="\$HOME/.kodi/addons/${ADDON_NAME}/config/${FIRST_RUN_FLAG_PREFIX}*"
+ADDON_SRC="\$HOME/.kodi/addons/${ADDON_NAME}"
+CLEAR_FLAGS_SRC="\${ADDON_SRC}/config/${FIRST_RUN_FLAG_PREFIX}*"
 RA_CONFIG_DIR=\$HOME/.config/retroarch
 RA_CONFIG_FILE=\$RA_CONFIG_DIR/retroarch.cfg
 
