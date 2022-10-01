@@ -41,8 +41,8 @@ rm "${RA_PATCHES_SUBDIR}"/retroarch_debug.patch
 
 echo -ne "Sending Retroarch to test device..."
 sshpass -p "$REMOTE_PASSWORD" scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -q "${TMP_TARGET_DIR}/usr/bin/retroarch" ${REMOTE_ROOT_USER}@${REMOTE_IP}:/storage/.kodi/addons/script.retroarch.launcher.Amlogic-ng.arm/bin/
-[ $? -eq 0 ] || echo -e \n && scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -q "${TMP_TARGET_DIR}/usr/bin/retroarch" ${REMOTE_ROOT_USER}@${REMOTE_IP}:/storage/.kodi/addons/script.retroarch.launcher.Amlogic-ng.arm/bin/
-[ $? -eq 0 ] && echo -e "$ok" || { echo -e "$fail" ; exit_script 1 ; }
+[ $? -eq 0 ] || scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -q "${TMP_TARGET_DIR}/usr/bin/retroarch" ${REMOTE_ROOT_USER}@${REMOTE_IP}:/storage/.kodi/addons/script.retroarch.launcher.Amlogic-ng.arm/bin/
+[ $? -eq 0 ] && echo -e "$ok" || { echo -e "$fail" ; echo "copying retroarch in $CUR_DIR for manual upload" ; cp "${TMP_TARGET_DIR}/usr/bin/retroarch" "$CUR_DIR/". ; exit_script 1 ; }
 echo
 
 cleanup
