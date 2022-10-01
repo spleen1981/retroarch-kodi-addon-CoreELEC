@@ -435,7 +435,7 @@ ra_cfg_backup_clear(){
 	return \$?
 }
 
-REPO_INFO_URL='https://raw.githubusercontent.com/spleen1981/retroarch-kodi-addon-CoreELEC/master/addon.xml'
+REPO_INFO_URL='https://raw.githubusercontent.com/spleen1981/retroarch-kodi-addon-CoreELEC/master/updates.xml'
 RA_ICON=\$HOME/.kodi/addons/${ADDON_NAME}/resources/icon.png
 ADDON_SRC="\$HOME/.kodi/addons/${ADDON_NAME}"
 CLEAR_FLAGS_SRC="\${ADDON_SRC}/config/${FIRST_RUN_FLAG_PREFIX}*"
