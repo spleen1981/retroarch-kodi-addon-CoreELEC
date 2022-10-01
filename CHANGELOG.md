@@ -1,3 +1,8 @@
+v1.5.7
+ - Updated RetroArch to 1.11.0
+ - Fixed and improved broken auto-update feature
+ - Added flac and libogg packages needed for some cores (e.g. same_cdi)
+
 v1.5.6
  - Added compatibility with CoreELEC 20-Nexus
  - Fixed RetroArch crash on video threaded switch
