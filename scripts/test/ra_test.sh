@@ -5,7 +5,7 @@ GIT_SSL_NO_VERIFY=1
 
 SCRIPT_DIR=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )/..
 source "$SCRIPT_DIR/build_functions.sh"
-[ -f $SCRIPT_DIR/scripts/test/local.conf ] && source $SCRIPT_DIR/scripts/test/local.conf
+[ -f $SCRIPT_DIR/test/local.conf ] && source $SCRIPT_DIR/test/local.conf
 
 ADDON_VERSION=x
 setup_general
