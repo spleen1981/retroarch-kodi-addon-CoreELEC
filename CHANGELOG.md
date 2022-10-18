@@ -1,3 +1,6 @@
+v1.5.8
+ - Updated RetroArch to 1.12.0
+
 v1.5.7
  - Updated RetroArch to 1.11.0
  - Fixed and improved broken auto-update feature
