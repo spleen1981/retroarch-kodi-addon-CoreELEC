@@ -5,7 +5,7 @@ index 198efd384b..75ba995236 100644
 @@ -1,5 +1,5 @@
  PKG_NAME="retroarch"
 -PKG_VERSION="9b282aa742b6c3d2f2925ae5a12e2cd7c6b6ad38"
-+PKG_VERSION="9586d679a8b143fbe1880dff7454fd0809262b55"
++PKG_VERSION="b846a5d792f3b8e208e385d0dd14e0194dd5f380"
  PKG_LICENSE="GPLv3"
  PKG_SITE="https://github.com/libretro/RetroArch"
  PKG_URL="${PKG_SITE}.git"
