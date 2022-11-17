@@ -69,7 +69,7 @@ setup_general(){
 	BASE_NAME="$PROVIDER.retroarch"
 	[ -z "$PROJECT" ] && PROJECT="Amlogic-ce"
 	[ -z "$ARCH" ] && ARCH=arm
-	[ -z "$DEVICE" ] && DEVICE="Amlogic-ng"
+	[ -z "$DEVICE" ] && [ "$PROJECT" = "Amlogic-ce" ] && DEVICE="Amlogic-ng"
 	[ -z "$ADDON_VERSION" ] && read -p "Enter version tag [e.g. v1.0.0]: " ADDON_VERSION
 	[ -z "$PROVIDER" ] && PROVIDER="${USER}"
 	[ -z "$INCLUDE_DLC" ] && INCLUDE_DLC=""
