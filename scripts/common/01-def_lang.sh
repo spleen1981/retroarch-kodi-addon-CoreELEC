@@ -20,7 +20,7 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1)\\\\n"\\n'
 
 LANG_list="en_gb cs_cz it_it"
-LANG_max=32009
+LANG_max=32012
 
 LANG_0_ctx="Addon Summary"
 LANG_0_en_gb="RetroArch add-on for Kodi (${RA_NAME_SUFFIX}). RetroArch is a frontend for emulators, game engines and media players."
@@ -71,3 +71,12 @@ LANG_32008_it_it="Salva i log di RetroArch su file"
 
 LANG_32009_en_gb="Turn off BT controllers on RetroArch exit (if supported)"
 LANG_32009_it_it="Spegni i controller BT all'uscita di RetroArch (se supportato)"
+
+LANG_32010_en_gb="Boot settings"
+LANG_32010_it_it="Impostazioni di avvio"
+
+LANG_32011_en_gb="Currently the system boots to"
+LANG_32011_it_it="Il sistema attualmente si avvia con"
+
+LANG_32012_en_gb="Do you want to change the setting and boot to"
+LANG_32012_it_it="Vuoi cambiare l'impostazione e avviare con"

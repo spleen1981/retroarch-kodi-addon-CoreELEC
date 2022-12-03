@@ -110,12 +110,12 @@ setup_packages(){
 
 	#Building libretro core variable list from Lakka sources
 	source "${LAKKA_DIR}/distributions/Lakka/options"
-	[ -z "$LIBRERETRO_CORES_ADD" ] && LIBRERETRO_CORES_ADD="puae2021 mupen64plus"
+	[ -z "$LIBRERETRO_CORES_ADD" ] && LIBRERETRO_CORES_ADD="puae2021 mupen64plus scummvm_mainline"
 	[ -z "$LIBRERETRO_CORES_RM" ] && LIBRERETRO_CORES_RM=""
 
 	#Disable specific cores for Amlogic-ng
 	if [ "$DEVICE" = "Amlogic-ng" ]; then
-		LIBRERETRO_CORES_RM="$LIBRERETRO_CORES_RM puae mupen64plus-next mame"
+		LIBRERETRO_CORES_RM="$LIBRERETRO_CORES_RM puae mupen64plus-next mame scummvm"
 	fi
 	for CORE in $LIBRERETRO_CORES_RM $LIBRERETRO_CORES_ADD ; do
 		LIBRETRO_CORES="${LIBRETRO_CORES// $CORE /}"
@@ -329,6 +329,14 @@ populating_addon(){
 	echo "$ra_language_utils_sh" > bin/ra_language_utils.sh
 	[ $? -eq 0 ] && echo -e "$ok" || { echo -e "$fail" ; exit_script 1 ; }
 	chmod +x bin/ra_language_utils.sh
+	echo -ne "\tra_boot_toggle.sh "
+	echo "$ra_boot_toggle_sh" > bin/ra_boot_toggle.sh
+	[ $? -eq 0 ] && echo -e "$ok" || { echo -e "$fail" ; exit_script 1 ; }
+	chmod +x bin/ra_boot_toggle.sh
+	echo -ne "\tra_autostart.sh "
+	echo "$ra_autostart_sh" > bin/ra_autostart.sh
+	[ $? -eq 0 ] && echo -e "$ok" || { echo -e "$fail" ; exit_script 1 ; }
+	chmod +x bin/ra_autostart.sh
 	echo -ne "\taddon.xml "
 	echo "$addon_xml" > addon.xml
 	[ $? -eq 0 ] && echo -e "$ok" || { echo -e "$fail" ; exit_script 1 ; }

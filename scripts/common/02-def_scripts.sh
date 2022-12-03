@@ -5,6 +5,61 @@ LONG_NOTIFICATION=600000
 SHORT_NOTIFICATION=2000
 FIRST_RUN_FLAG_PREFIX=first_run_done
 
+read -d '' ra_autostart_sh <<EOF
+#!/bin/sh
+. /etc/profile
+
+ADDON_DIR="\$HOME/.kodi/addons/${ADDON_NAME}"
+
+systemctl mask kodi && \
+pgrep splash-image | xargs kill -SIGTERM && \
+eval \$(cat /usr/lib/systemd/system/kodi.service | grep ExecStartPre= | sed "s|ExecStartPre=[-]*||g;s|$| ; |g") \
+systemd-run -q -u retroarch "\$ADDON_DIR/bin/retroarch.start" && \
+return 0
+
+#fallback
+
+"\$ADDON_DIR"/bin/ra_boot_toggle.sh off && \
+reboot now && \
+return 1
+EOF
+
+read -d '' ra_boot_toggle_sh <<EOF
+#!/bin/sh
+
+. /etc/profile
+
+ADDON_DIR="\$HOME/.kodi/addons/${ADDON_NAME}"
+BOOT_TOGGLE_FILE="\$ADDON_DIR"/config/boot_to_ra
+BOOT_RA_CMD="\$ADDON_DIR"/bin/ra_autostart.sh
+AUTOSTART_SH=/storage/.config/autostart.sh
+
+[ -z \$1 ] && TARGET='NA' || TARGET=\$1
+
+if [ -f \$BOOT_TOGGLE_FILE ] && [ ! \$TARGET = on ] || [ \$TARGET = off ]; then
+	[ \$TARGET = 'check' ] && return 1
+
+	if [ -f \$AUTOSTART_SH ]; then
+		sed -i "s#\$BOOT_RA_CMD##" \$AUTOSTART_SH
+		TEST=\$(cat \$AUTOSTART_SH)
+		[ -z "\$TEST" ] && rm -f \$AUTOSTART_SH
+	fi
+	systemctl unmask kodi
+	rm -f \$BOOT_TOGGLE_FILE && return 0
+elif [ ! -f \$BOOT_TOGGLE_FILE ] || [ \$TARGET = on ]; then
+	[ \$TARGET = 'check' ] && return 0
+
+	if [ -f \$AUTOSTART_SH ]; then
+		TEST=\$(cat \$AUTOSTART_SH | grep "\$BOOT_RA_CMD")
+		[ -z "\$TEST" ] && echo "\$BOOT_RA_CMD" >> \$AUTOSTART_SH
+	else
+		echo "\$BOOT_RA_CMD" >> \$AUTOSTART_SH && chmod +x \$AUTOSTART_SH
+	fi
+
+	touch \$BOOT_TOGGLE_FILE && return 1
+fi
+EOF
+
 read -d '' retroarch_sh <<EOF
 #!/bin/sh
 
@@ -50,6 +105,7 @@ merge_dirs_no_clobber(){
 	done
 	return 0
 }
+
 
 #Fixes a bug up to CoreELEC 19.4
 oe_setup_addon_fix() {
@@ -131,6 +187,8 @@ exit_script(){
 		[ ! -z \$VIDEO_MODE_RATE ] && VIDEO_MODE_OLD=\${VIDEO_MODE_OLD}\${VIDEO_MODE_RATE}hz
 		echo "\$VIDEO_MODE_OLD" > "/sys/class/display/mode"
 	fi
+
+	[ ! -z "\$(systemctl status kodi | grep masked)" ] && systemctl unmask kodi
 
 	if [ "\$ra_stop_kodi" = "true" ] ; then
 		sed -E -i "s/\${CAP_GROUP_CEC}(.*)\\\"/\${CAP_GROUP_CEC}\${CEC_SHUTDOWN_SETTING_PREV}\\\"/" \$KODI_CEC_SETTINGS_FILE
@@ -610,6 +668,9 @@ if len(sys.argv) > 1:
 	elif sys.argv[1] == 'reset':
 		util.resetToDefaults()
 		quit()
+	elif sys.argv[1] == 'boot_toggle':
+		util.bootToggle()
+		quit()
 if (addon.getSetting("ra_autoupdate")=='true' or manual_update):
 	if not util.runUpdaterMenu(manual_update) or manual_update:
 		quit()
@@ -625,6 +686,7 @@ ADDON_ID = '${ADDON_NAME}'
 BIN_FOLDER="bin"
 RETROARCH_EXEC="retroarch.sh"
 UPDATER_EXEC="ra_update_utils.sh"
+BOOT_TOGGLE_EXEC="ra_boot_toggle.sh"
 
 addon = xbmcaddon.Addon(id=ADDON_ID)
 addon_dir = addon.getAddonInfo('path')
@@ -632,6 +694,7 @@ bin_folder = os.path.join(addon_dir,BIN_FOLDER)
 #usersettings_dir = addon.getAddonInfo('profile') #not needed as relevant function for kodi addon settings is already available in UI
 updater_exe = os.path.join(bin_folder,UPDATER_EXEC)
 retroarch_exe = os.path.join(bin_folder,RETROARCH_EXEC)
+boot_toggle_exe = os.path.join(bin_folder,BOOT_TOGGLE_EXEC)
 
 icon = os.path.join(addon_dir, 'resources', 'icon.png')
 dialog = xbmcgui.Dialog()
@@ -674,4 +737,9 @@ def runUpdaterMenu(manual_update=False):
 	else:
 		dialog.notification(\'$NOTIFICATIONS_TITLE\', getLocalizedString(113) + ' (' + str(ret) + ')', icon, $SHORT_NOTIFICATION)
 	return ret
+def bootToggle():
+	resp = subprocess.run([boot_toggle_exe, "check"])
+	boot_status = "RETROARCH. "+getLocalizedString(32012)+" KODI?" if resp.returncode else "KODI. "+getLocalizedString(32010)+" RETROARCH?"
+	if(dialog.yesno(getLocalizedString(32010),getLocalizedString(32011)+" "+boot_status)):
+		subprocess.run(boot_toggle_exe)
 EOF
