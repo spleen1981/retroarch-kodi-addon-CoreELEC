@@ -191,7 +191,7 @@ EOF
 	echo "Building packages:"
 	for package in $PACKAGES_ALL ; do
 		echo -ne "\t$package "
-		IGNORE_VERSION=1 DISTRO=$DISTRONAME PROJECT=$PROJECT_LAKKA DEVICE=$DEVICE_LAKKA ARCH=$ARCH ./$DISTRO_BUILD_SCRIPT $package &>>"$LOG"
+		GIT_SSL_NO_VERIFY=1 IGNORE_VERSION=1 DISTRO=$DISTRONAME PROJECT=$PROJECT_LAKKA DEVICE=$DEVICE_LAKKA ARCH=$ARCH ./$DISTRO_BUILD_SCRIPT $package &>>"$LOG"
 		if [ $? -eq 0 ] ; then
 			echo -e "$ok"
 		else
