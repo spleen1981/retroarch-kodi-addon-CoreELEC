@@ -26,6 +26,7 @@ Core list included by default is same as [Lakka](https://github.com/libretro/Lak
    - Sync Retroarch audio driver/device with Kodi settings
    - Auto update. Check for updates will be performed everytime RetroArch is launched
    - Reset Retroarch configuration. Restores `retroarch.cfg` to defaults and addon to first run condition
+   - Boot to Retroarch instead of Kodi
 
 ## Folders
 
