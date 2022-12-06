@@ -1,3 +1,9 @@
+v1.6.0
+ - Added 'Boot to RetroArch' feature in settings
+ - Added brand new core: ScummVM mainline (in sync with ScummVM official releases, updated to v2.6.1)
+ - Updated RetroArch to 1.13.0
+ - Updated all cores and packages to latest
+
 v1.5.8
  - Updated RetroArch to 1.12.0
 
