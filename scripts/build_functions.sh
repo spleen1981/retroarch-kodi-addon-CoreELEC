@@ -270,47 +270,7 @@ setup_addon(){
 	echo
 }
 
-populating_addon(){
-	#Moving files from working to addon folders
-	echo "Moving files to addon..."
-	echo -ne "\tretroarch.cfg "
-	mv -v "${TMP_TARGET_DIR}/etc/retroarch.cfg" "${ADDON_DIR}/config/" &>>"$LOG"
-	[ $? -eq 0 ] && echo -e "$ok" || { echo -e "$fail" ; exit_script 1 ; }
-	echo -ne "\tbinaries "
-	mv -v "${TMP_TARGET_DIR}/usr/bin" "${ADDON_DIR}/" &>>"$LOG"
-	[ $? -eq 0 ] && echo -e "$ok" || { echo -e "$fail" ; exit_script 1 ; }
-	echo -ne "\tlibraries and cores "
-	mv -v "${TMP_TARGET_DIR}/usr/lib" "${ADDON_DIR}/" &>>"$LOG"
-	[ $? -eq 0 ] && echo -e "$ok" || { echo -e "$fail" ; exit_script 1 ; }
-	echo -ne "\taudio filters "
-	mv -v "${TMP_TARGET_DIR}/usr/share/audio_filters" "${ADDON_DIR}/resources/" &>>"$LOG"
-	[ $? -eq 0 ] && echo -e "$ok" || { echo -e "$fail" ; exit_script 1 ; }
-	echo -ne "\tvideo filters "
-	mv -v "${TMP_TARGET_DIR}/usr/share/video_filters" "${ADDON_DIR}/resources/" &>>"$LOG"
-	[ $? -eq 0 ] && echo -e "$ok" || { echo -e "$fail" ; exit_script 1 ; }
-	echo -ne "\tsystem "
-	mv -v "${TMP_TARGET_DIR}/usr/share/retroarch-system" "${ADDON_DIR}/resources/system" &>>"$LOG"
-	[ $? -eq 0 ] && echo -e "$ok" || { echo -e "$fail" ; exit_script 1 ; }
-
-	if [ ! -z "$INCLUDE_DLC" ]; then
-		echo -ne "\tjoypads "
-		mv -v "${TMP_TARGET_DIR}/etc/retroarch-joypad-autoconfig" "${ADDON_DIR}/resources/joypads" &>>"$LOG"
-		[ $? -eq 0 ] && echo -e "$ok" || { echo -e "$fail" ; exit_script 1 ; }
-		echo -ne "\tshaders "
-		mv -v "${TMP_TARGET_DIR}/usr/share/common-shaders" "${ADDON_DIR}/resources/shaders" &>>"$LOG"
-		[ $? -eq 0 ] && echo -e "$ok" || { echo -e "$fail" ; exit_script 1 ; }
-		echo -ne "\tdatabases "
-		mv -v "${TMP_TARGET_DIR}/usr/share/libretro-database" "${ADDON_DIR}/resources/database" &>>"$LOG"
-		[ $? -eq 0 ] && echo -e "$ok" || { echo -e "$fail" ; exit_script 1 ; }
-		echo -ne "\tassets "
-		mv -v "${TMP_TARGET_DIR}/usr/share/retroarch-assets" "${ADDON_DIR}/resources/assets" &>>"$LOG"
-		[ $? -eq 0 ] && echo -e "$ok" || { echo -e "$fail" ; exit_script 1 ; }
-		echo -ne "\toverlays "
-		mv -v "${TMP_TARGET_DIR}/usr/share/retroarch-overlays" "${ADDON_DIR}/resources/overlays" &>>"$LOG"
-		[ $? -eq 0 ] && echo -e "$ok" || { echo -e "$fail" ; exit_script 1 ; }
-	fi
-	echo
-
+creating_new_files(){
 	#Creating new addon files
 	echo "Creating files..."
 	echo -ne "\tretroarch.sh "
@@ -390,6 +350,48 @@ populating_addon(){
 		echo -e "$lang_file_output" > resources/language/resource.language.${lang_item}/strings.po
 		[ $? -eq 0 ] && echo -e "$ok" || { echo -e "$fail" ; exit_script 1 ; }
 	done
+	echo
+}
+
+populating_addon(){
+	#Moving files from working to addon folders
+	echo "Moving files to addon..."
+	echo -ne "\tretroarch.cfg "
+	mv -v "${TMP_TARGET_DIR}/etc/retroarch.cfg" "${ADDON_DIR}/config/" &>>"$LOG"
+	[ $? -eq 0 ] && echo -e "$ok" || { echo -e "$fail" ; exit_script 1 ; }
+	echo -ne "\tbinaries "
+	mv -v "${TMP_TARGET_DIR}/usr/bin" "${ADDON_DIR}/" &>>"$LOG"
+	[ $? -eq 0 ] && echo -e "$ok" || { echo -e "$fail" ; exit_script 1 ; }
+	echo -ne "\tlibraries and cores "
+	mv -v "${TMP_TARGET_DIR}/usr/lib" "${ADDON_DIR}/" &>>"$LOG"
+	[ $? -eq 0 ] && echo -e "$ok" || { echo -e "$fail" ; exit_script 1 ; }
+	echo -ne "\taudio filters "
+	mv -v "${TMP_TARGET_DIR}/usr/share/audio_filters" "${ADDON_DIR}/resources/" &>>"$LOG"
+	[ $? -eq 0 ] && echo -e "$ok" || { echo -e "$fail" ; exit_script 1 ; }
+	echo -ne "\tvideo filters "
+	mv -v "${TMP_TARGET_DIR}/usr/share/video_filters" "${ADDON_DIR}/resources/" &>>"$LOG"
+	[ $? -eq 0 ] && echo -e "$ok" || { echo -e "$fail" ; exit_script 1 ; }
+	echo -ne "\tsystem "
+	mv -v "${TMP_TARGET_DIR}/usr/share/retroarch-system" "${ADDON_DIR}/resources/system" &>>"$LOG"
+	[ $? -eq 0 ] && echo -e "$ok" || { echo -e "$fail" ; exit_script 1 ; }
+
+	if [ ! -z "$INCLUDE_DLC" ]; then
+		echo -ne "\tjoypads "
+		mv -v "${TMP_TARGET_DIR}/etc/retroarch-joypad-autoconfig" "${ADDON_DIR}/resources/joypads" &>>"$LOG"
+		[ $? -eq 0 ] && echo -e "$ok" || { echo -e "$fail" ; exit_script 1 ; }
+		echo -ne "\tshaders "
+		mv -v "${TMP_TARGET_DIR}/usr/share/common-shaders" "${ADDON_DIR}/resources/shaders" &>>"$LOG"
+		[ $? -eq 0 ] && echo -e "$ok" || { echo -e "$fail" ; exit_script 1 ; }
+		echo -ne "\tdatabases "
+		mv -v "${TMP_TARGET_DIR}/usr/share/libretro-database" "${ADDON_DIR}/resources/database" &>>"$LOG"
+		[ $? -eq 0 ] && echo -e "$ok" || { echo -e "$fail" ; exit_script 1 ; }
+		echo -ne "\tassets "
+		mv -v "${TMP_TARGET_DIR}/usr/share/retroarch-assets" "${ADDON_DIR}/resources/assets" &>>"$LOG"
+		[ $? -eq 0 ] && echo -e "$ok" || { echo -e "$fail" ; exit_script 1 ; }
+		echo -ne "\toverlays "
+		mv -v "${TMP_TARGET_DIR}/usr/share/retroarch-overlays" "${ADDON_DIR}/resources/overlays" &>>"$LOG"
+		[ $? -eq 0 ] && echo -e "$ok" || { echo -e "$fail" ; exit_script 1 ; }
+	fi
 	echo
 }
 

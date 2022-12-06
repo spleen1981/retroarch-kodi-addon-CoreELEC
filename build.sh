@@ -15,6 +15,7 @@ load_scripts
 build_from_lakka
 setup_addon
 populating_addon
+creating_new_files
 customize_retroarch
 apply_hook_function
 create_archive
