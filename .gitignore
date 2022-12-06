@@ -1,5 +1,6 @@
 build/
 build
+tmp_test_files
 retroarch_work/
 local.conf
 *.swp
