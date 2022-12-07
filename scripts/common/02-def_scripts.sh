@@ -739,7 +739,7 @@ def runUpdaterMenu(manual_update=False):
 	return ret
 def bootToggle():
 	resp = subprocess.run([boot_toggle_exe, "check"])
-	boot_status = "RETROARCH. "+getLocalizedString(32012)+" KODI?" if resp.returncode else "KODI. "+getLocalizedString(32010)+" RETROARCH?"
+	boot_status = "RETROARCH. "+getLocalizedString(32012)+" KODI?" if resp.returncode else "KODI. "+getLocalizedString(32012)+" RETROARCH?"
 	if(dialog.yesno(getLocalizedString(32010),getLocalizedString(32011)+" "+boot_status)):
 		subprocess.run(boot_toggle_exe)
 EOF
