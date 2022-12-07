@@ -928,27 +928,6 @@ index f347a04dc0..7a5855d904 100644
  PKG_LICENSE="GPL3"
  PKG_SITE="https://github.com/libretro/potator"
  PKG_URL="${PKG_SITE}.git"
-diff --git a/packages/lakka/libretro_cores/ppsspp/package.mk b/packages/lakka/libretro_cores/ppsspp/package.mk
-index cceae0139e..3e2841497c 100644
---- a/packages/lakka/libretro_cores/ppsspp/package.mk
-+++ b/packages/lakka/libretro_cores/ppsspp/package.mk
-@@ -1,5 +1,5 @@
- PKG_NAME="ppsspp"
--PKG_VERSION="ce0a45cf0fcdd5bebf32208b9998f68dfc1107b7"
-+PKG_VERSION="9fe6338e3bf397f8a009a51a282c139dfa180eb6"
- PKG_LICENSE="GPLv2"
- PKG_SITE="https://github.com/hrydgard/ppsspp"
- PKG_URL="${PKG_SITE}.git"
-@@ -13,8 +13,7 @@ PKG_CMAKE_OPTS_TARGET="-DLIBRETRO=ON \
-                        -DUSE_FFMPEG=ON \
-                        -DUSE_SYSTEM_FFMPEG=OFF \
-                        -DUSE_DISCORD=OFF \
--                       -DUSE_MINIUPNPC=OFF \
--                       --target ppsspp_libretro"
-+                       -DUSE_MINIUPNPC=OFF"
- 
- if [ "${OPENGL_SUPPORT}" = "yes" ]; then
-   PKG_DEPENDS_TARGET+=" ${OPENGL}"
 diff --git a/packages/lakka/libretro_cores/prboom/package.mk b/packages/lakka/libretro_cores/prboom/package.mk
 index 69a78a051a..8072a621d3 100644
 --- a/packages/lakka/libretro_cores/prboom/package.mk
