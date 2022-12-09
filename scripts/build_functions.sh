@@ -226,7 +226,7 @@ EOF
 			echo -ne "\t$package "
 			SRC="${path}/${package}/package.mk"
 			if [ -f "$SRC" ] ; then
-				PKG_VERSION=`cat $SRC | sed -En "s/PKG_VERSION=\"(.*)\"/\1/p"`
+				PKG_VERSION=`cat $SRC | sed -En "s/ *#.*//g;s/PKG_VERSION=\"(.*)#*\"/\1/p"`
 			else
 				echo -e "$skip (no package.mk)"
 				continue
