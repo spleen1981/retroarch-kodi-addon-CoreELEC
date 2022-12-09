@@ -1,3 +1,148 @@
+diff --git a/packages/addons/addon-depends/libzip/package.mk b/packages/addons/addon-depends/libzip/package.mk
+index a8afc31861..d1d9a90157 100644
+--- a/packages/addons/addon-depends/libzip/package.mk
++++ b/packages/addons/addon-depends/libzip/package.mk
+@@ -3,8 +3,8 @@
+ # Copyright (C) 2019-present Team LibreELEC (https://libreelec.tv)
+ 
+ PKG_NAME="libzip"
+-PKG_VERSION="1.8.0"
+-PKG_SHA256="f0763bda24ba947e80430be787c4b068d8b6aa6027a26a19923f0acfa3dac97e"
++PKG_VERSION="1.9.2"
++PKG_SHA256="c93e9852b7b2dc931197831438fee5295976ee0ba24f8524a8907be5c2ba5937"
+ PKG_LICENSE="GPL"
+ PKG_SITE="https://libzip.org/"
+ PKG_URL="https://libzip.org/download/${PKG_NAME}-${PKG_VERSION}.tar.xz"
+diff --git a/packages/addons/addon-depends/libzip/patches/libzip-001-fix-typo-which-prevents-expansion-of-libdir-in-pkgconfig.patch b/packages/addons/addon-depends/libzip/patches/libzip-001-fix-typo-which-prevents-expansion-of-libdir-in-pkgconfig.patch
+deleted file mode 100644
+index fa319b55b0..0000000000
+--- a/packages/addons/addon-depends/libzip/patches/libzip-001-fix-typo-which-prevents-expansion-of-libdir-in-pkgconfig.patch
++++ /dev/null
+@@ -1,105 +0,0 @@
+-From ca61524e05d785f0d14f40802c6a1a54a46b74bb Mon Sep 17 00:00:00 2001
+-From: rezso <rezso@rezso.net>
+-Date: Sat, 19 Jun 2021 01:50:26 +0200
+-Subject: [PATCH] CMakeLists.txt: add missing regex for zstd
+-
+-Currently cmake provides an pc file with:
+-Libs.private:  -lbz2 -llzma -lZstd::Zstd -lz
+----
+- CMakeLists.txt | 1 +
+- 1 file changed, 1 insertion(+)
+-
+-diff --git a/CMakeLists.txt b/CMakeLists.txt
+-index 93b46a61..defc8745 100644
+---- a/CMakeLists.txt
+-+++ b/CMakeLists.txt
+-@@ -299,6 +299,7 @@ foreach(LIB ${LIBS_PRIVATE})
+- endforeach()
+- string(REGEX REPLACE "-lBZip2::BZip2" "-lbz2" LIBS ${LIBS})
+- string(REGEX REPLACE "-lLibLZMA::LibLZMA" "-llzma" LIBS ${LIBS})
+-+string(REGEX REPLACE "-lZstd::Zstd" "-lzstd" LIBS ${LIBS})
+- string(REGEX REPLACE "-lOpenSSL::Crypto" "-lssl -lcrypto" LIBS ${LIBS})
+- string(REGEX REPLACE "-lZLIB::ZLIB" "-lz" LIBS ${LIBS})
+- string(REGEX REPLACE "-lGnuTLS::GnuTLS" "-lgnutls" LIBS ${LIBS})
+-
+-From c4af9182efd9cbb127bb43486b55d9ddf4a521ca Mon Sep 17 00:00:00 2001
+-From: Thomas Klausner <tk@giga.or.at>
+-Date: Mon, 28 Jun 2021 11:52:15 +0200
+-Subject: [PATCH] Try having relative paths in pkg-config file.
+-
+-Addresses #248
+----
+- CMakeLists.txt | 11 ++++++-----
+- libzip.pc.in   |  7 +++----
+- 2 files changed, 9 insertions(+), 9 deletions(-)
+-
+-diff --git a/CMakeLists.txt b/CMakeLists.txt
+-index 8611a405..93f89df1 100644
+---- a/CMakeLists.txt
+-+++ b/CMakeLists.txt
+-@@ -281,11 +281,12 @@ endif()
+- 
+- 
+- # pkgconfig file
+--set(prefix ${CMAKE_INSTALL_PREFIX})
+--set(exec_prefix \${prefix})
+--SET(bindir ${CMAKE_INSTALL_FULL_BINDIR})
+--SET(libdir ${CMAKE_INSTALL_FULL_LIBDIR})
+--SET(includedir ${CMAKE_INSTALL_FULL_INCLUDEDIR})
+-+file(RELATIVE_PATH pc_relative_bindir ${CMAKE_INSTALL_PREFIX} ${CMAKE_INSTALL_FULL_BINDIR})
+-+set(bindir "\${prefix}/${pc_relative_bindir}")
+-+file(RELATIVE_PATH pc_relative_libdir ${CMAKE_INSTALL_PREFIX} ${CMAKE_INSTALL_FULL_LIBDIR})
+-+set(libdir "\${prefix)/${pc_relative_libdir}")
+-+file(RELATIVE_PATH pc_relative_includedir ${CMAKE_INSTALL_PREFIX} ${CMAKE_INSTALL_FULL_INCLUDEDIR})
+-+set(includedir "\${prefix}/${pc_relative_includedir}")
+- if(CMAKE_SYSTEM_NAME MATCHES BSD)
+-   set(PKG_CONFIG_RPATH "-Wl,-R\${libdir}")
+- endif(CMAKE_SYSTEM_NAME MATCHES BSD)
+-diff --git a/libzip.pc.in b/libzip.pc.in
+-index 58b3dca7..d51b0ab6 100644
+---- a/libzip.pc.in
+-+++ b/libzip.pc.in
+-@@ -1,10 +1,10 @@
+--prefix=@prefix@
+--exec_prefix=@exec_prefix@
+-+prefix=@CMAKE_INSTALL_PREFIX@
+-+exec_prefix=${prefix}
+- bindir=@bindir@
+- libdir=@libdir@
+- includedir=@includedir@
+- 
+--zipcmp=@bindir@/zipcmp
+-+zipcmp=${bindir}/zipcmp
+- 
+- Name: libzip
+- Description: library for handling zip archives
+-@@ -12,4 +12,3 @@ Version: @PROJECT_VERSION@
+- Libs: @PKG_CONFIG_RPATH@ -L${libdir} -lzip
+- Libs.private: @LIBS@
+- Cflags: -I${includedir}
+--
+-
+-From 28951cbf403ea3a788f823377bbc171d1e1359ba Mon Sep 17 00:00:00 2001
+-From: Michael Heimpold <mhei@heimpold.de>
+-Date: Sat, 3 Jul 2021 00:04:14 +0200
+-Subject: [PATCH] Fix typo which prevents expansion of libdir in pkgconfig
+- files
+-
+-Signed-off-by: Michael Heimpold <mhei@heimpold.de>
+----
+- CMakeLists.txt | 2 +-
+- 1 file changed, 1 insertion(+), 1 deletion(-)
+-
+-diff --git a/CMakeLists.txt b/CMakeLists.txt
+-index 93f89df1..2fb87165 100644
+---- a/CMakeLists.txt
+-+++ b/CMakeLists.txt
+-@@ -284,7 +284,7 @@ endif()
+- file(RELATIVE_PATH pc_relative_bindir ${CMAKE_INSTALL_PREFIX} ${CMAKE_INSTALL_FULL_BINDIR})
+- set(bindir "\${prefix}/${pc_relative_bindir}")
+- file(RELATIVE_PATH pc_relative_libdir ${CMAKE_INSTALL_PREFIX} ${CMAKE_INSTALL_FULL_LIBDIR})
+--set(libdir "\${prefix)/${pc_relative_libdir}")
+-+set(libdir "\${prefix}/${pc_relative_libdir}")
+- file(RELATIVE_PATH pc_relative_includedir ${CMAKE_INSTALL_PREFIX} ${CMAKE_INSTALL_FULL_INCLUDEDIR})
+- set(includedir "\${prefix}/${pc_relative_includedir}")
+- if(CMAKE_SYSTEM_NAME MATCHES BSD)
+diff --git a/packages/graphics/libpng/package.mk b/packages/graphics/libpng/package.mk
+index a2c373f198..f31068fc14 100644
+--- a/packages/graphics/libpng/package.mk
++++ b/packages/graphics/libpng/package.mk
+@@ -2,12 +2,8 @@
+ # Copyright (C) 2009-2016 Stephan Raue (stephan@openelec.tv)
+ 
+ PKG_NAME="libpng"
+-PKG_VERSION="1.6.37"
+-PKG_SHA256="505e70834d35383537b6491e7ae8641f1a4bed1876dbfe361201fc80868d88ca"
+-if [ "${DISTRO}" = "Lakka" ]; then
+-  PKG_VERSION="1.7.0beta89"
+-  PKG_SHA256="1fad2475a24174f5b4ad237b8b899a2c0583237f108c2288a6e2ac5c3537147a"
+-fi
++PKG_VERSION="1.6.38"
++PKG_SHA256="b3683e8b8111ebf6f1ac004ebb6b0c975cd310ec469d98364388e9cedbfa68be"
+ PKG_LICENSE="LibPNG2"
+ PKG_SITE="http://www.libpng.org/"
+ PKG_URL="${SOURCEFORGE_SRC}/libpng/${PKG_NAME}-${PKG_VERSION}.tar.xz"
 diff --git a/packages/lakka/libretro_cores/2048/package.mk b/packages/lakka/libretro_cores/2048/package.mk
 index 42245fd35c..a5416138c4 100644
 --- a/packages/lakka/libretro_cores/2048/package.mk
@@ -928,6 +1073,83 @@ index f347a04dc0..7a5855d904 100644
  PKG_LICENSE="GPL3"
  PKG_SITE="https://github.com/libretro/potator"
  PKG_URL="${PKG_SITE}.git"
+diff --git a/packages/lakka/libretro_cores/ppsspp/package.mk b/packages/lakka/libretro_cores/ppsspp/package.mk
+index cceae0139e..4ffa1d9a23 100644
+--- a/packages/lakka/libretro_cores/ppsspp/package.mk
++++ b/packages/lakka/libretro_cores/ppsspp/package.mk
+@@ -1,20 +1,24 @@
+ PKG_NAME="ppsspp"
+-PKG_VERSION="ce0a45cf0fcdd5bebf32208b9998f68dfc1107b7"
+-PKG_LICENSE="GPLv2"
++PKG_VERSION="9fe6338e3bf397f8a009a51a282c139dfa180eb6" #v1.13.2
++PKG_LICENSE="GPL-2.0-or-later"
+ PKG_SITE="https://github.com/hrydgard/ppsspp"
+-PKG_URL="${PKG_SITE}.git"
+-PKG_DEPENDS_TARGET="toolchain libzip libpng"
+-PKG_LONGDESC="Libretro port of PPSSPP"
+-PKG_TOOLCHAIN="cmake"
+-PKG_LR_UPDATE_TAG="yes"
++PKG_URL="https://github.com/hrydgard/ppsspp.git"
++PKG_DEPENDS_TARGET="toolchain linux glibc libzip libpng zstd zlib ffmpeg bzip2 openssl speex"
++PKG_LONGDESC="A PSP emulator for Android, Windows, Mac, Linux and Blackberry 10, written in C++."
++GET_HANDLER_SUPPORT="git"
++PKG_GIT_CLONE_BRANCH="master"
++PKG_GIT_CLONE_SINGLE="yes"
++PKG_BUILD_FLAGS="-sysroot"
+ 
+ PKG_CMAKE_OPTS_TARGET="-DLIBRETRO=ON \
+                        -DCMAKE_BUILD_TYPE=Release \
+                        -DUSE_FFMPEG=ON \
+-                       -DUSE_SYSTEM_FFMPEG=OFF \
++                       -DUSE_SYSTEM_FFMPEG=ON \
++                       -DUSE_SYSTEM_LIBZIP=ON \
++                       -DUSE_SYSTEM_LIBPNG=ON \
++                       -DUSE_SYSTEM_ZSTD=ON \
+                        -DUSE_DISCORD=OFF \
+-                       -DUSE_MINIUPNPC=OFF \
+-                       --target ppsspp_libretro"
++                       -DUSE_MINIUPNPC=OFF"
+ 
+ if [ "${OPENGL_SUPPORT}" = "yes" ]; then
+   PKG_DEPENDS_TARGET+=" ${OPENGL}"
+diff --git a/packages/lakka/libretro_cores/ppsspp/patches/ppsspp-fix_strcasecmp.patch b/packages/lakka/libretro_cores/ppsspp/patches/ppsspp-fix_strcasecmp.patch
+deleted file mode 100644
+index 509b781535..0000000000
+--- a/packages/lakka/libretro_cores/ppsspp/patches/ppsspp-fix_strcasecmp.patch
++++ /dev/null
+@@ -1,13 +0,0 @@
+-diff --git a/ext/libzip/compat.h b/ext/libzip/compat.h
+-index a5cf72804..b41a53ba5 100644
+---- a/ext/libzip/compat.h
+-+++ b/ext/libzip/compat.h
+-@@ -38,6 +38,8 @@
+- 
+- #include "config.h"
+- 
+-+#include <strings.h>
+-+
+- /* to have *_MAX definitions for all types when compiling with g++ */
+- #define __STDC_LIMIT_MACROS
+- 
+diff --git a/packages/lakka/libretro_cores/ppsspp/patches/ppsspp-ignore-sdl.patch b/packages/lakka/libretro_cores/ppsspp/patches/ppsspp-ignore-sdl.patch
+deleted file mode 100644
+index c93f9dffcd..0000000000
+--- a/packages/lakka/libretro_cores/ppsspp/patches/ppsspp-ignore-sdl.patch
++++ /dev/null
+@@ -1,13 +0,0 @@
+-diff --git a/CMakeLists.txt b/CMakeLists.txt
+-index 0a5fceb50..9192de994 100644
+---- a/CMakeLists.txt
+-+++ b/CMakeLists.txt
+-@@ -997,7 +997,7 @@ elseif(WIN32)
+- 	else()
+- 		link_directories(dx9sdk/Lib/x86)
+- 	endif()
+--elseif(TARGET SDL2::SDL2)
+-+elseif(TARGET SDL2::SDL2 AND NOT LIBRETRO)
+- 	set(TargetBin PPSSPPSDL)
+- 	# Require SDL
+- 	add_definitions(-DSDL)
 diff --git a/packages/lakka/libretro_cores/prboom/package.mk b/packages/lakka/libretro_cores/prboom/package.mk
 index 69a78a051a..8072a621d3 100644
 --- a/packages/lakka/libretro_cores/prboom/package.mk
