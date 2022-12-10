@@ -36,8 +36,10 @@ AUTOSTART_SH=/storage/.config/autostart.sh
 
 [ -z \$1 ] && TARGET='NA' || TARGET=\$1
 
+#setting is currently on
 if [ -f \$BOOT_TOGGLE_FILE ] && [ ! \$TARGET = on ] || [ \$TARGET = off ]; then
-	[ \$TARGET = 'check' ] && return 1
+	#if check only is required, make sure setting is properly applied forcing expected current setting
+	[ \$TARGET = 'check' ] && "\$ADDON_DIR/bin/ra_boot_toggle.sh on" && return 1
 
 	if [ -f \$AUTOSTART_SH ]; then
 		sed -i "s#\$BOOT_RA_CMD##" \$AUTOSTART_SH
@@ -46,8 +48,9 @@ if [ -f \$BOOT_TOGGLE_FILE ] && [ ! \$TARGET = on ] || [ \$TARGET = off ]; then
 	fi
 	systemctl unmask kodi
 	rm -f \$BOOT_TOGGLE_FILE && return 0
+#setting is currently off
 elif [ ! -f \$BOOT_TOGGLE_FILE ] || [ \$TARGET = on ]; then
-	[ \$TARGET = 'check' ] && return 0
+	[ \$TARGET = 'check' ] && "\$ADDON_DIR/bin/ra_boot_toggle.sh off" && return 0
 
 	if [ -f \$AUTOSTART_SH ]; then
 		TEST=\$(cat \$AUTOSTART_SH | grep "\$BOOT_RA_CMD")
