@@ -31,7 +31,7 @@ read -d '' ra_boot_toggle_sh <<EOF
 
 ADDON_DIR="\$HOME/.kodi/addons/${ADDON_NAME}"
 BOOT_TOGGLE_FILE="\$ADDON_DIR"/config/boot_to_ra
-BOOT_RA_CMD="\$ADDON_DIR"/bin/ra_autostart.sh
+BOOT_RA_CMD="[ -f \$BOOT_TOGGLE_FILE ] && \$ADDON_DIR/bin/ra_autostart.sh 2>/dev/null"
 AUTOSTART_SH=/storage/.config/autostart.sh
 
 [ -z \$1 ] && TARGET='NA' || TARGET=\$1
