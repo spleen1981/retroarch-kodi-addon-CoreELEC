@@ -369,6 +369,11 @@ read -d '' ra_update_utils_sh <<EOF
 
 ra_updater_create(){
 result="#!/bin/sh
+
+#check extra-kodi settings to be retained
+\$ADDON_SRC/bin/ra_boot_toggle.sh check
+RESTART_TO_KODI=\\\\\$?
+
 #unzip addon to folder
 mv \$ADDON_SRC \${ADDON_SRC}_bkp
 [ \\\\\$? -eq 0 ] && unzip -q -o \$RA_TMP_PATH/\$file_name -d \$HOME/.kodi/addons/
@@ -383,6 +388,10 @@ fi
 rm -rf \${ADDON_SRC}_bkp
 rm \$RA_TMP_PATH/\$file_name
 rm \$RA_UPDATER
+
+#apply extra-kodi settings to be retained
+[ \\\\\$RESTART_TO_KODI -eq 1 ] && \\\"\$ADDON_SRC/bin/ra_boot_toggle.sh on\\\"
+
 kodi-send --action=\\\"Notification($NOTIFICATIONS_TITLE, \$SUCCEEDED_MESSAGE, $SHORT_NOTIFICATION, \$RA_ICON)\\\"
 kodi-send --action='UpdateLocalAddons'"
 if [ \$1 = 'install_restart' ] ; then
