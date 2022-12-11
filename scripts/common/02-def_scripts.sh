@@ -498,7 +498,7 @@ ra_install(){
 	ra_updater_create "\$1" > \$RA_UPDATER
 	chmod +x \$RA_UPDATER
 	systemd-run \$RA_UPDATER
-	[ ! \$? -eq 0 ] && return 13 || return 0
+	[ \$? -eq 0 ] && return 0 || return 13
 }
 
 clear_flags(){
