@@ -90,7 +90,7 @@ restore_flattened_symlinks(){
 }
 
 #substitutes 'cp -n' as not available
-merge_dirs_no_clobber(){
+merge_dirs_maybe_no_clobber(){
 	[ ! -d "\$1" ] && return 1
 	[ ! -d "\$2" ] && return 2
 
@@ -98,15 +98,21 @@ merge_dirs_no_clobber(){
 		item_basename=\$( basename "\$item" )
 		if [ -d "\$item" ]; then
 			if [ -d "\$2/\$item_basename" ]; then
-				merge_dirs_no_clobber "\$item" "\$2/\$item_basename"
+				merge_dirs_maybe_no_clobber "\$item" "\$2/\$item_basename"
 			else
-				cp -r "\$item" "\$2/"
+				copy_if_not_equal "\$item" "\$2"
 			fi
 		elif [ -f "\$item" ]; then
-			[ ! -f "\$2/\$item_basename" ] && cp "\$item" "\$2/"
+			copy_if_not_equal "\$item" "\$2"
 		fi
 	done
 	return 0
+}
+
+copy_if_not_equal(){
+	item_basename=\$( basename "\$1" )
+
+	[ -f "\$2/\$item_basename" ] && [ "\$(sha1sum \$1 | cut -c 1-40)" = "\$(sha1sum \$2/\$item_basename | cut -c 1-40)" ] || cp -rf "\$1" "\$2/"
 }
 
 
@@ -222,8 +228,8 @@ ra_config_override(){
 	fi
 
 	if [ \$addon_res_dir_exists -eq 0 ] && [ \$config_res_dir_exists -eq 0 ]; then
-		if [ \$2 == 'merge_no_clobber' ]; then
-			merge_dirs_no_clobber "\${ADDON_DIR}/resources/\$1" "\${RA_CONFIG_DIR}/\$1"
+		if [ \$2 == 'merge_maybe_no_clobber' ]; then
+			merge_dirs_maybe_no_clobber "\${ADDON_DIR}/resources/\$1" "\${RA_CONFIG_DIR}/\$1"
 		else
 			cp -rf "\${ADDON_DIR}/resources/\$1" "\${RA_CONFIG_DIR}/\$1"
 		fi
@@ -282,7 +288,7 @@ if [ ! -f \${ADDON_DIR}/config/${FIRST_RUN_FLAG_PREFIX} ] ; then
 		sed -i "s|user_language.*|user_language = \\\"\$(ra_get_language \$kodi_locale)\\\"|" \$RA_CONFIG_FILE
 	fi
 
-	ra_config_override 'system' merge_no_clobber
+	ra_config_override 'system' merge_maybe_no_clobber
 	ra_config_override 'assets'
 	ra_config_override 'joypads'
 	ra_config_override 'shaders'
