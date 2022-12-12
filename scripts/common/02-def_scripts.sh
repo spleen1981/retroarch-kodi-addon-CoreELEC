@@ -4,13 +4,19 @@ NOTIFICATIONS_TITLE=RetroArch
 LONG_NOTIFICATION=600000
 SHORT_NOTIFICATION=2000
 FIRST_RUN_FLAG_PREFIX=first_run_done
+BOOT_TO_RA_FLAG_TRUE=RETROARCH
+BOOT_TO_RA_FLAG_FALSE=KODI
 
 read -d '' ra_autostart_sh <<EOF
 #!/bin/sh
 . /etc/profile
 
-ADDON_DIR="\$HOME/.kodi/addons/${ADDON_NAME}"
+oe_setup_addon ${ADDON_NAME}
 
+#check settings have not be changed externally in the meanwhile (e.g. reset to defaults)
+"\$ADDON_DIR"/bin/ra_boot_toggle.sh check
+
+test \$? -eq 1 && \
 systemctl mask kodi && \
 pgrep splash-image | xargs kill -SIGTERM && \
 eval \$(cat /usr/lib/systemd/system/kodi.service | grep ExecStartPre= | sed "s|ExecStartPre=[-]*||g;s|$| ; |g") \
@@ -29,27 +35,32 @@ read -d '' ra_boot_toggle_sh <<EOF
 
 . /etc/profile
 
-ADDON_DIR="\$HOME/.kodi/addons/${ADDON_NAME}"
-BOOT_TOGGLE_FILE="\$ADDON_DIR"/config/boot_to_ra
-BOOT_RA_CMD="test -f \$BOOT_TOGGLE_FILE && \$ADDON_DIR/bin/ra_autostart.sh 2>/dev/null"
+oe_setup_addon ${ADDON_NAME}
+
+test_boot_ra(){
+	[ ! -z \$ra_boot_toggle ] && [ \$ra_boot_toggle = $BOOT_TO_RA_FLAG_TRUE ] && echo 1 && return 1
+	echo 0
+}
+
+BOOT_RA_CMD="\$ADDON_DIR/bin/ra_autostart.sh 2>/dev/null"
 AUTOSTART_SH=\$(cat /usr/lib/systemd/system/kodi-autostart.service| grep ExecStart= | sed "s|.*\\\(/storage/.*[0-9a-zA-Z_\\\-\\\.]\\\).*|\\\1|g")
 
 [ -z \$1 ] && TARGET='NA' || TARGET=\$1
 
 #setting is currently on
-if [ -f \$BOOT_TOGGLE_FILE ] && [ ! \$TARGET = on ] || [ \$TARGET = off ]; then
+if [ \$(test_boot_ra) = 1 ] && [ ! \$TARGET = on ] || [ \$TARGET = off ]; then
 	#if check only is required, make sure setting is properly applied forcing expected current setting
 	[ \$TARGET = 'check' ] && "\$ADDON_DIR"/bin/ra_boot_toggle.sh on && return 1
 
 	if [ -f \$AUTOSTART_SH ]; then
-		sed -i "s#\$BOOT_RA_CMD##" \$AUTOSTART_SH
+		sed -i "s#\$BOOT_RA_CMD##;/^$/d" \$AUTOSTART_SH
 		TEST=\$(cat \$AUTOSTART_SH)
 		[ -z "\$TEST" ] && rm -f \$AUTOSTART_SH
 	fi
 	systemctl unmask kodi
-	rm -f \$BOOT_TOGGLE_FILE && return 0
+	sed -i "s#>${BOOT_TO_RA_FLAG_TRUE}<#>${BOOT_TO_RA_FLAG_FALSE}<#" \$ADDON_HOME/settings.xml && return 0
 #setting is currently off
-elif [ ! -f \$BOOT_TOGGLE_FILE ] || [ \$TARGET = on ]; then
+elif [ \$(test_boot_ra) = 0 ] || [ \$TARGET = on ]; then
 	[ \$TARGET = 'check' ] && "\$ADDON_DIR"/bin/ra_boot_toggle.sh off && return 0
 
 	if [ -f \$AUTOSTART_SH ]; then
@@ -58,7 +69,7 @@ elif [ ! -f \$BOOT_TOGGLE_FILE ] || [ \$TARGET = on ]; then
 	else
 		echo "\$BOOT_RA_CMD" >> \$AUTOSTART_SH && chmod +x \$AUTOSTART_SH
 	fi
-
+	sed -i "s#>${BOOT_TO_RA_FLAG_FALSE}<#>${BOOT_TO_RA_FLAG_TRUE}<#" \$ADDON_HOME/settings.xml && return 0
 	touch \$BOOT_TOGGLE_FILE && return 0
 fi
 EOF
@@ -370,10 +381,6 @@ read -d '' ra_update_utils_sh <<EOF
 ra_updater_create(){
 result="#!/bin/sh
 
-#check extra-kodi settings to be retained
-\$ADDON_SRC/bin/ra_boot_toggle.sh check
-RESTART_TO_KODI=\\\\\$?
-
 #unzip addon to folder
 mv \$ADDON_SRC \${ADDON_SRC}_bkp
 [ \\\\\$? -eq 0 ] && unzip -q -o \$RA_TMP_PATH/\$file_name -d \$HOME/.kodi/addons/
@@ -388,9 +395,6 @@ fi
 rm -rf \${ADDON_SRC}_bkp
 rm \$RA_TMP_PATH/\$file_name
 rm \$RA_UPDATER
-
-#apply extra-kodi settings to be retained
-[ \\\\\$RESTART_TO_KODI -eq 1 ] && \\\"\$ADDON_SRC/bin/ra_boot_toggle.sh on\\\"
 
 kodi-send --action=\\\"Notification($NOTIFICATIONS_TITLE, \$SUCCEEDED_MESSAGE, $SHORT_NOTIFICATION, \$RA_ICON)\\\"
 kodi-send --action='UpdateLocalAddons'"
@@ -756,8 +760,10 @@ def runUpdaterMenu(manual_update=False):
 		dialog.notification(\'$NOTIFICATIONS_TITLE\', getLocalizedString(113) + ' (' + str(ret) + ')', icon, $SHORT_NOTIFICATION)
 	return ret
 def bootToggle():
-	resp = subprocess.run([boot_toggle_exe, "check"])
-	boot_status = "RETROARCH. "+getLocalizedString(32012)+" KODI?" if resp.returncode else "KODI. "+getLocalizedString(32012)+" RETROARCH?"
+	current_setting = addon.getSetting( "ra_boot_toggle" )
+	boot_status = "${BOOT_TO_RA_FLAG_TRUE}. "+getLocalizedString(32012)+" ${BOOT_TO_RA_FLAG_FALSE}?" if current_setting == "${BOOT_TO_RA_FLAG_TRUE}" else "${BOOT_TO_RA_FLAG_FALSE}. "+getLocalizedString(32012)+" ${BOOT_TO_RA_FLAG_TRUE}?"
 	if(dialog.yesno(getLocalizedString(32010),getLocalizedString(32011)+" "+boot_status)):
 		subprocess.run(boot_toggle_exe)
+		#set setting again to update UI. @TODO: evaluate moving the entire logic to python
+		addon.setSetting( "ra_boot_toggle", "${BOOT_TO_RA_FLAG_FALSE}" if current_setting == "${BOOT_TO_RA_FLAG_TRUE}" else "${BOOT_TO_RA_FLAG_TRUE}" )
 EOF

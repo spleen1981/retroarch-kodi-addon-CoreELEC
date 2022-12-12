@@ -102,5 +102,6 @@ read -d '' settings_default_xml <<EOF
 	<setting id="ra_autoupdate" value="true" />
 	<setting id="ra_log" value="false" />
 	<setting id="ra_verbose" value="false" />
+	<setting id="ra_boot_toggle" value="KODI"/>
 </settings>
 EOF
