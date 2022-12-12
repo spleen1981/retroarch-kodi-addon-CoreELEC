@@ -72,8 +72,8 @@ LANG_32008_it_it="Salva i log di RetroArch su file"
 LANG_32009_en_gb="Turn off BT controllers on RetroArch exit (if supported)"
 LANG_32009_it_it="Spegni i controller BT all'uscita di RetroArch (se supportato)"
 
-LANG_32010_en_gb="Boot settings"
-LANG_32010_it_it="Impostazioni di avvio"
+LANG_32010_en_gb="Boot the system to"
+LANG_32010_it_it="Avvia il sistema con"
 
 LANG_32011_en_gb="Currently the system boots to"
 LANG_32011_it_it="Il sistema attualmente si avvia con"
