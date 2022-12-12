@@ -122,8 +122,11 @@ merge_dirs_maybe_no_clobber(){
 
 copy_if_not_equal(){
 	item_basename=\$( basename "\$1" )
-
-	[ -f "\$2/\$item_basename" ] && [ "\$(sha1sum \$1 | cut -c 1-40)" = "\$(sha1sum \$2/\$item_basename | cut -c 1-40)" ] || cp -rf "\$1" "\$2/"
+	if [ -f "\$2/\$item_basename" ]; then
+		\$RA_ADDON_BIN_FOLDER/cmp "\$1" "\$2/\$item_basename"
+		[ \$? -eq 0 ] && return 1
+	fi
+	cp -rf "\$1" "\$2/"
 }
 
 
