@@ -1074,14 +1074,14 @@ index f347a04dc0..7a5855d904 100644
  PKG_SITE="https://github.com/libretro/potator"
  PKG_URL="${PKG_SITE}.git"
 diff --git a/packages/lakka/libretro_cores/ppsspp/package.mk b/packages/lakka/libretro_cores/ppsspp/package.mk
-index cceae0139e..4ffa1d9a23 100644
+index cceae0139e..c21cf55beb 100644
 --- a/packages/lakka/libretro_cores/ppsspp/package.mk
 +++ b/packages/lakka/libretro_cores/ppsspp/package.mk
 @@ -1,20 +1,24 @@
  PKG_NAME="ppsspp"
 -PKG_VERSION="ce0a45cf0fcdd5bebf32208b9998f68dfc1107b7"
 -PKG_LICENSE="GPLv2"
-+PKG_VERSION="9fe6338e3bf397f8a009a51a282c139dfa180eb6" #v1.13.2
++PKG_VERSION="d66c5c11c1532c2850552e8eb2095994021d055c" #v1.13.2 merged to master to include libretro buildfix
 +PKG_LICENSE="GPL-2.0-or-later"
  PKG_SITE="https://github.com/hrydgard/ppsspp"
 -PKG_URL="${PKG_SITE}.git"
