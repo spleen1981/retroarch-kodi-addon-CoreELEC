@@ -4,15 +4,15 @@ index 0000000000..71335fefd0
 --- /dev/null
 +++ b/packages/lakka/lakka_tools/cec-mini-kb/package.mk
 @@ -0,0 +1,24 @@
-+# SPDX-License-Identifier: GPL-2.0-or-later OR MIT
++# SPDX-License-Identifier: GPL-3.0-or-later
 +# 2021 Giovanni Cascione
 +
 +PKG_NAME="cec-mini-kb"
-+PKG_VERSION="5db0aa56eefe4d27f603b2740b87c8908d538d12"
++PKG_VERSION="be4289751bd80470c33847073a790b83356696db"
 +PKG_SHA256=""
 +PKG_REV=""
 +PKG_ARCH="any"
-+PKG_LICENSE="MIT"
++PKG_LICENSE="GPLv3"
 +PKG_SITE="https://github.com/spleen1981/cec-mini-kb"
 +PKG_URL="$PKG_SITE".git
 +PKG_DEPENDS_TARGET="toolchain libcec"
