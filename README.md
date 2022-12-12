@@ -98,7 +98,7 @@ Addon zip file will be placed in `build` subfolder.
 
 HOOK variable is used to apply experimental build options. Being experimental, those are not released as built addon zip package.
 
-   - `ARCH=aarch64 HOOK=aarch64_to_arm_userspace ./build.sh` This option will build a stand alone aarch64 package able to run in the 32bit arm CoreELEC userspace, e.g. to try cores available for 64bit systems only (e.g. dolphin)
+   - `ARCH=aarch64 HOOK=aarch64_to_arm_userspace ./build.sh` This option will build a stand alone aarch64 package able to run in the 32bit arm CoreELEC userspace, e.g. to try cores available for 64bit systems only (e.g. dolphin). Tested on CoreELEC 19 with S905X3.
 
 ## Adding new translations
 

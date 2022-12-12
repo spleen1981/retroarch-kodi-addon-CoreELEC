@@ -116,8 +116,6 @@ PACKAGES_DEVEL="libcec"
 
 PACKAGES_SYSUTILS="$PACKAGES_SYSUTILS opengl-meson-coreelec"
 
-HOOK_RETROARCH_START_0="cd LD_LIBRARY_PATH=\"\$LD_LIBRARY_PATH:\$ADDON_DIR/lib/lib64\""
-
 read -d '' HOOK_RETROARCH_START_0 <<EOF
 cd \$ADDON_DIR/bin
 LD_LIBRARY_PATH=\"\$LD_LIBRARY_PATH:\$ADDON_DIR/lib/lib64\"
@@ -130,6 +128,7 @@ EOF
 
 read -d '' HOOK_RETROARCH_START_2 <<EOF
 restore_flattened_symlinks \$ADDON_DIR/lib/lib64
+chmod +x \$ADDON_DIR/lib/lib64/*
 EOF
 
 read -d '' CEC_ARM_BIN <<EOF
