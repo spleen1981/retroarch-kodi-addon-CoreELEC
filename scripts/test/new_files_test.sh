@@ -14,8 +14,8 @@ load_scripts
 
 HERE=$(pwd)
 TMP_DIR=tmp_test_files
-[ -d $HERE/$TMP_DIR ] && rm -rf $HERE/$TMP_DIR/*
-mkdir -p $HERE/$TMP_DIR/resources/language
+[ -d $HERE/$TMP_DIR ] && rm -rf $HERE/$TMP_DIR
+mkdir -p $HERE/$TMP_DIR/resources
 mkdir -p $HERE/$TMP_DIR/bin
 cd $TMP_DIR
 
