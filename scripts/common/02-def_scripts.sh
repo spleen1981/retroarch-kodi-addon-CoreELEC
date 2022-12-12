@@ -31,15 +31,15 @@ read -d '' ra_boot_toggle_sh <<EOF
 
 ADDON_DIR="\$HOME/.kodi/addons/${ADDON_NAME}"
 BOOT_TOGGLE_FILE="\$ADDON_DIR"/config/boot_to_ra
-BOOT_RA_CMD="[ -f \$BOOT_TOGGLE_FILE ] && \$ADDON_DIR/bin/ra_autostart.sh 2>/dev/null"
-AUTOSTART_SH=/storage/.config/autostart.sh
+BOOT_RA_CMD="test -f \$BOOT_TOGGLE_FILE && \$ADDON_DIR/bin/ra_autostart.sh 2>/dev/null"
+AUTOSTART_SH=\$(cat /usr/lib/systemd/system/kodi-autostart.service| grep ExecStart= | sed "s|.*\\\(/storage/.*[0-9a-zA-Z_\\\-\\\.]\\\).*|\\\1|g")
 
 [ -z \$1 ] && TARGET='NA' || TARGET=\$1
 
 #setting is currently on
 if [ -f \$BOOT_TOGGLE_FILE ] && [ ! \$TARGET = on ] || [ \$TARGET = off ]; then
 	#if check only is required, make sure setting is properly applied forcing expected current setting
-	[ \$TARGET = 'check' ] && "\$ADDON_DIR/bin/ra_boot_toggle.sh on" && return 1
+	[ \$TARGET = 'check' ] && "\$ADDON_DIR"/bin/ra_boot_toggle.sh on && return 1
 
 	if [ -f \$AUTOSTART_SH ]; then
 		sed -i "s#\$BOOT_RA_CMD##" \$AUTOSTART_SH
@@ -50,7 +50,7 @@ if [ -f \$BOOT_TOGGLE_FILE ] && [ ! \$TARGET = on ] || [ \$TARGET = off ]; then
 	rm -f \$BOOT_TOGGLE_FILE && return 0
 #setting is currently off
 elif [ ! -f \$BOOT_TOGGLE_FILE ] || [ \$TARGET = on ]; then
-	[ \$TARGET = 'check' ] && "\$ADDON_DIR/bin/ra_boot_toggle.sh off" && return 0
+	[ \$TARGET = 'check' ] && "\$ADDON_DIR"/bin/ra_boot_toggle.sh off && return 0
 
 	if [ -f \$AUTOSTART_SH ]; then
 		TEST=\$(cat \$AUTOSTART_SH | grep "\$BOOT_RA_CMD")
@@ -59,7 +59,7 @@ elif [ ! -f \$BOOT_TOGGLE_FILE ] || [ \$TARGET = on ]; then
 		echo "\$BOOT_RA_CMD" >> \$AUTOSTART_SH && chmod +x \$AUTOSTART_SH
 	fi
 
-	touch \$BOOT_TOGGLE_FILE && return 1
+	touch \$BOOT_TOGGLE_FILE && return 0
 fi
 EOF
 
