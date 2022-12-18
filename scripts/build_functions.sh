@@ -115,10 +115,15 @@ setup_packages(){
 	[ -z "$LIBRERETRO_CORES_ADD" ] && LIBRERETRO_CORES_ADD="puae2021 mupen64plus scummvm_mainline"
 	[ -z "$LIBRERETRO_CORES_RM" ] && LIBRERETRO_CORES_RM=""
 
-	#Disable specific cores for Amlogic-ng
+	#Disable specific cores
+	LIBRERETRO_CORES_RM="$LIBRERETRO_CORES_RM mame scummvm"
+
+	#Disable specific cores per device/platform
 	if [ "$DEVICE" = "Amlogic-ng" ]; then
-		LIBRERETRO_CORES_RM="$LIBRERETRO_CORES_RM puae mupen64plus-next mame scummvm"
+		LIBRERETRO_CORES_RM="$LIBRERETRO_CORES_RM puae mupen64plus-next"
 	fi
+
+	#Apply cores list modifications
 	for CORE in $LIBRERETRO_CORES_RM $LIBRERETRO_CORES_ADD ; do
 		LIBRETRO_CORES="${LIBRETRO_CORES// $CORE /}"
 	done
