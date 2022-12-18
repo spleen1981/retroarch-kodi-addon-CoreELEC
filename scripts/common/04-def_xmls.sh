@@ -76,6 +76,7 @@ read -d '' settings_xml <<EOF
 		<setting id="ra_roms_remote_path" label="573" type="text" default="" enable="eq(-1,true)" subsetting="true"/>
 		<setting id="ra_roms_remote_user" label="1048" type="text" default="" enable="eq(-2,true)" subsetting="true"/>
 		<setting id="ra_roms_remote_password" label="733" type="text" default="" enable="eq(-3,true)" subsetting="true"/>
+		<setting id="ra_roms_remote_vers" label="32013" type="labelenum" values="Default|3|3.11|3.02|3.0|2.1|2.0|1.0" default="Default" enable="eq(-4,true)" subsetting="true" />
 	</category>
 	<category label="14092"> <!-- Log -->
 		<setting label="14092" type="lsep"/>
@@ -99,6 +100,7 @@ read -d '' settings_default_xml <<EOF
 	<setting id="ra_roms_remote_path" value="" />
 	<setting id="ra_roms_remote_user" value="" />
 	<setting id="ra_roms_remote_password" value="" />
+	<setting id="ra_roms_remote_vers" value="Default" />
 	<setting id="ra_autoupdate" value="true" />
 	<setting id="ra_log" value="false" />
 	<setting id="ra_verbose" value="false" />

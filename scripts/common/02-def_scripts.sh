@@ -341,10 +341,20 @@ fi
 if [ "\$ra_roms_remote" = "true" ] ; then
 	RA_REMOTE_OPTS=""
 	RA_REMOTE_OPTS_PRE=""
+
 	if [ ! -z "\$ra_roms_remote_user" ] ; then
 		RA_REMOTE_OPTS="username=\$ra_roms_remote_user,password=\$ra_roms_remote_password"
 		RA_REMOTE_OPTS_PRE="-o"
 	fi
+
+# Accepted values for ra_roms_remote_vers taken from the mount.cifs man page
+# The default since v4.13.5 is for the client and server to negotiate the highest possible version greater than or equal to 2.1. In kernels prior to v4.13,
+# the default was 1.0. For kernels between v4.13 and v4.13.5 the default is 3.0.
+	if [ ! -z "\$ra_roms_remote_vers" ] && [ ! "\$ra_roms_remote_vers" = Default ] ; then
+		[ ! -z "\$RA_REMOTE_OPTS" ] && RA_REMOTE_OPTS="\${RA_REMOTE_OPTS},"
+		RA_REMOTE_OPTS="\${RA_REMOTE_OPTS}vers=\${ra_roms_remote_vers}"
+	fi
+
 	[ ! -z "\$ra_roms_remote_path" ] && mount \$RA_REMOTE_OPTS_PRE "\$RA_REMOTE_OPTS" "\$ra_roms_remote_path" "\$ROMS_FOLDER"
 fi
 

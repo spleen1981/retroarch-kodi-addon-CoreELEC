@@ -20,7 +20,7 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1)\\\\n"\\n'
 
 LANG_list="en_gb cs_cz it_it"
-LANG_max=32012
+LANG_max=32013
 
 LANG_0_ctx="Addon Summary"
 LANG_0_en_gb="RetroArch add-on for Kodi (${RA_NAME_SUFFIX}). RetroArch is a frontend for emulators, game engines and media players."
@@ -80,3 +80,6 @@ LANG_32011_it_it="Il sistema attualmente si avvia con"
 
 LANG_32012_en_gb="Do you want to change the setting and boot to"
 LANG_32012_it_it="Vuoi cambiare l'impostazione e avviare con"
+
+LANG_32013_en_gb="SMB protocol version"
+LANG_32013_it_it="Versione protocollo SMB"
