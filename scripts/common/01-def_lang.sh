@@ -37,10 +37,6 @@ LANG_2_en_gb="This is an unofficial add-on. Use github.com/spleen1981/retroarch-
 LANG_2_cs_cz="Toto je neoficiální doplněk. K odeslání problémů použijte: github.com/spleen1981/retroarch-kodi-addon-CoreELEC."
 LANG_2_it_it="Questa è una add-on non ufficiale. Usa github.com/spleen1981/retroarch-kodi-addon-CoreELEC per segnalare eventuali problemi."
 
-LANG_32001_en_gb="Stop Kodi service before launching RetroArch"
-LANG_32001_cs_cz="Před spuštěním RetroArch zastavit službu Kodi"
-LANG_32001_it_it="Ferma il servizio Kodi prima di lanciare RetroArch"
-
 LANG_32002_en_gb="Turn off Xbox360 controllers after closing RetroArch"
 LANG_32002_cs_cz="Po vypnutí RetroArch vypněte ovladače Xbox360"
 LANG_32002_it_it="Spegni i controller Xbox360 all'uscita di RetroArch"

@@ -48,7 +48,6 @@ read -d '' settings_xml <<EOF
 	<category label="128"> <!-- General -->
 		<setting label="128" type="lsep"/>
 		<setting id="ra_boot_toggle" type="action" label="32010" default="KODI" action="RunScript(script.retroarch.launcher.Amlogic-ng.arm,boot_toggle)"/>
-		<setting id="ra_stop_kodi" label="32001" type="bool" default="true" />
 		<setting id="ra_autoupdate" label="24063" type="bool" default="true" />
 		<setting id="ra_updatenow" type="action" label="24034" action="RunScript(${ADDON_NAME},check_updates)"/>
 		<setting id="ra_reset" type="action" label="13007" action="RunScript(${ADDON_NAME},reset)"/>
@@ -88,7 +87,6 @@ EOF
 
 read -d '' settings_default_xml <<EOF
 <settings>
-	<setting id="ra_stop_kodi" value="true" />
 	<setting id="ra_xbox360_shutdown" value="true" />
 	<setting id="ra_bt_shutdown" value="false" />
 	<setting id="ra_cec_remote" value="true" />

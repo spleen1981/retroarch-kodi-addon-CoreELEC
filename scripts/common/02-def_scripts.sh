@@ -213,12 +213,8 @@ exit_script(){
 
 	[ ! -z "\$(systemctl status kodi | grep masked)" ] && systemctl unmask kodi
 
-	if [ "\$ra_stop_kodi" = "true" ] ; then
-		sed -E -i "s/\${CAP_GROUP_CEC}(.*)\\\"/\${CAP_GROUP_CEC}\${CEC_SHUTDOWN_SETTING_PREV}\\\"/" \$KODI_CEC_SETTINGS_FILE
-		systemctl start kodi
-	else
-		pgrep kodi.bin | xargs kill -SIGCONT
-	fi
+	sed -E -i "s/\${CAP_GROUP_CEC}(.*)\\\"/\${CAP_GROUP_CEC}\${CEC_SHUTDOWN_SETTING_PREV}\\\"/" \$KODI_CEC_SETTINGS_FILE
+	systemctl start kodi
 $HOOK_RETROARCH_START_1
 	exit 0
 }
@@ -323,20 +319,16 @@ fi
 
 [ "\$ra_log" = "true" ] && RA_PARAMS="--log-file=\$LOGFILE \$RA_PARAMS"
 
-if [ "\$ra_stop_kodi" = "true" ] ; then
 
-	CEC_SHUTDOWN_SETTING_PREV=\$(cat "\$KODI_CEC_SETTINGS_FILE" | grep "\${CAP_GROUP_CEC}" | grep -Eow "([0-9]+)")
+CEC_SHUTDOWN_SETTING_PREV=\$(cat "\$KODI_CEC_SETTINGS_FILE" | grep "\${CAP_GROUP_CEC}" | grep -Eow "([0-9]+)")
 
-	if [ ! \$CEC_SHUTDOWN_SETTING_PREV == \$CEC_SHUTDOWN_SETTING_NO ] ; then
-		#Workaround, as peripherals settings cannot be changed through json-rpc
-		sed -E -i "s/\${CAP_GROUP_CEC}(.*)\\\"/\${CAP_GROUP_CEC}\${CEC_SHUTDOWN_SETTING_NO}\\\"/" \$KODI_CEC_SETTINGS_FILE
-		pgrep kodi.bin | xargs kill -SIGHUP
-	fi
-
-	systemctl stop kodi
-else
-	pgrep kodi.bin | xargs kill -SIGSTOP
+if [ ! \$CEC_SHUTDOWN_SETTING_PREV == \$CEC_SHUTDOWN_SETTING_NO ] ; then
+	#Workaround, as peripherals settings cannot be changed through json-rpc
+	sed -E -i "s/\${CAP_GROUP_CEC}(.*)\\\"/\${CAP_GROUP_CEC}\${CEC_SHUTDOWN_SETTING_NO}\\\"/" \$KODI_CEC_SETTINGS_FILE
+	pgrep kodi.bin | xargs kill -SIGHUP
 fi
+
+systemctl stop kodi
 
 if [ "\$ra_roms_remote" = "true" ] ; then
 	RA_REMOTE_OPTS=""
