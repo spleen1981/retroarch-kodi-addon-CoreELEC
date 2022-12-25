@@ -1,3 +1,10 @@
+v1.6.1
+ - Updated RetroArch to 1.14.0
+ - Updated ScummVM mainline (added virtual keyboard and D-pad cursor acceleration time setting)
+ - Added system shutdown/reboot from RetroArch
+ - Added setting to force SMB protocol version for roms remote path mount
+ - Dropped setting to stop Kodi on Retroarch start (default now)
+
 v1.6.0
  - Added 'Boot to RetroArch' feature in settings
  - Added brand new core: ScummVM mainline (in sync with ScummVM official releases, updated to v2.6.1)
