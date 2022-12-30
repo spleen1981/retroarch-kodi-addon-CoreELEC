@@ -112,14 +112,16 @@ setup_packages(){
 
 	#Building libretro core variable list from Lakka sources
 	source "${LAKKA_DIR}/distributions/Lakka/options"
-	[ -z "$LIBRERETRO_CORES_ADD" ] && LIBRERETRO_CORES_ADD="puae2021 mupen64plus scummvm_mainline"
+	[ -z "$LIBRERETRO_CORES_ADD" ] && LIBRERETRO_CORES_ADD=""
 	[ -z "$LIBRERETRO_CORES_RM" ] && LIBRERETRO_CORES_RM=""
 
-	#Disable specific cores
+	#Disable/enable specific cores from default list
+	LIBRERETRO_CORES_ADD="$LIBRERETRO_CORES_ADD scummvm_mainline"
 	LIBRERETRO_CORES_RM="$LIBRERETRO_CORES_RM mame scummvm"
 
 	#Disable specific cores per device/platform
 	if [ "$DEVICE" = "Amlogic-ng" ]; then
+		LIBRERETRO_CORES_ADD="$LIBRERETRO_CORES_ADD puae2021 mupen64plus"
 		LIBRERETRO_CORES_RM="$LIBRERETRO_CORES_RM puae mupen64plus-next"
 	fi
 
