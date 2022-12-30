@@ -87,7 +87,7 @@ setup_general(){
 
 	#Lakka variables
 	[ -z "$DISTRONAME" ] && DISTRONAME="Lakka"
-	[ -z "$LAKKA_VERSION" ] && LAKKA_VERSION="9e969c418db8e428ff1b71330c3d12ac6a668a6e"
+	[ -z "$LAKKA_VERSION" ] && LAKKA_VERSION="af4a364e56fbedb7175015c751d088b5aeed4502"
 	[ -z "$DISTRO_BUILD_SCRIPT" ] && DISTRO_BUILD_SCRIPT="scripts/build"
 	[ -z "$LAKKA_DIR" ] && LAKKA_DIR="${SCRIPT_DIR}/Lakka-LibreELEC"
 	if [ ! -d "$LAKKA_DIR" ] ; then
@@ -381,7 +381,7 @@ populating_addon(){
 	mv -v "${TMP_TARGET_DIR}/usr/share/video_filters" "${ADDON_DIR}/resources/" &>>"$LOG"
 	[ $? -eq 0 ] && echo -e "$ok" || { echo -e "$fail" ; exit_script 1 ; }
 	echo -ne "\tsystem "
-	mv -v "${TMP_TARGET_DIR}/usr/share/retroarch-system" "${ADDON_DIR}/resources/system" &>>"$LOG"
+	mv -v "${TMP_TARGET_DIR}/usr/share/retroarch/system" "${ADDON_DIR}/resources/system" &>>"$LOG"
 	[ $? -eq 0 ] && echo -e "$ok" || { echo -e "$fail" ; exit_script 1 ; }
 
 	if [ ! -z "$INCLUDE_DLC" ]; then
