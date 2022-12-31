@@ -1,7 +1,14 @@
 diff --git a/packages/lakka/libretro_cores/ppsspp/package.mk b/packages/lakka/libretro_cores/ppsspp/package.mk
-index c21cf55beb..a6d6dca990 100644
+index f47592a489..3f618597b3 100644
 --- a/packages/lakka/libretro_cores/ppsspp/package.mk
 +++ b/packages/lakka/libretro_cores/ppsspp/package.mk
+@@ -1,5 +1,5 @@
+ PKG_NAME="ppsspp"
+-PKG_VERSION="9fe6338e3bf397f8a009a51a282c139dfa180eb6" #v1.13.2
++PKG_VERSION="d66c5c11c1532c2850552e8eb2095994021d055c" #v1.13.2 merged to master to include libretro buildfix
+ PKG_LICENSE="GPL-2.0-or-later"
+ PKG_SITE="https://github.com/hrydgard/ppsspp"
+ PKG_URL="https://github.com/hrydgard/ppsspp.git"
 @@ -42,10 +42,14 @@ if [ "${OPENGL_SUPPORT}" = "no" -a "${OPENGLES_SUPPORT}" = "yes" ]; then
    PKG_CMAKE_OPTS_TARGET+=" -DUSING_GLES2=ON"
  fi
@@ -21,7 +28,7 @@ index c21cf55beb..a6d6dca990 100644
  pre_make_target() {
 diff --git a/packages/lakka/libretro_cores/ppsspp/patches/01.armv8.patch b/packages/lakka/libretro_cores/ppsspp/patches/01.armv8.patch
 new file mode 100755
-index 0000000000..1a7ce273d8
+index 0000000000..f59ce50a92
 --- /dev/null
 +++ b/packages/lakka/libretro_cores/ppsspp/patches/01.armv8.patch
 @@ -0,0 +1,33 @@
