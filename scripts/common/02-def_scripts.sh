@@ -126,7 +126,7 @@ copy_if_not_equal(){
 		\$RA_ADDON_BIN_FOLDER/cmp "\$1" "\$2/\$item_basename"
 		[ \$? -eq 0 ] && return 1
 	fi
-	cp -rf "\$1" "\$2/"
+	[ -z $( echo \$SYSTEM_OVERWRITE_BLACKLIST | grep \$item_basename ) ] && cp -rf "\$1" "\$2/"
 }
 
 
@@ -269,6 +269,7 @@ CEC_SHUTDOWN_SETTING_NO="231"
 KODI_CEC_SETTINGS_FILE="\$(ls \$HOME/.kodi/userdata/peripheral_data/*CEC*.xml)"
 VIDEO_MODE_RATE="\$(cat /sys/class/display/mode | grep -Eo [pi].+[h] | grep -Eo [0-9]+)"
 VIDEO_MODE_RES="\$(cat /sys/class/display/mode | grep -Eo .\+[pi])"
+SYSTEM_OVERWRITE_BLACKLIST="scummvm.ini"
 
 [ ! -d "\$RA_CONFIG_DIR" ] && mkdir -p "\$RA_CONFIG_DIR"
 [ ! -d "\$ROMS_FOLDER" ] && mkdir -p "\$ROMS_FOLDER"

@@ -87,7 +87,7 @@ setup_general(){
 
 	#Lakka variables
 	[ -z "$DISTRONAME" ] && DISTRONAME="Lakka"
-	[ -z "$LAKKA_VERSION" ] && LAKKA_VERSION="af4a364e56fbedb7175015c751d088b5aeed4502"
+	[ -z "$LAKKA_VERSION" ] && LAKKA_VERSION="d99e66eb24ed179f36461fc109bd45c78013f3a1"
 	[ -z "$DISTRO_BUILD_SCRIPT" ] && DISTRO_BUILD_SCRIPT="scripts/build"
 	[ -z "$LAKKA_DIR" ] && LAKKA_DIR="${SCRIPT_DIR}/Lakka-LibreELEC"
 	if [ ! -d "$LAKKA_DIR" ] ; then
@@ -116,7 +116,7 @@ setup_packages(){
 	[ -z "$LIBRERETRO_CORES_RM" ] && LIBRERETRO_CORES_RM=""
 
 	#Disable/enable specific cores from default list
-	LIBRERETRO_CORES_ADD="$LIBRERETRO_CORES_ADD scummvm_mainline"
+	LIBRERETRO_CORES_ADD="$LIBRERETRO_CORES_ADD same_cdi"
 	LIBRERETRO_CORES_RM="$LIBRERETRO_CORES_RM mame scummvm"
 
 	#Disable specific cores per device/platform
