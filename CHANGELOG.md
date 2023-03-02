@@ -1,3 +1,11 @@
+v1.6.2
+ - Cores updated per latest Lakka
+ - Fixed MelonDS core
+ - ScummVM core:
+   * Drop ScummVM_mainline as it has replaced the legacy ScummVM core now
+   * Update to v2.7.0
+   * Add cloud saving feature. By default the entire retroarch saves folder will be syncronized, which may be a plus considering that this feature is currently not available in retroarch.
+
 v1.6.1
  - Updated RetroArch to 1.14.0
  - Updated ScummVM mainline (added virtual keyboard and D-pad cursor acceleration time setting)
