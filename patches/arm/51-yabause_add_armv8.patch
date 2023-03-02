@@ -1,0 +1,39 @@
+diff --git a/packages/lakka/libretro_cores/yabause/package.mk b/packages/lakka/libretro_cores/yabause/package.mk
+index 1607542544..0778d77494 100644
+--- a/packages/lakka/libretro_cores/yabause/package.mk
++++ b/packages/lakka/libretro_cores/yabause/package.mk
+@@ -7,7 +7,7 @@ PKG_DEPENDS_TARGET="toolchain"
+ PKG_LONGDESC="Port of Yabause to libretro."
+ PKG_TOOLCHAIN="make"
+ 
+-PKG_MAKE_OPTS_TARGET="-C yabause/src/libretro"
++PKG_MAKE_OPTS_TARGET="-C yabause/src/libretro platform=armv8"
+ 
+ if [ "${OPENGL_SUPPORT}" = "yes" ]; then
+   PKG_DEPENDS_TARGET+=" ${OPENGL}"
+diff --git a/packages/lakka/libretro_cores/yabause/patches/add_armv8.patch b/packages/lakka/libretro_cores/yabause/patches/add_armv8.patch
+new file mode 100755
+index 0000000000..d7a2562b93
+--- /dev/null
++++ b/packages/lakka/libretro_cores/yabause/patches/add_armv8.patch
+@@ -0,0 +1,20 @@
++diff --git a/yabause/src/libretro/Makefile b/yabause/src/libretro/Makefile
++index 2dd8ab29a..c9b6c804b 100644
++--- a/yabause/src/libretro/Makefile
+++++ b/yabause/src/libretro/Makefile
++@@ -92,7 +92,14 @@ ifneq (,$(findstring unix,$(platform)))
++ 	endif
++ 
++ 	# ARM
++-	ifneq (,$(findstring armv,$(platform)))
+++	ifneq (,$(findstring armv8,$(platform)))
+++		fpic := -fPIC
+++		LDFLAGS += -lpthread
+++		FLAGS += -march=armv8-a+crc+simd -mcpu=cortex-a53 -mtune=cortex-a53 -mfloat-abi=hard -mvectorize-with-neon-quad -mfpu=neon -DARM
+++		HAVE_NEON = 1
+++		HAVE_SSE = 0
+++
+++	else ifneq (,$(findstring armv,$(platform)))
++ 		ifneq (,$(findstring cortexa8,$(platform)))
++ 			FLAGS += -marm -mcpu=cortex-a8
++ 		else ifneq (,$(findstring cortexa9,$(platform)))
