@@ -117,7 +117,7 @@ setup_packages(){
 
 	#Disable/enable specific cores from default list
 	LIBRERETRO_CORES_ADD="$LIBRERETRO_CORES_ADD same_cdi"
-	LIBRERETRO_CORES_RM="$LIBRERETRO_CORES_RM mame scummvm"
+	LIBRERETRO_CORES_RM="$LIBRERETRO_CORES_RM mame"
 
 	#Disable specific cores per device/platform
 	if [ "$DEVICE" = "Amlogic-ng" ]; then
