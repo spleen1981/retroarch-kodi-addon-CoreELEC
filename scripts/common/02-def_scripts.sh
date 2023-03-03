@@ -126,7 +126,7 @@ copy_if_not_equal(){
 		\$RA_ADDON_BIN_FOLDER/cmp "\$1" "\$2/\$item_basename"
 		[ \$? -eq 0 ] && return 1
 	fi
-	[ -z $( echo \$SYSTEM_OVERWRITE_BLACKLIST | grep \$item_basename ) ] && cp -rf "\$1" "\$2/"
+	[ -z \$( echo \$SYSTEM_OVERWRITE_BLACKLIST | grep \$item_basename ) ] && cp -rf "\$1" "\$2/"
 }
 
 
