@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <updates>
 	<latest arch="Amlogic-ng.arm" distro="coreelec" min_ver="19">
-		<version>v1.6.1</version>
-		<download_url>https://github.com/spleen1981/retroarch-kodi-addon-CoreELEC/releases/download/v1.6.1/script.retroarch.launcher.Amlogic-ng.arm-v1.6.1.zip</download_url>
+		<version>v1.6.2</version>
+		<download_url>https://github.com/spleen1981/retroarch-kodi-addon-CoreELEC/releases/download/v1.6.2/script.retroarch.launcher.Amlogic-ng.arm-v1.6.2.zip</download_url>
 	</latest>
 </updates>
