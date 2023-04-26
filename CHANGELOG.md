@@ -1,6 +1,7 @@
 v1.6.3
  - Update RetroArch to 1.15.0
  - Update ScummVM core to latest
+ - Fix PPSSPP missing libzip
 
 v1.6.2
  - Cores updated per latest Lakka
