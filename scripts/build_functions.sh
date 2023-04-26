@@ -102,13 +102,14 @@ setup_general(){
 setup_packages(){
 	#Misc packages variables
 	[ -z "$DISTRO_PACKAGES_SUBDIR" ] && DISTRO_PACKAGES_SUBDIR="packages"
-	[ -z "$PKG_TYPES" ] && PKG_TYPES="LIBRETRO_BASE LIBRETRO_CORES LAKKA_TOOLS AUDIO COMPRESS SYSTEM_TOOLS"
+	[ -z "$PKG_TYPES" ] && PKG_TYPES="LIBRETRO_BASE LIBRETRO_CORES LAKKA_TOOLS AUDIO COMPRESS SYSTEM_TOOLS ADDON_DEPENDS"
 	[ -z "$PKG_SUBDIR_LIBRETRO_CORES" ] && PKG_SUBDIR_LIBRETRO_CORES="lakka/libretro_cores"
 	[ -z "$PKG_SUBDIR_LIBRETRO_BASE" ] && PKG_SUBDIR_LIBRETRO_BASE="lakka/retroarch_base"
 	[ -z "$PKG_SUBDIR_LAKKA_TOOLS" ] && PKG_SUBDIR_LAKKA_TOOLS="lakka/lakka_tools"
         [ -z "$PKG_SUBDIR_AUDIO" ] && PKG_SUBDIR_AUDIO="audio"
 	[ -z "$PKG_SUBDIR_COMPRESS" ] && PKG_SUBDIR_COMPRESS="compress"
 	[ -z "$PKG_SUBDIR_SYSTEM_TOOLS" ] && PKG_SUBDIR_SYSTEM_TOOLS="addons/addon-depends/system-tools-depends"
+	[ -z "$PKG_SUBDIR_ADDON_DEPENDS" ] && PKG_SUBDIR_ADDON_DEPENDS="addons/addon-depends"
 
 	#Building libretro core variable list from Lakka sources
 	source "${LAKKA_DIR}/distributions/Lakka/options"
@@ -144,6 +145,7 @@ setup_packages(){
         [ -z "$PACKAGES_AUDIO" ] && PACKAGES_AUDIO="flac libogg"
 	[ -z "$PACKAGES_COMPRESS" ] && PACKAGES_COMPRESS="zstd"
 	[ -z "$PACKAGES_SYSTEM_TOOLS" ] && PACKAGES_SYSTEM_TOOLS="diffutils"
+	[ -z "$PACKAGES_ADDON_DEPENDS" ] && PACKAGES_ADDON_DEPENDS="libzip"
 
 	#Aggregate entire package list
 	PACKAGES_ALL=""
