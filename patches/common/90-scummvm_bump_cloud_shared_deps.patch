@@ -1,17 +1,17 @@
 diff --git a/packages/lakka/libretro_cores/scummvm/package.mk b/packages/lakka/libretro_cores/scummvm/package.mk
-index 116c15769c..5a056061ee 100644
+index 116c15769c..0f33e7ca17 100644
 --- a/packages/lakka/libretro_cores/scummvm/package.mk
 +++ b/packages/lakka/libretro_cores/scummvm/package.mk
-@@ -1,15 +1,23 @@
- 
+@@ -1,15 +1,22 @@
+-
  PKG_NAME="scummvm"
 -PKG_VERSION="a0554745e87361643f1ca3aa820a5073214de935"
-+PKG_VERSION="4cd4af4649dcc80c068bdee66160f2de0e5ac6a4"
++PKG_VERSION="5873ee968885676902df2c6765f0f520680ba80e"
  PKG_LICENSE="GPLv3"
  PKG_SITE="https://github.com/libretro/scummvm"
  PKG_URL="${PKG_SITE}.git"
 -PKG_DEPENDS_TARGET="toolchain"
-+PKG_DEPENDS_TARGET="toolchain fluidsynth flac libvorbis zlib faad2 libpng freetype curl"
++PKG_DEPENDS_TARGET="toolchain curl fluidsynth flac libvorbis zlib faad2 freetype"
  PKG_SHORTDESC="The ScummVM adventure game engine ported to libretro."
  PKG_LONGDESC="ScummVM is a program which allows you to run certain classic graphical point-and-click adventure games, provided you already have their data files."
  PKG_TOOLCHAIN="make"
@@ -20,7 +20,7 @@ index 116c15769c..5a056061ee 100644
 +PKG_MAKE_OPTS_TARGET="USE_CLOUD=1 \
 +                      USE_SYSTEM_fluidsynt=1 \
 +                      USE_SYSTEM_FLAC=1 \
-+                      USE_SYSTEM_vorbis=1 \
++                      USE_SYSTEM_vorbis=0 \
 +                      USE_SYSTEM_z=1 \
 +                      USE_SYSTEM_faad=1 \
 +                      USE_SYSTEM_freetype=1"
@@ -28,3 +28,25 @@ index 116c15769c..5a056061ee 100644
  pre_make_target() {
    if [ "${DEVICE}" = "OdroidGoAdvance" ]; then
      PKG_MAKE_OPTS_TARGET+=" platform=oga_a35_neon_hardfloat"
+@@ -19,17 +26,17 @@ pre_make_target() {
+ }
+ 
+ make_target() {
+-  make all ${PKG_MAKE_OPTS_TARGET}
++  make all -C ${PKG_BUILD}/backends/platform/libretro ${PKG_MAKE_OPTS_TARGET}
+ }
+ 
+ makeinstall_target() {
+   mkdir -p ${INSTALL}/usr/lib/libretro
+-  cp -v ${PKG_BUILD}/scummvm_libretro.so ${INSTALL}/usr/lib/libretro/
+-  cp -v ${PKG_BUILD}/scummvm_libretro.info ${INSTALL}/usr/lib/libretro/
++  cp -v ${PKG_BUILD}/backends/platform/libretro/scummvm_libretro.so ${INSTALL}/usr/lib/libretro/
++  cp -v ${PKG_BUILD}/backends/platform/libretro/scummvm_libretro.info ${INSTALL}/usr/lib/libretro/
+ 
+   # unpack files to retroarch-system folder and create basic ini file
+   mkdir -p ${INSTALL}/usr/share/retroarch/system
+-  unzip ${PKG_BUILD}/scummvm.zip -d ${INSTALL}/usr/share/retroarch/system
++  unzip ${PKG_BUILD}/backends/platform/libretro/scummvm.zip -d ${INSTALL}/usr/share/retroarch/system
+ 
+   cat << EOF > ${INSTALL}/usr/share/retroarch/system/scummvm.ini
+ [scummvm]
