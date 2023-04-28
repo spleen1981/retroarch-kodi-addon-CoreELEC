@@ -1,0 +1,20 @@
+diff --git a/packages/python/devel/meson/package.mk b/packages/python/devel/meson/package.mk
+index a805340afd..ebe34b7a8c 100644
+--- a/packages/python/devel/meson/package.mk
++++ b/packages/python/devel/meson/package.mk
+@@ -2,12 +2,12 @@
+ # Copyright (C) 2016-present Team LibreELEC (https://libreelec.tv)
+ 
+ PKG_NAME="meson"
+-PKG_VERSION="0.56.0"
+-PKG_SHA256="291dd38ff1cd55fcfca8fc985181dd39be0d3e5826e5f0013bf867be40117213"
++PKG_VERSION="1.0.1"
++PKG_SHA256="d926b730de6f518728cc7c57bc5e701667bae0c3522f9e369427b2cc7839d3c1"
+ PKG_LICENSE="Apache"
+ PKG_SITE="http://mesonbuild.com"
+ PKG_URL="https://github.com/mesonbuild/meson/releases/download/${PKG_VERSION}/${PKG_NAME}-${PKG_VERSION}.tar.gz"
+-PKG_DEPENDS_HOST="Python3:host setuptools:host pathlib:host"
++PKG_DEPENDS_HOST="Python3:host setuptools:host"
+ PKG_LONGDESC="High productivity build system"
+ PKG_TOOLCHAIN="manual"
+ 
