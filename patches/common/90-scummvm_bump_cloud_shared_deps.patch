@@ -1,5 +1,5 @@
 diff --git a/packages/lakka/libretro_cores/scummvm/package.mk b/packages/lakka/libretro_cores/scummvm/package.mk
-index 116c15769c..0f33e7ca17 100644
+index 116c15769c..30f50085e8 100644
 --- a/packages/lakka/libretro_cores/scummvm/package.mk
 +++ b/packages/lakka/libretro_cores/scummvm/package.mk
 @@ -1,15 +1,22 @@
@@ -20,7 +20,7 @@ index 116c15769c..0f33e7ca17 100644
 +PKG_MAKE_OPTS_TARGET="USE_CLOUD=1 \
 +                      USE_SYSTEM_fluidsynt=1 \
 +                      USE_SYSTEM_FLAC=1 \
-+                      USE_SYSTEM_vorbis=0 \
++                      USE_SYSTEM_vorbis=1 \
 +                      USE_SYSTEM_z=1 \
 +                      USE_SYSTEM_faad=1 \
 +                      USE_SYSTEM_freetype=1"
