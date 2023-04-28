@@ -1,0 +1,20 @@
+diff --git a/packages/lakka/libretro_cores/dosbox_svn/package.mk b/packages/lakka/libretro_cores/dosbox_svn/package.mk
+index 19950c527c..7a86457dd5 100644
+--- a/packages/lakka/libretro_cores/dosbox_svn/package.mk
++++ b/packages/lakka/libretro_cores/dosbox_svn/package.mk
+@@ -1,5 +1,5 @@
+ PKG_NAME="dosbox_svn"
+-PKG_VERSION="c23be7769518d753378307996de35e204d188c63"
++PKG_VERSION="53ca2f6303a652d129321cfc521f000cd7ec5531"
+ PKG_LICENSE="GPLv2"
+ PKG_SITE="https://github.com/libretro/dosbox-svn"
+ PKG_URL="${PKG_SITE}.git"
+@@ -16,7 +16,7 @@ elif [ "${ARCH}" = "arm" ]; then
+   PKG_MAKE_OPTS_TARGET+=" target=arm"
+ elif [ "${ARCH}" = "x86_64" ]; then
+   PKG_MAKE_OPTS_TARGET+=" target=x86_64"
+-elif [ "${ARCH}" = "i386" ]; then 
++elif [ "${ARCH}" = "i386" ]; then
+   PKG_MAKE_OPTS_TARGET+=" target=x86"
+ fi
+ 
