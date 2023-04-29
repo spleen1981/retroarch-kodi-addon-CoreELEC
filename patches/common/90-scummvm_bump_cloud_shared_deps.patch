@@ -6,23 +6,23 @@ index 116c15769c..30f50085e8 100644
 -
  PKG_NAME="scummvm"
 -PKG_VERSION="a0554745e87361643f1ca3aa820a5073214de935"
-+PKG_VERSION="5873ee968885676902df2c6765f0f520680ba80e"
++PKG_VERSION="b5ca1b340e1a6249997fde8a60f366d039b868b4"
  PKG_LICENSE="GPLv3"
  PKG_SITE="https://github.com/libretro/scummvm"
  PKG_URL="${PKG_SITE}.git"
 -PKG_DEPENDS_TARGET="toolchain"
-+PKG_DEPENDS_TARGET="toolchain curl fluidsynth flac libvorbis zlib faad2 freetype"
++PKG_DEPENDS_TARGET="toolchain curl zlib freetype"
  PKG_SHORTDESC="The ScummVM adventure game engine ported to libretro."
  PKG_LONGDESC="ScummVM is a program which allows you to run certain classic graphical point-and-click adventure games, provided you already have their data files."
  PKG_TOOLCHAIN="make"
  PKG_LR_UPDATE_TAG="yes"
  
 +PKG_MAKE_OPTS_TARGET="USE_CLOUD=1 \
-+                      USE_SYSTEM_fluidsynt=1 \
-+                      USE_SYSTEM_FLAC=1 \
-+                      USE_SYSTEM_vorbis=1 \
++                      USE_SYSTEM_fluidsynt=0 \
++                      USE_SYSTEM_FLAC=0 \
++                      USE_SYSTEM_vorbis=0 \
 +                      USE_SYSTEM_z=1 \
-+                      USE_SYSTEM_faad=1 \
++                      USE_SYSTEM_faad=0 \
 +                      USE_SYSTEM_freetype=1"
 +
  pre_make_target() {
