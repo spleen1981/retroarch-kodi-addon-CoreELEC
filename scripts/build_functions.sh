@@ -136,8 +136,8 @@ setup_packages(){
 	PACKAGES_LIBRETRO_CORES="$LIBRETRO_CORES"
 
 	#Building retroarch core list
-	[ -z "$LIBRETRO_BASE" ] && LIBRETRO_BASE="retroarch core_info"
-	[ ! -z "$INCLUDE_DLC" ] && LIBRETRO_BASE="$LIBRETRO_BASE retroarch_assets retroarch_joypad_autoconfig retroarch_overlays libretro_database glsl_shaders slang_shaders"
+	[ -z "$LIBRETRO_BASE" ] && LIBRETRO_BASE="retroarch core_info retroarch_joypad_autoconfig"
+	[ ! -z "$INCLUDE_DLC" ] && LIBRETRO_BASE="$LIBRETRO_BASE retroarch_assets retroarch_overlays libretro_database glsl_shaders slang_shaders"
 	PACKAGES_LIBRETRO_BASE="$LIBRETRO_BASE"
 
 	#Building other pkgs list
@@ -390,11 +390,11 @@ populating_addon(){
 	echo -ne "\tsystem "
 	mv -v "${TMP_TARGET_DIR}/usr/share/retroarch/system" "${ADDON_DIR}/resources/system" &>>"$LOG"
 	[ $? -eq 0 ] && echo -e "$ok" || { echo -e "$fail" ; exit_script 1 ; }
+	echo -ne "\tjoypads "
+	mv -v "${TMP_TARGET_DIR}/etc/retroarch-joypad-autoconfig" "${ADDON_DIR}/resources/joypads" &>>"$LOG"
+	[ $? -eq 0 ] && echo -e "$ok" || { echo -e "$fail" ; exit_script 1 ; }
 
 	if [ ! -z "$INCLUDE_DLC" ]; then
-		echo -ne "\tjoypads "
-		mv -v "${TMP_TARGET_DIR}/etc/retroarch-joypad-autoconfig" "${ADDON_DIR}/resources/joypads" &>>"$LOG"
-		[ $? -eq 0 ] && echo -e "$ok" || { echo -e "$fail" ; exit_script 1 ; }
 		echo -ne "\tshaders "
 		mv -v "${TMP_TARGET_DIR}/usr/share/common-shaders" "${ADDON_DIR}/resources/shaders" &>>"$LOG"
 		[ $? -eq 0 ] && echo -e "$ok" || { echo -e "$fail" ; exit_script 1 ; }
