@@ -1,3 +1,7 @@
+v1.6.4
+ - Add joypad autoconfig asset to default build
+ - Update ScummVM core to latest
+
 v1.6.3
  - Update RetroArch to 1.15.0
  - Update ScummVM core to latest
