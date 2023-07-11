@@ -1,6 +1,7 @@
 v1.6.4
  - Add joypad autoconfig asset to default build
  - Update ScummVM core to latest
+ - Add Slovak translation, thanks to @jose1711
 
 v1.6.3
  - Update RetroArch to 1.15.0
