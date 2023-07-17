@@ -1,3 +1,6 @@
+v1.6.5
+ - Add Brazilian Portuguese translation, thanks to @xgrind
+
 v1.6.4
  - Add joypad autoconfig asset to default build
  - Update ScummVM core to latest
