@@ -83,7 +83,7 @@ setup_general(){
 	ADDON_NAME="script.retroarch.launcher.${RA_NAME_SUFFIX}"
 	ADDON_DIR="${TMP_PROJECT_DIR}/${ADDON_NAME}"
 	ARCHIVE_NAME="${ADDON_NAME}-${ADDON_VERSION}.zip"
-	LOG="${SCRIPT_DIR}/retroarch-kodi_`date +%Y%m%d_%H%M%S`.log"
+	[ -z DEBUG ] && LOG="${SCRIPT_DIR}/retroarch-kodi_`date +%Y%m%d_%H%M%S`.log" || LOG=/dev/stdout
 
 	#Lakka variables
 	[ -z "$DISTRONAME" ] && DISTRONAME="Lakka"
