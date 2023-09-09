@@ -83,7 +83,7 @@ setup_general(){
 	ADDON_NAME="script.retroarch.launcher.${RA_NAME_SUFFIX}"
 	ADDON_DIR="${TMP_PROJECT_DIR}/${ADDON_NAME}"
 	ARCHIVE_NAME="${ADDON_NAME}-${ADDON_VERSION}.zip"
-	[ -z DEBUG ] && LOG="${SCRIPT_DIR}/retroarch-kodi_`date +%Y%m%d_%H%M%S`.log" || LOG=/dev/stdout
+	[ -z "$DEBUG" ] && LOG="${SCRIPT_DIR}/retroarch-kodi_`date +%Y%m%d_%H%M%S`.log" || LOG=/dev/stdout
 
 	#Lakka variables
 	[ -z "$DISTRONAME" ] && DISTRONAME="Lakka"
@@ -507,7 +507,7 @@ cleanup(){
 	rm -vrf "${TMP_PROJECT_DIR}" &>>"$LOG"
 	[ $? -eq 0 ] && echo -e "$ok" || { echo -e "$fail" ; exit_script 1 ; }
 	echo -ne "\tlog file "
-	rm -rf "$LOG"
+	[ -z "$DEBUG" ] && rm -rf "$LOG"
 	[ $? -eq 0 ] && echo -e "$ok" || { echo -e "$fail" ; exit_script 1 ; }
 	echo
 }
