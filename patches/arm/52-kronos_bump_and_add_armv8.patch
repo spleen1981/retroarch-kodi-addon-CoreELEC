@@ -1,0 +1,166 @@
+diff --git a/packages/lakka/libretro_cores/kronos/package.mk b/packages/lakka/libretro_cores/kronos/package.mk
+index dd114a6b6c..aaebf83535 100644
+--- a/packages/lakka/libretro_cores/kronos/package.mk
++++ b/packages/lakka/libretro_cores/kronos/package.mk
+@@ -1,5 +1,5 @@
+ PKG_NAME="kronos"
+-PKG_VERSION="869c46c1d3684d820f5a368bcae1cc95fe5a9888"
++PKG_VERSION="fec6e18cc6f00933f6303a983935a44302f3075f"
+ PKG_LICENSE="GPLv2"
+ PKG_SITE="https://github.com/libretro/yabause"
+ PKG_URL="${PKG_SITE}.git"
+@@ -12,6 +12,7 @@ PKG_MAKE_OPTS_TARGET="-C yabause/src/libretro HAVE_CDROM=1"
+ 
+ if [ "${OPENGL_SUPPORT}" = "yes" ]; then
+   PKG_DEPENDS_TARGET+=" ${OPENGL}"
++  PKG_MAKE_OPTS_TARGET+=" HAVE_OPENGL=1"
+ fi
+ 
+ if [ "${OPENGLES_SUPPORT}" = "yes" ]; then
+@@ -24,7 +25,13 @@ if [ "${VULKAN_SUPPORT}" = "yes" ]; then
+ fi
+ 
+ if [ "${ARCH}" = "arm" ]; then
+-  PKG_MAKE_OPTS_TARGET+=" platform=armv"
++  if [ "${PROJECT}" = "Samsung" -a "${DEVICE}" = "Exynos" ]; then
++    PKG_MAKE_OPTS_TARGET+=" platform=odroid BOARD=ODROID-XU4"
++  elif [ "${DEVICE}" = "AMLGX" ]; then
++    PKG_MAKE_OPTS_TARGET+=" platform=armv8"
++  else
++    PKG_MAKE_OPTS_TARGET+=" platform=armv"
++  fi
+ elif [ "${ARCH}" = "aarch64" ]; then
+   PKG_MAKE_OPTS_TARGET+=" platform=arm64"
+ fi
+diff --git a/packages/lakka/libretro_cores/kronos/patches/01_kronos-define_GL_PIXEL_BUFFER_BARRIER_BIT_when_not_defined.patch b/packages/lakka/libretro_cores/kronos/patches/01_kronos-define_GL_PIXEL_BUFFER_BARRIER_BIT_when_not_defined.patch
+new file mode 100644
+index 0000000000..fb3f7b87a3
+--- /dev/null
++++ b/packages/lakka/libretro_cores/kronos/patches/01_kronos-define_GL_PIXEL_BUFFER_BARRIER_BIT_when_not_defined.patch
+@@ -0,0 +1,14 @@
++diff --git a/yabause/src/core/video/opengl/common/src/commongl.c b/yabause/src/core/video/opengl/common/src/commongl.c
++index 3194e9e..4069efd 100755
++--- a/yabause/src/core/video/opengl/common/src/commongl.c
+++++ b/yabause/src/core/video/opengl/common/src/commongl.c
++@@ -809,6 +809,9 @@ void syncVdp1FBBuffer(u32 addr) {
++ }
++ 
++ void updateVdp1DrawingFBMem(int frame) {
+++#ifndef GL_PIXEL_BUFFER_BARRIER_BIT
+++#define GL_PIXEL_BUFFER_BARRIER_BIT       0x00000080
+++#endif
++     if (_Ygl->vdp1fb_write_buf[frame] != NULL) {
++       glBindTexture(GL_TEXTURE_2D, _Ygl->vdp1AccessTex[frame]);
++       glBindBuffer(GL_PIXEL_UNPACK_BUFFER, _Ygl->vdp1_pbo[frame]);
+diff --git a/packages/lakka/libretro_cores/kronos/patches/02_kronos-dont_force_lGL.patch b/packages/lakka/libretro_cores/kronos/patches/02_kronos-dont_force_lGL.patch
+new file mode 100644
+index 0000000000..e83e85af55
+--- /dev/null
++++ b/packages/lakka/libretro_cores/kronos/patches/02_kronos-dont_force_lGL.patch
+@@ -0,0 +1,69 @@
++diff --git a/yabause/src/libretro/Makefile b/yabause/src/libretro/Makefile
++index 2e50ea7..9a05b49 100644
++--- a/yabause/src/libretro/Makefile
+++++ b/yabause/src/libretro/Makefile
++@@ -14,6 +14,11 @@ HAVE_SYS_PARAM_H = 1
++ HAVE_FSEEKO = 0
++ USE_RTHREADS = 0
++ HAVE_CDROM = 0
+++HAVE_OPENGL ?= 0
+++
+++ifeq ($(HAVE_OPENGL),1)
+++	LDFLAGS += -lGL
+++endif
++ 
++ ifeq ($(platform),)
++ 	platform = unix
++@@ -56,7 +61,7 @@ ifneq (,$(findstring unix,$(platform)))
++ 	TARGET := $(TARGET_NAME)_libretro.so
++ 	fpic := -fPIC
++ 	SHARED := -shared -Wl,--no-undefined -Wl,--version-script=link.T
++-	LDFLAGS += -lpthread -lGL
+++	LDFLAGS += -lpthread
++ 	ARCH_IS_LINUX = 1
++ 	# ARM
++ 	ifneq (,$(findstring armv,$(platform)))
++@@ -90,7 +95,7 @@ else ifeq ($(platform), jetson-nano)
++ 	TARGET := $(TARGET_NAME)_libretro.so
++ 	fpic := -fPIC
++ 	SHARED := -shared -Wl,--no-undefined -Wl,--version-script=link.T
++-	LDFLAGS += -lpthread -lGL
+++	LDFLAGS += -lpthread
++ 	ARCH_IS_LINUX = 1
++ 	HAVE_SSE = 0
++ 	FLAGS += -march=armv8-a+crc -mtune=cortex-a57
++@@ -101,7 +106,7 @@ else ifeq ($(platform), arm64)
++ 	TARGET := $(TARGET_NAME)_libretro.so
++ 	fpic := -fPIC
++ 	SHARED := -shared -Wl,--no-undefined -Wl,--version-script=link.T
++-	LDFLAGS += -lpthread -lGL
+++	LDFLAGS += -lpthread
++ 	ARCH_IS_LINUX = 1
++ 	HAVE_SSE = 0
++ 
++@@ -111,7 +116,7 @@ else ifneq (,$(findstring rockpro64,$(platform)))
++ 	TARGET := $(TARGET_NAME)_libretro.so
++ 	fpic := -fPIC
++ 	SHARED := -shared -Wl,--no-undefined -Wl,--version-script=link.T
++-	LDFLAGS += -lpthread -lGL
+++	LDFLAGS += -lpthread
++ 	ARCH_IS_LINUX = 1
++ 	HAVE_SSE = 0
++ 	FORCE_GLES = 1
++@@ -123,7 +128,7 @@ else ifeq ($(platform), odroid-n2)
++ 	TARGET := $(TARGET_NAME)_libretro.so
++ 	fpic := -fPIC
++ 	SHARED := -shared -Wl,--no-undefined -Wl,--version-script=link.T
++-	LDFLAGS += -lpthread -lGL
+++	LDFLAGS += -lpthread
++ 	ARCH_IS_LINUX = 1
++ 	HAVE_SSE = 0
++ 	FORCE_GLES = 1
++@@ -139,7 +144,7 @@ else ifneq (,$(findstring odroid,$(platform)))
++ 	TARGET := $(TARGET_NAME)_libretro.so
++ 	fpic := -fPIC
++ 	SHARED := -shared -Wl,--no-undefined -Wl,--version-script=link.T
++-	LDFLAGS += -lpthread -lGL
+++	LDFLAGS += -lpthread
++ 	ARCH_IS_LINUX = 1
++ 	BOARD := $(shell cat /proc/cpuinfo | grep -i odroid | awk '{print $$3}')
+diff --git a/packages/lakka/libretro_cores/kronos/patches/03_kronos-add-armv8.patch b/packages/lakka/libretro_cores/kronos/patches/03_kronos-add-armv8.patch
+new file mode 100644
+index 0000000000..72a5d7b785
+--- /dev/null
++++ b/packages/lakka/libretro_cores/kronos/patches/03_kronos-add-armv8.patch
+@@ -0,0 +1,31 @@
++diff --git a/yabause/src/libretro/Makefile b/yabause/src/libretro/Makefile
++index 46c456752..f25de5e29 100644
++--- a/yabause/src/libretro/Makefile
+++++ b/yabause/src/libretro/Makefile
++@@ -64,7 +64,12 @@ ifneq (,$(findstring unix,$(platform)))
++ 	LDFLAGS += -lpthread
++ 	ARCH_IS_LINUX = 1
++ 	# ARM
++-	ifneq (,$(findstring armv,$(platform)))
+++	ifneq (,$(findstring armv8,$(platform)))
+++		FORCE_GLES = 1
+++		FLAGS += -march=armv8-a+crc+simd -mcpu=cortex-a53 -mtune=cortex-a53 -mfloat-abi=hard -mvectorize-with-neon-quad -mfpu=neon -DARM
+++		HAVE_NEON = 1
+++		HAVE_SSE = 0
+++	else ifneq (,$(findstring armv,$(platform)))
++ 		ifneq (,$(findstring cortexa8,$(platform)))
++ 			FLAGS += -marm -mcpu=cortex-a8
++ 		else ifneq (,$(findstring cortexa9,$(platform)))
++@@ -85,9 +90,9 @@ ifneq (,$(findstring unix,$(platform)))
++ 		FLAGS += -DARM
++ 	endif
++ 
++-ifneq ($(findstring Linux,$(shell uname -s)),)
++-	HAVE_CDROM = 1
++-endif
+++	ifneq ($(findstring Linux,$(shell uname -s)),)
+++		HAVE_CDROM = 1
+++	endif
++ 
++ # Jetson Nano
++ else ifeq ($(platform), jetson-nano)
