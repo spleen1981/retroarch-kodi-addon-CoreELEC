@@ -20,7 +20,7 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1)\\\\n"\\n'
 
 LANG_list="en_gb cs_cz it_it zh_cn sk_sk pt_br"
-LANG_max=32013
+LANG_max=32015
 
 LANG_0_ctx="Addon Summary"
 LANG_0_en_gb="RetroArch add-on for Kodi (${RA_NAME_SUFFIX}). RetroArch is a frontend for emulators, game engines and media players."
@@ -124,3 +124,9 @@ LANG_32013_it_it="Versione protocollo SMB"
 LANG_32013_sk_sk="Verzia SMB protokolu"
 LANG_32013_zh_cn="SMB 协议版本"
 LANG_32013_pt_br="Versão do protocolo SMB"
+
+LANG_32014_en_gb="Enable hints"
+LANG_32014_it_it="Attiva suggerimenti"
+
+LANG_32015_en_gb="RetroArch assets not found. Assets improves the GUI appearence and can be downloaded from within Retroarch selecting 'Online Updater > Update Assets' (or copied manually to the assets folder)."
+LANG_32015_it_it="Risorse di RetroArch non trovate. Le Risorse migliorano l'apparenza della GUI, e possono essere scaricate all'interno di RetroArch tramite 'Aggiornamenti Online > Aggiorna Risorse' (o copiate manualmente nella cartella assets)."

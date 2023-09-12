@@ -527,11 +527,16 @@ ADDON_SRC="\$HOME/.kodi/addons/${ADDON_NAME}"
 CLEAR_FLAGS_SRC="\${ADDON_SRC}/config/${FIRST_RUN_FLAG_PREFIX}*"
 RA_CONFIG_DIR=\$HOME/.config/retroarch
 RA_CONFIG_FILE=\$RA_CONFIG_DIR/retroarch.cfg
+[ ! -f "\$RA_CONFIG_FILE" ] && RA_CONFIG_FILE="\${ADDON_SRC}/config/retroarch.cfg"
 
 case \$1 in
 	check)
 		get_update_url
 		exit \$?
+		;;
+	check_assets)
+		ASSETS_DIR=\$(cat "\$RA_CONFIG_FILE" 2>/dev/null | grep ^assets_directory | head -n 1 | sed -e 's|.*= *||' -e 's|"||g' -e "s|~|\$HOME|")
+		[ -z "\$(ls -A \$ASSETS_DIR 2>/dev/null)" ] && exit 0 || exit 1
 		;;
 	clear_flags)
 		clear_flags
@@ -703,7 +708,11 @@ if (addon.getSetting("ra_autoupdate")=='true' or manual_update):
 	if not util.runUpdaterMenu(manual_update) or manual_update:
 		quit()
 
+if (addon.getSetting("ra_hints")=='true'):
+	util.testAssets()
+
 dialog.notification(\'$NOTIFICATIONS_TITLE\', util.getLocalizedString(20186), icon, $LONG_NOTIFICATION)
+
 util.runRetroarchMenu()
 EOF
 
@@ -742,6 +751,7 @@ def resetToDefaults():
 		subprocess.run([updater_exe, "clear_cfg"])
 		subprocess.run([updater_exe, "clear_flags"])
 		dialog.notification(\'$NOTIFICATIONS_TITLE\', getLocalizedString(13007) + \' (retroarch.cfg / setup)\', icon, $SHORT_NOTIFICATION)
+
 def runUpdaterMenu(manual_update=False):
 	dialog.notification(\'$NOTIFICATIONS_TITLE\', getLocalizedString(24092), icon, $LONG_NOTIFICATION)
 	resp = subprocess.run([updater_exe, "check"])
@@ -765,6 +775,7 @@ def runUpdaterMenu(manual_update=False):
 	else:
 		dialog.notification(\'$NOTIFICATIONS_TITLE\', getLocalizedString(113) + ' (' + str(ret) + ')', icon, $SHORT_NOTIFICATION)
 	return ret
+
 def bootToggle():
 	current_setting = addon.getSetting( "ra_boot_toggle" )
 	boot_status = "${BOOT_TO_RA_FLAG_TRUE}. "+getLocalizedString(32012)+" ${BOOT_TO_RA_FLAG_FALSE}?" if current_setting == "${BOOT_TO_RA_FLAG_TRUE}" else "${BOOT_TO_RA_FLAG_FALSE}. "+getLocalizedString(32012)+" ${BOOT_TO_RA_FLAG_TRUE}?"
@@ -772,4 +783,9 @@ def bootToggle():
 		subprocess.run(boot_toggle_exe)
 		#set setting again to update UI. @TODO: evaluate moving the entire logic to python
 		addon.setSetting( "ra_boot_toggle", "${BOOT_TO_RA_FLAG_FALSE}" if current_setting == "${BOOT_TO_RA_FLAG_TRUE}" else "${BOOT_TO_RA_FLAG_TRUE}" )
+
+def testAssets():
+	resp = subprocess.run([updater_exe, "check_assets"])
+	if resp.returncode == 0:
+		dialog.ok(\'$NOTIFICATIONS_TITLE\', getLocalizedString(32015))
 EOF

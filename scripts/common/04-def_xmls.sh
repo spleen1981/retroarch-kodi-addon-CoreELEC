@@ -48,6 +48,7 @@ read -d '' settings_xml <<EOF
 	<category label="128"> <!-- General -->
 		<setting label="128" type="lsep"/>
 		<setting id="ra_boot_toggle" type="action" label="32010" default="KODI" action="RunScript(script.retroarch.launcher.Amlogic-ng.arm,boot_toggle)"/>
+		<setting id="ra_hints" label="32014" type="bool" default="true" />
 		<setting id="ra_autoupdate" label="24063" type="bool" default="true" />
 		<setting id="ra_updatenow" type="action" label="24034" action="RunScript(${ADDON_NAME},check_updates)"/>
 		<setting id="ra_reset" type="action" label="13007" action="RunScript(${ADDON_NAME},reset)"/>
@@ -103,5 +104,7 @@ read -d '' settings_default_xml <<EOF
 	<setting id="ra_log" value="false" />
 	<setting id="ra_verbose" value="false" />
 	<setting id="ra_boot_toggle" value="KODI"/>
+	<setting id="ra_hints" value="true" />
+
 </settings>
 EOF
