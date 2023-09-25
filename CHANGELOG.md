@@ -1,8 +1,9 @@
 v1.6.5
+ - Update RetroArch to 1.16.0
+ - Update ScummVM core to latest
  - Add Brazilian Portuguese translation, thanks to @xgrind
  - Add RetroArch assets check and hint
  - Drop Kronos core
- - Update ScummVM core to latest
 
 v1.6.4
  - Add joypad autoconfig asset to default build
