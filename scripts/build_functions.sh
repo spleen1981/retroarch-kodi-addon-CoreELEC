@@ -473,6 +473,7 @@ customize_retroarch(){
 	sed -i "s|^.*menu_swap_ok_cancel_buttons =.*|menu_swap_ok_cancel_buttons = \"true\"|g" $CFG
 	sed -i "s|^.*video_threaded =.*|video_threaded = \"false\"|g" $CFG
 	sed -i "s|^.*menu_core_enable =.*|menu_core_enable = \"true\"|g" $CFG
+	sed -i "s|^.*xmb_alpha_factor =.*|xmb_alpha_factor = \"100\"|g" $CFG
 	[ $? -eq 0 ] && echo -e "$ok" || { echo -e "$fail" ; exit_script 1 ; }
 	echo
 }
