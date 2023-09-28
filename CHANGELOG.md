@@ -1,5 +1,5 @@
 v1.6.5
- - Update RetroArch to 1.16.0
+ - Update RetroArch to 1.16.0.2
  - Update ScummVM core to latest
  - Add Brazilian Portuguese translation, thanks to @xgrind
  - Add RetroArch assets check and hint
