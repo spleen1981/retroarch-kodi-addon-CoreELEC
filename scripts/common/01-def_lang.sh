@@ -127,6 +127,8 @@ LANG_32013_pt_br="Versão do protocolo SMB"
 
 LANG_32014_en_gb="Enable hints"
 LANG_32014_it_it="Attiva suggerimenti"
+LANG_32014_pt_br="Habilitar dicas"
 
 LANG_32015_en_gb="RetroArch assets not found. Assets improves the GUI appearence and can be downloaded from within Retroarch selecting 'Online Updater > Update Assets' (or copied manually to the assets folder)."
 LANG_32015_it_it="Risorse di RetroArch non trovate. Le Risorse migliorano l'apparenza della GUI, e possono essere scaricate all'interno di RetroArch tramite 'Aggiornamenti Online > Aggiorna Risorse' (o copiate manualmente nella cartella assets)."
+LANG_32015_pt_br="Os recursos do RetroArch não foram encontrados. Os recursos melhoram a aparência da GUI e podem ser baixados no Retroarch selecionando 'Atualizador on-line > Atualizar recursos' (ou copiar manualmente para a pasta assets)."
