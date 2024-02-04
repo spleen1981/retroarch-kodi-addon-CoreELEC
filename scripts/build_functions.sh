@@ -242,13 +242,16 @@ EOF
 			echo -ne "\t$package "
 			SRC="${path}/${package}/package.mk"
 			if [ -f "$SRC" ] ; then
-				PKG_VERSION=`cat $SRC | sed -En "s/ *#.*//g;s/PKG_VERSION=\"(.*)#*\"/\1/p"`
+				PKG_VERSIONS=`cat $SRC | sed -En "s/ *#.*//g;s/[ \t]*//g;s/PKG_VERSION=\"(.*)#*\"/\1/p"`
 			else
 				echo -e "$skip (no package.mk)"
 				continue
 			fi
-			PKG_FOLDER="${LAKKA_BUILD_SUBDIR}/install_pkg/${package}-${PKG_VERSION}"
-			if [ -d "$PKG_FOLDER" ] ; then
+			PKG_FOLDER=""
+			for PKG_VERSION in $PKG_VERSIONS ; do
+				[ -d "${LAKKA_BUILD_SUBDIR}/install_pkg/${package}-${PKG_VERSION}" ] && PKG_FOLDER="${LAKKA_BUILD_SUBDIR}/install_pkg/${package}-${PKG_VERSION}"
+			done
+			if [ -n "$PKG_FOLDER" ] ; then
 				cp -Rf "${PKG_FOLDER}/"* "${TMP_TARGET_DIR}/" &>>"$LOG"
 				[ $? -eq 0 ] && echo -e "$ok" || { echo -e "$fail" ; exit_script 1 ; }
 			else
