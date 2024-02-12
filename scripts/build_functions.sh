@@ -15,7 +15,7 @@ apply_patches(){
 	shopt -s nullglob
 
 	#Retrieving patches array
-	for patch_path in "$SCRIPT_DIR/patches/common" "$SCRIPT_DIR/patches/$DEVICE" "$SCRIPT_DIR/patches/$PROJECT" "$SCRIPT_DIR/patches/$ARCH" "$SCRIPT_DIR/patches/hooks/$HOOK" ; do
+	for patch_path in "$SCRIPT_DIR/patches/common" "$SCRIPT_DIR/patches/$DEVICE" "$SCRIPT_DIR/patches/$PROJECT" "$SCRIPT_DIR/patches/$ARCH" "$SCRIPT_DIR/patches/hooks/$HOOK" "$SCRIPT_DIR/patches/$LAKKA_BRANCH" ; do
 		for patch_file in $patch_path/*.patch ; do
 			if [ -f "$patch_file" ]; then
 				patch_files[i++]="$patch_file"
@@ -67,11 +67,11 @@ setup_general(){
 
 	#Platform and general settings variables
 	BASE_NAME="$PROVIDER.retroarch"
-	[ -z "$PROJECT" ] && PROJECT="Amlogic-ce"
+	[ -z "$PROJECT" ] && PROJECT="Amlogic"
 	[ -z "$ARCH" ] && ARCH=arm
-	[ -z "$DEVICE" ] && [ "$PROJECT" = "Amlogic-ce" ] && DEVICE="Amlogic-ng"
+	[ -z "$DEVICE" ] && [ "$PROJECT" = "Amlogic" ] && DEVICE="Amlogic-ng"
 	[ -z "$ADDON_VERSION" ] && read -p "Enter version tag [e.g. v1.0.0]: " ADDON_VERSION
-	[ -z "$PROVIDER" ] && PROVIDER="${USER}"
+	[ -z "$PROVIDER" ] && PROVIDER="Giovanni Cascione"
 	[ -z "$INCLUDE_DLC" ] && INCLUDE_DLC=""
 
 	#Addon path and filename variables
@@ -87,7 +87,7 @@ setup_general(){
 
 	#Lakka variables
 	[ -z "$DISTRONAME" ] && DISTRONAME="Lakka"
-	[ -z "$LAKKA_VERSION" ] && LAKKA_VERSION="06af1452f14cbb1bb55bdfe1b8c66584f0e7b063"
+	[ -z "$LAKKA_VERSION" ] && LAKKA_VERSION="9297f90a35bd0310c6ee81e2f2ee2fa3034c9e54"
 	[ -z "$DISTRO_BUILD_SCRIPT" ] && DISTRO_BUILD_SCRIPT="scripts/build"
 	[ -z "$LAKKA_DIR" ] && LAKKA_DIR="${SCRIPT_DIR}/Lakka-LibreELEC"
 	if [ ! -d "$LAKKA_DIR" ] ; then
@@ -102,7 +102,7 @@ setup_general(){
 setup_packages(){
 	#Misc packages variables
 	[ -z "$DISTRO_PACKAGES_SUBDIR" ] && DISTRO_PACKAGES_SUBDIR="packages"
-	[ -z "$PKG_TYPES" ] && PKG_TYPES="LIBRETRO_BASE LIBRETRO_CORES LAKKA_TOOLS AUDIO COMPRESS SYSTEM_TOOLS ADDON_DEPENDS"
+	[ -z "$PKG_TYPES" ] && PKG_TYPES="LIBRETRO_BASE LIBRETRO_CORES LAKKA_TOOLS AUDIO COMPRESS SYSTEM_TOOLS ADDON_DEPENDS MULTIMEDIA"
 	[ -z "$PKG_SUBDIR_LIBRETRO_CORES" ] && PKG_SUBDIR_LIBRETRO_CORES="lakka/libretro_cores"
 	[ -z "$PKG_SUBDIR_LIBRETRO_BASE" ] && PKG_SUBDIR_LIBRETRO_BASE="lakka/retroarch_base"
 	[ -z "$PKG_SUBDIR_LAKKA_TOOLS" ] && PKG_SUBDIR_LAKKA_TOOLS="lakka/lakka_tools"
@@ -110,6 +110,7 @@ setup_packages(){
 	[ -z "$PKG_SUBDIR_COMPRESS" ] && PKG_SUBDIR_COMPRESS="compress"
 	[ -z "$PKG_SUBDIR_SYSTEM_TOOLS" ] && PKG_SUBDIR_SYSTEM_TOOLS="addons/addon-depends/system-tools-depends"
 	[ -z "$PKG_SUBDIR_ADDON_DEPENDS" ] && PKG_SUBDIR_ADDON_DEPENDS="addons/addon-depends"
+	[ -z "$PKG_SUBDIR_MULTIMEDIA" ] && PKG_SUBDIR_MULTIMEDIA="multimedia"
 
 	#Building libretro core variable list from Lakka sources
 	source "${LAKKA_DIR}/distributions/Lakka/options"
@@ -146,6 +147,7 @@ setup_packages(){
 	[ -z "$PACKAGES_COMPRESS" ] && PACKAGES_COMPRESS="zstd"
 	[ -z "$PACKAGES_SYSTEM_TOOLS" ] && PACKAGES_SYSTEM_TOOLS="diffutils"
 	[ -z "$PACKAGES_ADDON_DEPENDS" ] && PACKAGES_ADDON_DEPENDS="libzip"
+	[ -z "$PACKAGES_MULTIMEDIA" ] && PACKAGES_MULTIMEDIA="ffmpeg"
 
 	#Aggregate entire package list
 	PACKAGES_ALL=""
@@ -165,6 +167,16 @@ load_scripts(){
 }
 
 build_from_lakka(){
+#Translating PROJECT/DEVICES in Lakka ones if needed
+	if [ "$DEVICE" = "Amlogic-ng" ]; then
+		PROJECT_LAKKA=Amlogic
+		DEVICE_LAKKA=AMLGX
+		ARCH=arm
+	else
+		PROJECT_LAKKA="$PROJECT"
+		DEVICE_LAKKA="$DEVICE"
+	fi
+
 read -d '' message <<EOF
 DISTRO=${DISTRONAME}
 PROJECT=${PROJECT}
@@ -187,14 +199,6 @@ EOF
 	done
 	echo
 
-	#Translating PROJECT/DEVICES in Lakka ones if needed
-	if [ "$DEVICE" = "Amlogic-ng" ]; then
-		PROJECT_LAKKA=Amlogic
-		DEVICE_LAKKA=AMLGX
-	else
-		PROJECT_LAKKA="$PROJECT"
-		DEVICE_LAKKA="$DEVICE"
-	fi
 	LAKKA_BUILD_SUBDIR="build.${DISTRONAME}-${DEVICE_LAKKA:-$PROJECT_LAKKA}.${ARCH}"
 
 	cd "$LAKKA_DIR"
@@ -207,7 +211,7 @@ EOF
 	echo "Building packages:"
 	for package in $PACKAGES_ALL ; do
 		echo -ne "\t$package "
-		GIT_SSL_NO_VERIFY=1 IGNORE_VERSION=1 DISTRO=$DISTRONAME PROJECT=$PROJECT_LAKKA DEVICE=$DEVICE_LAKKA ARCH=$ARCH ./$DISTRO_BUILD_SCRIPT $package &>>"$LOG"
+		GIT_SSL_NO_VERIFY=1 BUILD_NO_VERSION=yes DISTRO=$DISTRONAME PROJECT=$PROJECT_LAKKA DEVICE=$DEVICE_LAKKA ARCH=$ARCH ./$DISTRO_BUILD_SCRIPT $package &>>"$LOG"
 		if [ $? -eq 0 ] ; then
 			echo -e "$ok"
 		else

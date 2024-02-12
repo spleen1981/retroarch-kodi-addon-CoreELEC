@@ -1,26 +1,19 @@
-diff --git a/packages/lakka/retroarch_base/retroarch/patches/01.add_reboot_shutdown.patch b/packages/lakka/retroarch_base/retroarch/patches/01.add_reboot_shutdown.patch
+diff --git a/packages/lakka/retroarch_base/retroarch/patches/01-add_reboot_shutdown.patch b/packages/lakka/retroarch_base/retroarch/patches/01-add_reboot_shutdown.patch
 new file mode 100644
-index 0000000000..2fcfec688a
+index 0000000000..59e1168439
 --- /dev/null
-+++ b/packages/lakka/retroarch_base/retroarch/patches/01.add_reboot_shutdown.patch
-@@ -0,0 +1,20 @@
++++ b/packages/lakka/retroarch_base/retroarch/patches/01-add_reboot_shutdown.patch
+@@ -0,0 +1,13 @@
 +diff --git a/menu/menu_setting.c b/menu/menu_setting.c
-+index b1b1bdf125..0086c5038e 100644
++index 407ffcc..d84d376 100644
 +--- a/menu/menu_setting.c
 ++++ b/menu/menu_setting.c
-+@@ -9625,6 +9625,7 @@ static bool setting_append_list(
-+                &group_info,
-+                &subgroup_info,
-+                parent_group);
-++#endif
++@@ -10064,7 +10064,7 @@ static bool setting_append_list(
++               parent_group);
 + #endif
++ 
++-#if defined(HAVE_LAKKA)
+++#if 1
 +          CONFIG_ACTION(
 +                list, list_info,
-+@@ -9644,7 +9645,6 @@ static bool setting_append_list(
-+                &subgroup_info,
-+                parent_group);
-+          MENU_SETTINGS_LIST_CURRENT_ADD_CMD(list, list_info, CMD_EVENT_SHUTDOWN);
-+-#endif
-+
-+          CONFIG_ACTION(
-+                list, list_info,
++                MENU_ENUM_LABEL_REBOOT,

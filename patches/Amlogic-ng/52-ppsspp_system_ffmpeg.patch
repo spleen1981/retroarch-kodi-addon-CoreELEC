@@ -1,0 +1,13 @@
+diff --git a/packages/lakka/libretro_cores/ppsspp/package.mk b/packages/lakka/libretro_cores/ppsspp/package.mk
+index 52b748d3d3..f6be03673f 100644
+--- a/packages/lakka/libretro_cores/ppsspp/package.mk
++++ b/packages/lakka/libretro_cores/ppsspp/package.mk
+@@ -11,7 +11,7 @@ PKG_LR_UPDATE_TAG="yes"
+ PKG_CMAKE_OPTS_TARGET="-DLIBRETRO=ON \
+                        -DCMAKE_BUILD_TYPE=Release \
+                        -DUSE_FFMPEG=ON \
+-                       -DUSE_SYSTEM_FFMPEG=OFF \
++                       -DUSE_SYSTEM_FFMPEG=ON \
+                        -DUSE_SYSTEM_LIBZIP=ON \
+                        -DUSE_SYSTEM_LIBPNG=ON \
+                        -DUSE_SYSTEM_ZSTD=ON \

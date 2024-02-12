@@ -1,8 +1,8 @@
 diff --git a/projects/Amlogic/devices/AMLGX/options b/projects/Amlogic/devices/AMLGX/options
-index 8184f29439..2e1f264e91 100644
+index 72cb6f1261..37e1098407 100644
 --- a/projects/Amlogic/devices/AMLGX/options
 +++ b/projects/Amlogic/devices/AMLGX/options
-@@ -35,3 +35,6 @@
+@@ -32,3 +32,6 @@
  
    # Set the addon project
      ADDON_PROJECT="ARMv8"
