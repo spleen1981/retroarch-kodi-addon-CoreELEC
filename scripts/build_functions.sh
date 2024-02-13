@@ -124,7 +124,7 @@ setup_packages(){
 	#Disable specific cores per device/platform
 	if [ "$DEVICE" = "Amlogic-ng" ]; then
 		LIBRERETRO_CORES_ADD="$LIBRERETRO_CORES_ADD puae2021 mupen64plus"
-		LIBRERETRO_CORES_RM="$LIBRERETRO_CORES_RM puae mupen64plus-next kronos"
+		LIBRERETRO_CORES_RM="$LIBRERETRO_CORES_RM puae mupen64plus_next kronos"
 	fi
 
 	#Apply cores list modifications
