@@ -74,6 +74,20 @@ setup_general(){
 	[ -z "$PROVIDER" ] && PROVIDER="Giovanni Cascione"
 	[ -z "$INCLUDE_DLC" ] && INCLUDE_DLC=""
 
+	#Translating PROJECT/DEVICES in Lakka ones if needed
+	if [ "$DEVICE" = "Amlogic-ng" ]; then
+		PROJECT_LAKKA=Amlogic
+		DEVICE_LAKKA=AMLGX
+		ARCH=arm
+	elif [ "$DEVICE" = "Amlogic-no" ]; then
+		PROJECT_LAKKA=Amlogic
+		DEVICE_LAKKA=AMLGX
+		ARCH=aarch64
+	else
+		PROJECT_LAKKA="$PROJECT"
+		DEVICE_LAKKA="$DEVICE"
+	fi
+
 	#Addon path and filename variables
 	SCRIPT_DIR=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )/..
 	[ -z "$ADDON_BUILD_DIR" ] && ADDON_BUILD_DIR="${SCRIPT_DIR}/build"
@@ -125,6 +139,9 @@ setup_packages(){
 	if [ "$DEVICE" = "Amlogic-ng" ]; then
 		LIBRERETRO_CORES_ADD="$LIBRERETRO_CORES_ADD puae2021 mupen64plus"
 		LIBRERETRO_CORES_RM="$LIBRERETRO_CORES_RM puae mupen64plus_next kronos"
+	elif [ "$DEVICE" = "Amlogic-no" ]; then
+		LIBRERETRO_CORES_ADD="$LIBRERETRO_CORES_ADD puae2021"
+		LIBRERETRO_CORES_RM="$LIBRERETRO_CORES_RM puae chailove"
 	fi
 
 	#Apply cores list modifications
@@ -147,7 +164,7 @@ setup_packages(){
 	[ -z "$PACKAGES_COMPRESS" ] && PACKAGES_COMPRESS="zstd"
 	[ -z "$PACKAGES_SYSTEM_TOOLS" ] && PACKAGES_SYSTEM_TOOLS="diffutils"
 	[ -z "$PACKAGES_ADDON_DEPENDS" ] && PACKAGES_ADDON_DEPENDS="libzip"
-	[ -z "$PACKAGES_MULTIMEDIA" ] && PACKAGES_MULTIMEDIA="ffmpeg"
+	[ -z "$PACKAGES_MULTIMEDIA" ] && PACKAGES_MULTIMEDIA="ffmpeg dav1d"
 
 	#Aggregate entire package list
 	PACKAGES_ALL=""
@@ -167,16 +184,6 @@ load_scripts(){
 }
 
 build_from_lakka(){
-#Translating PROJECT/DEVICES in Lakka ones if needed
-	if [ "$DEVICE" = "Amlogic-ng" ]; then
-		PROJECT_LAKKA=Amlogic
-		DEVICE_LAKKA=AMLGX
-		ARCH=arm
-	else
-		PROJECT_LAKKA="$PROJECT"
-		DEVICE_LAKKA="$DEVICE"
-	fi
-
 read -d '' message <<EOF
 DISTRO=${DISTRONAME}
 PROJECT=${PROJECT}
