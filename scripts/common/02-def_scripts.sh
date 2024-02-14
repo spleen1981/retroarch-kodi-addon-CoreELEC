@@ -6,6 +6,7 @@ SHORT_NOTIFICATION=2000
 FIRST_RUN_FLAG_PREFIX=first_run_done
 BOOT_TO_RA_FLAG_TRUE=RETROARCH
 BOOT_TO_RA_FLAG_FALSE=KODI
+[ $DEVICE = "Amlogic-no" ] && MOUNT_CMD=mount.cifs || MOUNT_CMD=mount
 
 read -d '' ra_autostart_sh <<EOF
 #!/bin/sh
@@ -348,7 +349,7 @@ if [ "\$ra_roms_remote" = "true" ] ; then
 		RA_REMOTE_OPTS="\${RA_REMOTE_OPTS}vers=\${ra_roms_remote_vers}"
 	fi
 
-	[ ! -z "\$ra_roms_remote_path" ] && mount \$RA_REMOTE_OPTS_PRE "\$RA_REMOTE_OPTS" "\$ra_roms_remote_path" "\$ROMS_FOLDER"
+	[ ! -z "\$ra_roms_remote_path" ] && $MOUNT_CMD "\$ra_roms_remote_path" "\$ROMS_FOLDER" \$RA_REMOTE_OPTS_PRE "\$RA_REMOTE_OPTS"
 fi
 
 VIDEO_MODE_NEWRATE=\$VIDEO_MODE_RATE
