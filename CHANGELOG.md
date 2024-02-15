@@ -1,3 +1,10 @@
+.v1.7.0
+ - Switch to Lakka-v5.x build system
+ - Add Amlogic-no.aarch64 build
+ - Update RetroArch to 1.17.0
+ - Update all cores per Lakka sources
+ - Misc fixes
+
 v1.6.5
  - Update RetroArch to 1.16.0.2
  - Update ScummVM core to latest
