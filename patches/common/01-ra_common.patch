@@ -1,5 +1,5 @@
 diff --git a/packages/lakka/retroarch_base/retroarch/package.mk b/packages/lakka/retroarch_base/retroarch/package.mk
-index bccb5787ba..0a029a70c3 100644
+index 95350242b8..ebf3aeae45 100644
 --- a/packages/lakka/retroarch_base/retroarch/package.mk
 +++ b/packages/lakka/retroarch_base/retroarch/package.mk
 @@ -21,7 +21,7 @@ PKG_CONFIGURE_OPTS_TARGET="--disable-vg \
@@ -8,6 +8,6 @@ index bccb5787ba..0a029a70c3 100644
  PKG_MAKE_OPTS_TARGET="V=1 \
 -                      HAVE_LAKKA=1 \
 +                      HAVE_LAKKA=0 \
+                       HAVE_CHEEVOS=1 \
                        HAVE_HAVE_ZARCH=0 \
                        HAVE_WIFI=1 \
-                       HAVE_BLUETOOTH=1 \

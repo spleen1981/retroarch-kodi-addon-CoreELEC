@@ -101,7 +101,7 @@ setup_general(){
 
 	#Lakka variables
 	[ -z "$DISTRONAME" ] && DISTRONAME="Lakka"
-	[ -z "$LAKKA_VERSION" ] && LAKKA_VERSION="9297f90a35bd0310c6ee81e2f2ee2fa3034c9e54"
+	[ -z "$LAKKA_VERSION" ] && LAKKA_VERSION="ed7edc5d2f3b47e90ef2fb8958395a683920e94c"
 	[ -z "$DISTRO_BUILD_SCRIPT" ] && DISTRO_BUILD_SCRIPT="scripts/build"
 	[ -z "$LAKKA_DIR" ] && LAKKA_DIR="${SCRIPT_DIR}/Lakka-LibreELEC"
 	if [ ! -d "$LAKKA_DIR" ] ; then
