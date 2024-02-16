@@ -1,5 +1,19 @@
 #!/bin/bash
 
+build(){
+	setup_general
+	setup_packages
+	load_scripts
+	build_from_lakka
+	setup_addon
+	populating_addon
+	creating_new_files
+	customize_retroarch
+	apply_hook_function
+	create_archive
+	cleanup
+}
+
 trap exit_script SIGINT SIGTERM
 GIT_SSL_NO_VERIFY=1
 
@@ -9,17 +23,12 @@ echo
 
 source scripts/build_functions.sh
 
-setup_general
-setup_packages
-load_scripts
-build_from_lakka
-setup_addon
-populating_addon
-creating_new_files
-customize_retroarch
-apply_hook_function
-create_archive
-cleanup
+if [ -z $DEVICE ] ; then
+	DEVICE=Amlogic-ng && build
+	DEVICE=Amlogic-no && build
+else
+	build
+fi
 
 echo
 echo "Finished."

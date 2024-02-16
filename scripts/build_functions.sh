@@ -67,24 +67,20 @@ setup_general(){
 
 	#Platform and general settings variables
 	BASE_NAME="$PROVIDER.retroarch"
-	[ -z "$PROJECT" ] && PROJECT="Amlogic"
-	[ -z "$ARCH" ] && ARCH=arm
-	[ -z "$DEVICE" ] && [ "$PROJECT" = "Amlogic" ] && DEVICE="Amlogic-ng"
 	[ -z "$ADDON_VERSION" ] && read -p "Enter version tag [e.g. v1.0.0]: " ADDON_VERSION
 	[ -z "$PROVIDER" ] && PROVIDER="Giovanni Cascione"
 	[ -z "$INCLUDE_DLC" ] && INCLUDE_DLC=""
 
 	#Translating PROJECT/DEVICES in Lakka ones if needed
 	if [ "$DEVICE" = "Amlogic-ng" ]; then
-		PROJECT_LAKKA=Amlogic
+		PROJECT=Amlogic
 		DEVICE_LAKKA=AMLGX
 		ARCH=arm
 	elif [ "$DEVICE" = "Amlogic-no" ]; then
-		PROJECT_LAKKA=Amlogic
+		PROJECT=Amlogic
 		DEVICE_LAKKA=AMLGX
 		ARCH=aarch64
 	else
-		PROJECT_LAKKA="$PROJECT"
 		DEVICE_LAKKA="$DEVICE"
 	fi
 
@@ -206,7 +202,7 @@ EOF
 	done
 	echo
 
-	LAKKA_BUILD_SUBDIR="build.${DISTRONAME}-${DEVICE_LAKKA:-$PROJECT_LAKKA}.${ARCH}"
+	LAKKA_BUILD_SUBDIR="build.${DISTRONAME}-${DEVICE_LAKKA:-$PROJECT}.${ARCH}"
 
 	cd "$LAKKA_DIR"
 	git checkout ${LAKKA_VERSION} &>>"$LOG"
@@ -218,7 +214,7 @@ EOF
 	echo "Building packages:"
 	for package in $PACKAGES_ALL ; do
 		echo -ne "\t$package "
-		GIT_SSL_NO_VERIFY=1 BUILD_NO_VERSION=yes DISTRO=$DISTRONAME PROJECT=$PROJECT_LAKKA DEVICE=$DEVICE_LAKKA ARCH=$ARCH ./$DISTRO_BUILD_SCRIPT $package &>>"$LOG"
+		GIT_SSL_NO_VERIFY=1 BUILD_NO_VERSION=yes DISTRO=$DISTRONAME PROJECT=$PROJECT DEVICE=$DEVICE_LAKKA ARCH=$ARCH ./$DISTRO_BUILD_SCRIPT $package &>>"$LOG"
 		if [ $? -eq 0 ] ; then
 			echo -e "$ok"
 		else
