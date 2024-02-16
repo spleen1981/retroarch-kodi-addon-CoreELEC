@@ -1,0 +1,11 @@
+diff --git a/packages/lakka/libretro_cores/flycast/package.mk b/packages/lakka/libretro_cores/flycast/package.mk
+index 330706cd8c..1fbaa46f5e 100644
+--- a/packages/lakka/libretro_cores/flycast/package.mk
++++ b/packages/lakka/libretro_cores/flycast/package.mk
+@@ -1,5 +1,5 @@
+ PKG_NAME="flycast"
+-PKG_VERSION="7029e1615a215bc43e51f8eac605f31dd01ba8cd"
++PKG_VERSION="1153238e2c7700287293024144e6d02d4c6f2e16"
+ PKG_LICENSE="GPLv2"
+ PKG_SITE="https://github.com/flyinghead/flycast"
+ PKG_URL="${PKG_SITE}.git"
