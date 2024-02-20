@@ -93,12 +93,6 @@ First time the building/compiling process will take a lot of time (the whole too
 
 Addon zip file will be placed in `build` subfolder.
 
-## Experimental build options
-
-HOOK variable is used to apply experimental build options. Being experimental, those are not released as built addon zip package.
-
-   - `ARCH=aarch64 HOOK=aarch64_to_arm_userspace ./build.sh` This option will build a stand alone aarch64 package able to run in the 32bit arm CoreELEC userspace, e.g. to try cores available for 64bit systems only (e.g. dolphin). Tested on CoreELEC 19 with S905X3.
-
 ## Adding new translations
 
 New languages for the addon frontend can be added by modifying [this file](https://github.com/spleen1981/retroarch-kodi-addon-CoreELEC/blob/master/scripts/common/01-def_lang.sh).
