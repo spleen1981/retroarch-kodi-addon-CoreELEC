@@ -11,6 +11,6 @@ index fcbf383104..d16e939c30 100644
 +    PKG_CONFIGURE_OPTS_TARGET=${PKG_CONFIGURE_OPTS_TARGET//--enable-cdrom/--disable-cdrom}
 +    PKG_CONFIGURE_OPTS_TARGET+=" --enable-mali_fbdev"
 +  fi
-   if [[ ${DEVICE} =~ ^RPi4.* ]] || [ ${DEVICE} = "RK3288" ] || [ "${DEVICE}" = "RK3399" ] || [ "${DEVICE}" = "Odin" ] || [ "${DEVICE}" = "RPi5" ]; then
+   if [ ${DEVICE:0:4} = "RPi4" ] || [ ${DEVICE} = "RK3288" ] || [ "${DEVICE}" = "RK3399" ] || [ "${PROJECT}" = "Generic" ] || [ "${DEVICE}" = "Odin" ] || [ "${DEVICE}" = "RPi5" ]; then
      PKG_CONFIGURE_OPTS_TARGET+=" --enable-opengles3 \
                                   --enable-opengles3_1"
