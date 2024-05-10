@@ -1,4 +1,7 @@
-.v1.7.0
+v1.7.1
+ - Update RetroArch and cores to latest
+
+v1.7.0
  - Switch to Lakka-v5.x build system
  - Add Amlogic-no.aarch64 build
  - Update RetroArch to 1.17.0
