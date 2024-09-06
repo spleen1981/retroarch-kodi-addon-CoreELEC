@@ -1,3 +1,8 @@
+v1.7.2
+ - Update RetroArch and cores to latest
+ - Add Beetle Saturn core
+ - Add Spanish translation, thanks to @Deci8BelioS
+ 
 v1.7.1
  - Update RetroArch and cores to latest
 
