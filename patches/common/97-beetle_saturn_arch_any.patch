@@ -1,0 +1,12 @@
+diff --git a/packages/lakka/libretro_cores/beetle_saturn/package.mk b/packages/lakka/libretro_cores/beetle_saturn/package.mk
+index 3eb6bfa243..c108b5b4d1 100644
+--- a/packages/lakka/libretro_cores/beetle_saturn/package.mk
++++ b/packages/lakka/libretro_cores/beetle_saturn/package.mk
+@@ -1,6 +1,6 @@
+ PKG_NAME="beetle_saturn"
+ PKG_VERSION="7a8f808a1d447fcb8fa9547d9f163eb3600d3086"
+-PKG_ARCH="x86_64"
++PKG_ARCH="any"
+ if [ "${PROJECT}" = "RPi" ] && [ "${DEVICE}" = "RPi5" ]; then
+   PKG_ARCH+=" aarch64"
+ fi
