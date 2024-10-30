@@ -19,7 +19,7 @@ msgstr ""
 "Language: %s\\\\n"
 "Plural-Forms: nplurals=2; plural=(n != 1)\\\\n"\\n'
 
-LANG_list="en_gb es_es cs_cz it_it zh_cn sk_sk pt_br"
+LANG_list="en_gb es_es cs_cz it_it zh_cn sk_sk pt_br de_de"
 LANG_max=32015
 
 LANG_0_ctx="Addon Summary"
