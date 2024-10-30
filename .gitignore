@@ -7,4 +7,5 @@ local.conf
 *~
 *.log
 *_debug.sh
-.idea
+idea/
+.idea/
