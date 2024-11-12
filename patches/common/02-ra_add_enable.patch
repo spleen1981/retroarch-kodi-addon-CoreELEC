@@ -7,7 +7,7 @@ index bccb5787ba..f6e58236de 100644
  PKG_LR_UPDATE_TAG="yes"
  
 -PKG_CONFIGURE_OPTS_TARGET="--disable-vg \
-+PKG_CONFIGURE_OPTS_TARGET="--disable-update_cores --disable-vg \
++PKG_CONFIGURE_OPTS_TARGET="--disable-update_cores --disable-vg --enable-al \
                             --disable-sdl \
                             --disable-sdl2 \
                             --disable-ssl \

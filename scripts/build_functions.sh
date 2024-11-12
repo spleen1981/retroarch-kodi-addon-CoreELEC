@@ -158,7 +158,7 @@ setup_packages(){
 
 	#Building other pkgs list
 	[ -z "$PACKAGES_LAKKA_TOOLS" ] && PACKAGES_LAKKA_TOOLS="joyutils sixpair empty xbox360_controllers_shutdown cec-mini-kb"
-        [ -z "$PACKAGES_AUDIO" ] && PACKAGES_AUDIO="flac libogg"
+        [ -z "$PACKAGES_AUDIO" ] && PACKAGES_AUDIO="flac libogg openal-soft"
 	[ -z "$PACKAGES_COMPRESS" ] && PACKAGES_COMPRESS="zstd"
 	[ -z "$PACKAGES_SYSTEM_TOOLS" ] && PACKAGES_SYSTEM_TOOLS="diffutils"
 	[ -z "$PACKAGES_ADDON_DEPENDS" ] && PACKAGES_ADDON_DEPENDS="libzip"
