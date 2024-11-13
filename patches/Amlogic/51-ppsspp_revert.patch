@@ -1,0 +1,105 @@
+diff --git a/packages/lakka/libretro_cores/ppsspp/package.mk b/packages/lakka/libretro_cores/ppsspp/package.mk
+index d2c8035573..48492dd831 100644
+--- a/packages/lakka/libretro_cores/ppsspp/package.mk
++++ b/packages/lakka/libretro_cores/ppsspp/package.mk
+@@ -1,9 +1,9 @@
+ PKG_NAME="ppsspp"
+-PKG_VERSION="d479b74ed9c3e321bc3735da29bc125a2ac3b9b2"
++PKG_VERSION="ce0a45cf0fcdd5bebf32208b9998f68dfc1107b7"
+ PKG_LICENSE="GPLv2"
+ PKG_SITE="https://github.com/hrydgard/ppsspp"
+ PKG_URL="${PKG_SITE}.git"
+-PKG_DEPENDS_TARGET="toolchain glibc libzip libpng zstd zlib bzip2 openssl speex"
++PKG_DEPENDS_TARGET="toolchain libzip libpng"
+ PKG_LONGDESC="Libretro port of PPSSPP"
+ PKG_TOOLCHAIN="cmake"
+ PKG_LR_UPDATE_TAG="yes"
+@@ -12,12 +12,14 @@ PKG_CMAKE_OPTS_TARGET="-DLIBRETRO=ON \
+                        -DCMAKE_BUILD_TYPE=Release \
+                        -DUSE_FFMPEG=ON \
+                        -DUSE_SYSTEM_FFMPEG=OFF \
+-                       -DUSE_SYSTEM_LIBZIP=ON \
+-                       -DUSE_SYSTEM_LIBPNG=ON \
+-                       -DUSE_SYSTEM_ZSTD=ON \
+                        -DUSE_DISCORD=OFF \
+                        -DUSE_MINIUPNPC=OFF"
+ 
++
++if [ "${PROJECT}" = "Amlogic" ]; then
++  PKG_CMAKE_OPTS_TARGET+=" -DUSING_FBDEV=ON"
++fi
++
+ if [ "${OPENGL_SUPPORT}" = "yes" ]; then
+   PKG_DEPENDS_TARGET+=" ${OPENGL}"
+ fi
+@@ -43,13 +45,9 @@ if [ "${OPENGL_SUPPORT}" = "no" -a "${OPENGLES_SUPPORT}" = "yes" ]; then
+ fi
+ 
+ if [ "${TARGET_ARCH}" = "arm" ]; then
+-  if [[ "${TARGET_NAME}" =~ "armv8" ]]; then
+-    PKG_CMAKE_OPTS_TARGET+=" -DFORCED_CPU=armv8"
+-  else
+-    PKG_CMAKE_OPTS_TARGET+=" -DFORCED_CPU=armv7"
+-  fi
++  PKG_CMAKE_OPTS_TARGET+=" -DARMV7=ON"
+ elif [ "${TARGET_ARCH}" = "aarch64" ]; then
+-  PKG_CMAKE_OPTS_TARGET+=" -DFORCED_CPU=aarch64"
++  PKG_CMAKE_OPTS_TARGET+=" -DARM64=ON"
+ fi
+ 
+ pre_make_target() {
+diff --git a/packages/lakka/libretro_cores/ppsspp/patches/01-fix-atomics-arm64.patch b/packages/lakka/libretro_cores/ppsspp/patches/01-fix-atomics-arm64.patch
+deleted file mode 100644
+index 1f1bbcf8d3..0000000000
+--- a/packages/lakka/libretro_cores/ppsspp/patches/01-fix-atomics-arm64.patch
++++ /dev/null
+@@ -1,11 +0,0 @@
+-diff -Naur ppsspp-845b6b7f3e8060c1ab462f3680e371082ff4253e/CMakeLists.txt ppsspp-845b6b7f3e8060c1ab462f3680e371082ff4253e-2/CMakeLists.txt
+---- ppsspp-845b6b7f3e8060c1ab462f3680e371082ff4253e/CMakeLists.txt	2023-05-30 22:01:29.680358154 +0200
+-+++ ppsspp-845b6b7f3e8060c1ab462f3680e371082ff4253e-2/CMakeLists.txt	2023-05-30 22:06:10.316228814 +0200
+-@@ -393,6 +393,7 @@
+- 	elseif(APPLE AND NOT CMAKE_CROSSCOMPILING)
+- 		if(LIBRETRO AND ARM64)
+- 			set(CMAKE_OSX_DEPLOYMENT_TARGET "10.14")
+-+           add_definitions(-mno-outline-atomics)
+- 		else()
+- 			set(CMAKE_OSX_DEPLOYMENT_TARGET "10.13")
+- 		endif()
+diff --git a/packages/lakka/libretro_cores/ppsspp/patches/ppsspp-fix_strcasecmp.patch b/packages/lakka/libretro_cores/ppsspp/patches/ppsspp-fix_strcasecmp.patch
+new file mode 100644
+index 0000000000..509b781535
+--- /dev/null
++++ b/packages/lakka/libretro_cores/ppsspp/patches/ppsspp-fix_strcasecmp.patch
+@@ -0,0 +1,13 @@
++diff --git a/ext/libzip/compat.h b/ext/libzip/compat.h
++index a5cf72804..b41a53ba5 100644
++--- a/ext/libzip/compat.h
+++++ b/ext/libzip/compat.h
++@@ -38,6 +38,8 @@
++ 
++ #include "config.h"
++ 
+++#include <strings.h>
+++
++ /* to have *_MAX definitions for all types when compiling with g++ */
++ #define __STDC_LIMIT_MACROS
++ 
+diff --git a/packages/lakka/libretro_cores/ppsspp/patches/ppsspp-ignore-sdl.patch b/packages/lakka/libretro_cores/ppsspp/patches/ppsspp-ignore-sdl.patch
+new file mode 100644
+index 0000000000..c93f9dffcd
+--- /dev/null
++++ b/packages/lakka/libretro_cores/ppsspp/patches/ppsspp-ignore-sdl.patch
+@@ -0,0 +1,13 @@
++diff --git a/CMakeLists.txt b/CMakeLists.txt
++index 0a5fceb50..9192de994 100644
++--- a/CMakeLists.txt
+++++ b/CMakeLists.txt
++@@ -997,7 +997,7 @@ elseif(WIN32)
++ 	else()
++ 		link_directories(dx9sdk/Lib/x86)
++ 	endif()
++-elseif(TARGET SDL2::SDL2)
+++elseif(TARGET SDL2::SDL2 AND NOT LIBRETRO)
++ 	set(TargetBin PPSSPPSDL)
++ 	# Require SDL
++ 	add_definitions(-DSDL)
