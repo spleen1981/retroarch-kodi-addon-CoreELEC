@@ -1,3 +1,9 @@
+v1.7.3
+ - Update ScummVM to latest
+ - Revert PPSSPP to working version
+ - Add OpenAL support
+ - Add German translation, thanks to @sickdaflip
+
 v1.7.2
  - Update RetroArch and cores to latest
  - Add Beetle Saturn core
