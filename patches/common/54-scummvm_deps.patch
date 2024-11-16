@@ -1,11 +1,23 @@
+diff --git a/packages/devel/libcec/package.mk b/packages/devel/libcec/package.mk
+index f328614a41..5d079fe4ab 100644
+--- a/packages/devel/libcec/package.mk
++++ b/packages/devel/libcec/package.mk
+@@ -3,8 +3,8 @@
+ # Copyright (C) 2018-present Team LibreELEC (https://libreelec.tv)
+ 
+ PKG_NAME="libcec"
+-PKG_VERSION="6.0.2"
+-PKG_SHA256="090696d7a4fb772d7acebbb06f91ab92e025531c7c91824046b9e4e71ecb3377"
++PKG_VERSION="4.0.7"
++PKG_SHA256="bcd92c376993a5721d346edcc09eb17289451f9156b1d1d113c9663c2046315a"
+ PKG_LICENSE="GPL"
+ PKG_SITE="http://libcec.pulse-eight.com/"
+ PKG_URL="https://github.com/Pulse-Eight/libcec/archive/libcec-${PKG_VERSION}.tar.gz"
 diff --git a/packages/lakka/libretro_cores/scummvm/package.mk b/packages/lakka/libretro_cores/scummvm/package.mk
-index 4570af767d..59feb28a6a 100644
+index ca12febd96..8fd0a44977 100644
 --- a/packages/lakka/libretro_cores/scummvm/package.mk
 +++ b/packages/lakka/libretro_cores/scummvm/package.mk
-@@ -1,19 +1,19 @@
- PKG_NAME="scummvm"
--PKG_VERSION="8ce898dcc55e56b75b12ba2a5023bb062e918198"
-+PKG_VERSION="e09c521cd8b91069808dcdeda9d19e842a798349"
+@@ -3,18 +3,19 @@ PKG_VERSION="e1a7e2931877937a04e55f45a9eec6e6f7d471ff"
  PKG_LICENSE="GPLv3"
  PKG_SITE="https://github.com/libretro/scummvm"
  PKG_URL="${PKG_SITE}.git"
@@ -24,7 +36,10 @@ index 4570af767d..59feb28a6a 100644
 +                      USE_SYSTEM_vorbis=0 \
                        USE_SYSTEM_z=1 \
 -                      USE_SYSTEM_faad=1 \
+-                      USE_SYSTEM_freetype=1"
 +                      USE_SYSTEM_faad=0 \
-                       USE_SYSTEM_freetype=1"
++                      USE_SYSTEM_freetype=1 \
++                      FORCE_OPENGLES2=1"
  
  pre_make_target() {
+   if [ "${DEVICE}" = "OdroidGoAdvance" ]; then
