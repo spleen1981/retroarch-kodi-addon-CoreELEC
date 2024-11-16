@@ -1,12 +1,6 @@
 # RetroArch Kodi add-on for CoreELEC
-This script creates a RetroArch add-on for Kodi from Lakka sources for CoreELEC (Amlogic-ng devices).
-
-Resulting builds have been tested on following ARM devices:
-   - S905X3
-   - S922X (Odroid N2+)
-   - S905X
-
-with CoreELEC 19 and 20 versions.
+This script creates a RetroArch add-on for Kodi from Lakka sources for CoreELEC (Amlogic devices).
+Resulting builds have been tested on CoreELEC versions from 19 to 22 both for arm and aarch64.
 
 # Add-on usage
    - Download the latest zip file from [releases page](https://github.com/spleen1981/retroarch-kodi-addon-CoreELEC/releases) and install following [Kodi instructions](https://kodi.wiki/view/Add-on_manager#How_to_install_from_a_ZIP_file). Once installed, starting from v 1.5.0 the addon comes with an internal online updater and can be updated from within Kodi.
