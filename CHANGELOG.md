@@ -1,8 +1,10 @@
 v1.7.3
+ - Update Retroarch to latest
  - Update ScummVM to latest
  - Revert PPSSPP to working version
  - Add OpenAL support
  - Add German translation, thanks to @sickdaflip
+ - Add graceful system reboot/shutdown
 
 v1.7.2
  - Update RetroArch and cores to latest
