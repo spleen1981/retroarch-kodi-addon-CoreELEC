@@ -215,7 +215,17 @@ exit_script(){
 	[ ! -z "\$(systemctl status kodi | grep masked)" ] && systemctl unmask kodi
 
 	sed -E -i "s/\${CAP_GROUP_CEC}(.*)\\\"/\${CAP_GROUP_CEC}\${CEC_SHUTDOWN_SETTING_PREV}\\\"/" \$KODI_CEC_SETTINGS_FILE
-	systemctl start kodi
+
+	if [ -f /tmp/ra_exit_shutdown ] ; then
+		rm /tmp/ra_exit_shutdown
+		shutdown -P now
+	elif [ -f /tmp/ra_exit_reboot ] ; then
+		rm /tmp/ra_exit_reboot
+		shutdown -r now
+	else
+		systemctl start kodi
+	fi
+
 $HOOK_RETROARCH_START_1
 	exit 0
 }
