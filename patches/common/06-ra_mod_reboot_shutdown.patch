@@ -1,28 +1,28 @@
 diff --git a/packages/lakka/retroarch_base/retroarch/patches/06-ra_mod_reboot_shutdown.patch b/packages/lakka/retroarch_base/retroarch/patches/06-ra_mod_reboot_shutdown.patch
 new file mode 100644
-index 0000000000..7e29d69c87
+index 0000000000..13b1c667de
 --- /dev/null
 +++ b/packages/lakka/retroarch_base/retroarch/patches/06-ra_mod_reboot_shutdown.patch
 @@ -0,0 +1,22 @@
 +diff --git a/retroarch.c b/retroarch.c
-+index f5bd2da2b5..cd8dd56a54 100644
++index a7e5f5299f..41debd6abc 100644
 +--- a/retroarch.c
 ++++ b/retroarch.c
-+@@ -4366,7 +4366,7 @@ bool command_event(enum event_command cmd, void *data)
-+          system("nohup /usr/bin/lakka-shutdown.sh 2>&1 >/dev/null & exit");
++@@ -4306,7 +4306,7 @@ bool command_event(enum event_command cmd, void *data)
++             system("nohup /usr/bin/lakka-shutdown.sh 2>&1 >/dev/null & exit");
 + #else
-+          command_event(CMD_EVENT_QUIT, NULL);
-+-         system("shutdown -P now");
-++         system("touch /tmp/ra_exit_shutdown");
++             command_event(CMD_EVENT_QUIT, NULL);
++-            system("shutdown -P now");
+++            system("touch /tmp/ra_exit_shutdown");
 + #endif /* HAVE_LAKKA */
 + #endif
-+          break;
-+@@ -4381,7 +4381,7 @@ bool command_event(enum event_command cmd, void *data)
-+          system("nohup /usr/bin/lakka-reboot.sh 2>&1 >/dev/null & exit");
++          }
++@@ -4323,7 +4323,7 @@ bool command_event(enum event_command cmd, void *data)
++             system("nohup /usr/bin/lakka-reboot.sh 2>&1 >/dev/null & exit");
 + #else
-+          command_event(CMD_EVENT_QUIT, NULL);
-+-         system("shutdown -r now");
-++         system("touch /tmp/ra_exit_reboot");
++             command_event(CMD_EVENT_QUIT, NULL);
++-            system("shutdown -r now");
+++            system("touch /tmp/ra_exit_reboot");
 + #endif /* HAVE_LAKKA */
 + #endif
-+          break;
++          }
