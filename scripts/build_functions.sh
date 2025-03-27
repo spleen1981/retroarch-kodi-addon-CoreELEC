@@ -112,7 +112,7 @@ setup_general(){
 setup_packages(){
 	#Misc packages variables
 	[ -z "$DISTRO_PACKAGES_SUBDIR" ] && DISTRO_PACKAGES_SUBDIR="packages"
-	[ -z "$PKG_TYPES" ] && PKG_TYPES="LIBRETRO_BASE LIBRETRO_CORES LAKKA_TOOLS AUDIO COMPRESS SYSTEM_TOOLS ADDON_DEPENDS MULTIMEDIA WEB"
+	[ -z "$PKG_TYPES" ] && PKG_TYPES="LIBRETRO_BASE LIBRETRO_CORES LAKKA_TOOLS AUDIO COMPRESS SYSTEM_TOOLS ADDON_DEPENDS MULTIMEDIA WEB DEVEL"
 	[ -z "$PKG_SUBDIR_LIBRETRO_CORES" ] && PKG_SUBDIR_LIBRETRO_CORES="lakka/libretro_cores"
 	[ -z "$PKG_SUBDIR_LIBRETRO_BASE" ] && PKG_SUBDIR_LIBRETRO_BASE="lakka/retroarch_base"
 	[ -z "$PKG_SUBDIR_LAKKA_TOOLS" ] && PKG_SUBDIR_LAKKA_TOOLS="lakka/lakka_tools"
@@ -122,6 +122,7 @@ setup_packages(){
 	[ -z "$PKG_SUBDIR_ADDON_DEPENDS" ] && PKG_SUBDIR_ADDON_DEPENDS="addons/addon-depends"
 	[ -z "$PKG_SUBDIR_MULTIMEDIA" ] && PKG_SUBDIR_MULTIMEDIA="multimedia"
 	[ -z "$PKG_SUBDIR_WEB" ] && PKG_SUBDIR_WEB="web"
+	[ -z "$PKG_SUBDIR_DEVEL" ] && PKG_SUBDIR_DEVEL="devel"
 
 	#Building libretro core variable list from Lakka sources
 	source "${LAKKA_DIR}/distributions/Lakka/options"
@@ -165,6 +166,7 @@ setup_packages(){
 	[ -z "$PACKAGES_ADDON_DEPENDS" ] && PACKAGES_ADDON_DEPENDS="libzip"
 	[ -z "$PACKAGES_MULTIMEDIA" ] && PACKAGES_MULTIMEDIA="ffmpeg dav1d"
 	[ -z "$PACKAGES_WEB" ] && PACKAGES_WEB="curl"
+	[ -z "$PACKAGES_DEVEL" ] && PACKAGES_DEVEL="libfmt"
 
 	#Aggregate entire package list
 	PACKAGES_ALL=""
