@@ -1,3 +1,9 @@
+v1.7.4
+ - Update Retroarch to 1.20.0
+ - Fix missing libfmt
+ - Drop video playback causing freeze
+ - Update ScummVM to latest
+
 v1.7.3
  - Update Retroarch to latest
  - Update ScummVM to latest
