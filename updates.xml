@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <updates>
 	<latest arch="Amlogic-no.aarch64" distro="coreelec" min_ver="21">
-		<version>v1.7.3</version>
-		<download_url>https://github.com/spleen1981/retroarch-kodi-addon-CoreELEC/releases/download/v1.7.3/script.retroarch.launcher.Amlogic-no.aarch64-v1.7.3.zip</download_url>
+		<version>v1.7.4</version>
+		<download_url>https://github.com/spleen1981/retroarch-kodi-addon-CoreELEC/releases/download/v1.7.4/script.retroarch.launcher.Amlogic-no.aarch64-v1.7.4.zip</download_url>
 	</latest>
 	<latest arch="Amlogic-ng.arm" distro="coreelec" min_ver="19">
-		<version>v1.7.3</version>
-		<download_url>https://github.com/spleen1981/retroarch-kodi-addon-CoreELEC/releases/download/v1.7.3/script.retroarch.launcher.Amlogic-ng.arm-v1.7.3.zip</download_url>
+		<version>v1.7.4</version>
+		<download_url>https://github.com/spleen1981/retroarch-kodi-addon-CoreELEC/releases/download/v1.7.4/script.retroarch.launcher.Amlogic-ng.arm-v1.7.4.zip</download_url>
 	</latest>
 </updates>
