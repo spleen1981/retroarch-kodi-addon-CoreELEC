@@ -1,0 +1,60 @@
+diff --git a/packages/lakka/retroarch_base/retroarch/patches/retroarch-9-force-gl-for-UI-only.patch b/packages/lakka/retroarch_base/retroarch/patches/retroarch-9-force-gl-for-UI-only.patch
+new file mode 100644
+index 0000000000..c967f5fe8a
+--- /dev/null
++++ b/packages/lakka/retroarch_base/retroarch/patches/retroarch-9-force-gl-for-UI-only.patch
+@@ -0,0 +1,54 @@
++diff --git a/retroarch.c b/retroarch.c
++index 1577940750..1a398ac392 100644
++--- a/retroarch.c
+++++ b/retroarch.c
++@@ -7653,6 +7653,7 @@ static void retroarch_validate_cpu_features(void)
++  *
++  * @return true on success, otherwise false if there was an error.
++  **/
+++char original_video_driver[PATH_MAX_LENGTH]={0};
++ bool retroarch_main_init(int argc, char *argv[])
++ {
++ #if defined(DEBUG) && defined(HAVE_DRMINGW)
++@@ -7869,6 +7870,14 @@ bool retroarch_main_init(int argc, char *argv[])
++          retroarch_fail(1, "menu_driver_find_driver()");
++    }
++ #endif
+++
+++   if (! string_is_equal(settings->arrays.video_driver, "gl")){
+++	   strlcpy(original_video_driver, settings->arrays.video_driver, sizeof(original_video_driver));
+++	   strlcpy(settings->arrays.video_driver, "gl", sizeof(settings->arrays.video_driver));
+++       video_driver_reinit(0);
+++       RARCH_LOG("Frontent video driver forced to gl\n");
+++   }
+++
++    /* Enforce stored brightness if needed */
++    if (frontend_driver_can_set_screen_brightness())
++       frontend_driver_set_screen_brightness(settings->uints.screen_brightness);
++diff --git a/tasks/task_content.c b/tasks/task_content.c
++index 6fb9f22f4c..9607ccc44e 100644
++--- a/tasks/task_content.c
+++++ b/tasks/task_content.c
++@@ -1406,6 +1406,7 @@ static void content_load_init_wrap(
++  * Returns: false (0) if retroarch_main_init failed,
++  * otherwise true (1).
++  **/
+++extern char original_video_driver[];
++ static bool content_load(content_ctx_info_t *info,
++       content_state_t *p_content)
++ {
++@@ -1461,6 +1462,14 @@ static bool content_load(content_ctx_info_t *info,
++    if (!success)
++       return false;
++ 
+++   settings_t *settingss              = config_get_ptr();
+++   if (*original_video_driver && ! string_is_equal(settingss->arrays.video_driver, original_video_driver)){
+++       strlcpy(settingss->arrays.video_driver, original_video_driver, sizeof(settingss->arrays.video_driver));
+++       video_driver_reinit(0);
+++       RARCH_LOG("Frontend video driver back to %s\n", original_video_driver);
+++       *original_video_driver='\0';
+++   }
+++
++    if (p_content->flags & CONTENT_ST_FLAG_PENDING_SUBSYSTEM_INIT)
++    {
++       command_event(CMD_EVENT_CORE_INIT, NULL);

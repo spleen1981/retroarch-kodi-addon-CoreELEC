@@ -9,7 +9,7 @@ index fcbf383104..d16e939c30 100644
 +  if [ "${DEVICE}" = AMLGX ]; then
 +    PKG_CONFIGURE_OPTS_TARGET=${PKG_CONFIGURE_OPTS_TARGET//--enable-kms/--disable-kms}
 +    PKG_CONFIGURE_OPTS_TARGET=${PKG_CONFIGURE_OPTS_TARGET//--enable-cdrom/--disable-cdrom}
-+    PKG_CONFIGURE_OPTS_TARGET+=" --enable-mali_fbdev"
++    PKG_CONFIGURE_OPTS_TARGET+=" --enable-mali_fbdev --enable-opengles3 --enable-opengles3_1 --enable-opengles3_2 --enable-opengl_core"
 +  fi
    if [ ${DEVICE:0:4} = "RPi4" ] || [ ${DEVICE} = "RK3288" ] || [ "${DEVICE}" = "RK3399" ] || [ "${PROJECT}" = "Generic" ] || [ "${DEVICE}" = "Odin" ] || [ "${DEVICE}" = "RPi5" ]; then
      PKG_CONFIGURE_OPTS_TARGET+=" --enable-opengles3 \
