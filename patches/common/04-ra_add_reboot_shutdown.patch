@@ -17,3 +17,50 @@ index 0000000000..59e1168439
 +          CONFIG_ACTION(
 +                list, list_info,
 +                MENU_ENUM_LABEL_REBOOT,
+diff --git a/packages/lakka/retroarch_base/retroarch/patches/02-add_reboot_shutdown.patch b/packages/lakka/retroarch_base/retroarch/patches/02-add_reboot_shutdown.patch
+new file mode 100644
+index 0000000000..be69b8ca17
+--- /dev/null
++++ b/packages/lakka/retroarch_base/retroarch/patches/02-add_reboot_shutdown.patch
+@@ -0,0 +1,13 @@
++diff --git a/menu/menu_displaylist.c b/menu/menu_displaylist.c
++index e6062917ef..c7ffa669d3 100644
++--- a/menu/menu_displaylist.c
+++++ b/menu/menu_displaylist.c
++@@ -15159,7 +15159,7 @@ bool menu_displaylist_ctl(enum menu_displaylist_ctl_state type,
++                      count++;
++ #endif
++ 
++-#if defined(HAVE_LAKKA)
+++#if 1
++                if (settings->bools.menu_show_reboot)
++                   if (MENU_DISPLAYLIST_PARSE_SETTINGS_ENUM(info->list,
++                            MENU_ENUM_LABEL_REBOOT,
+diff --git a/packages/lakka/retroarch_base/retroarch/patches/03-mod_reboot_shutdown.patch b/packages/lakka/retroarch_base/retroarch/patches/03-mod_reboot_shutdown.patch
+new file mode 100644
+index 0000000000..13b1c667de
+--- /dev/null
++++ b/packages/lakka/retroarch_base/retroarch/patches/03-mod_reboot_shutdown.patch
+@@ -0,0 +1,22 @@
++diff --git a/retroarch.c b/retroarch.c
++index a7e5f5299f..41debd6abc 100644
++--- a/retroarch.c
+++++ b/retroarch.c
++@@ -4306,7 +4306,7 @@ bool command_event(enum event_command cmd, void *data)
++             system("nohup /usr/bin/lakka-shutdown.sh 2>&1 >/dev/null & exit");
++ #else
++             command_event(CMD_EVENT_QUIT, NULL);
++-            system("shutdown -P now");
+++            system("touch /tmp/ra_exit_shutdown");
++ #endif /* HAVE_LAKKA */
++ #endif
++          }
++@@ -4323,7 +4323,7 @@ bool command_event(enum event_command cmd, void *data)
++             system("nohup /usr/bin/lakka-reboot.sh 2>&1 >/dev/null & exit");
++ #else
++             command_event(CMD_EVENT_QUIT, NULL);
++-            system("shutdown -r now");
+++            system("touch /tmp/ra_exit_reboot");
++ #endif /* HAVE_LAKKA */
++ #endif
++          }
