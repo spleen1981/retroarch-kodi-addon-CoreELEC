@@ -5,7 +5,7 @@ index 6c8b2caed0..ca12febd96 100644
 @@ -1,5 +1,5 @@
  PKG_NAME="scummvm"
 -PKG_VERSION="8ce898dcc55e56b75b12ba2a5023bb062e918198"
-+PKG_VERSION="d12a42854ff422c59af0cadf6bcc5a043186c9d4"
++PKG_VERSION="55fcf4050ac1102638cd7975677f81ae1a2c2070"
  PKG_LICENSE="GPLv3"
  PKG_SITE="https://github.com/libretro/scummvm"
  PKG_URL="${PKG_SITE}.git"
