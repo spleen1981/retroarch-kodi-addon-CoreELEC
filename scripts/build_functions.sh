@@ -527,6 +527,8 @@ customize_retroarch(){
 	sed -i "s|^.*video_threaded =.*|video_threaded = \"false\"|g" $CFG
 	sed -i "s|^.*menu_core_enable =.*|menu_core_enable = \"true\"|g" $CFG
 	sed -i "s|^.*xmb_alpha_factor =.*|xmb_alpha_factor = \"100\"|g" $CFG
+	sed -i "s|^.*video_driver =.*|video_driver = \"glcore\"|g" $CFG
+	sed -i "s|^.*audio_driver =.*|audio_driver = \"openal\"|g" $CFG
 	[ $? -eq 0 ] && echo -e "$ok" || { echo -e "$fail" ; exit_script 1 ; }
 	echo
 }
