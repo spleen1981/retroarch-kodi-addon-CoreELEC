@@ -130,16 +130,18 @@ setup_packages(){
 	LIBRETRO_CORES=" $LIBRETRO_CORES"
 
 	#Disable/enable specific cores from default list
-	LIBRETRO_CORES_ADD="same_cdi"
+	LIBRETRO_CORES_ADD=""
 	LIBRETRO_CORES_RM="mame"
 
 	#Disable specific cores per device/platform
 	if [ "$DEVICE" = "Amlogic-ng" ]; then
-		LIBRETRO_CORES_ADD="$LIBRETRO_CORES_ADD puae2021 mupen64plus"
-		LIBRETRO_CORES_RM="$LIBRETRO_CORES_RM puae mupen64plus_next kronos"
+		LIBRETRO_CORES_FALLBACK="flycast_xtreme"
+		LIBRETRO_CORES_ADD="$LIBRETRO_CORES_ADD puae2021 mupen64plus same_cdi"
+		LIBRETRO_CORES_RM="$LIBRETRO_CORES_FALLBACK $LIBRETRO_CORES_RM puae mupen64plus_next kronos"
 	elif [ "$DEVICE" = "Amlogic-no" ]; then
+		LIBRETRO_CORES_FALLBACK="same_cdi mupen64plus_next mupen64plus chailove"
 		LIBRETRO_CORES_ADD="$LIBRETRO_CORES_ADD puae2021"
-		LIBRETRO_CORES_RM="$LIBRETRO_CORES_RM puae chailove"
+		LIBRETRO_CORES_RM="$LIBRETRO_CORES_FALLBACK $LIBRETRO_CORES_RM puae"
 	fi
 
 	#Apply cores list modifications
@@ -246,7 +248,7 @@ EOF
 	echo
 
 	#Copying files from Lakka build to addon folders
-	echo "Copying packages:"
+	echo "Copying built packages:"
 	for suffix in $PKG_TYPES ; do
 		varname="PKG_SUBDIR_${suffix}"
 		path="${DISTRO_PACKAGES_SUBDIR}/${!varname}"
@@ -278,6 +280,41 @@ EOF
 	apply_patches revert
 	LAKKA_PATCHED=no
 	echo
+}
+
+add_fallback_precompiled_cores(){
+	if [ $DEVICE = "Amlogic-ng" ] ; then
+		sub_folder="arm7hf"
+	elif [ $DEVICE = "Amlogic-no" ] ; then
+		sub_folder="aarch64"
+	else
+		return 0
+	fi
+
+	FALLBACK_PRECOMPILED_CORES_DIR="${SCRIPT_DIR}/fallback-precompiled-cores"
+
+	#Copying files from Lakka build to addon folders
+	echo "Copying precompiled fallback packages:"
+	for package in $LIBRETRO_CORES_FALLBACK ; do
+		echo -ne "\t$package "
+		SRC="${FALLBACK_PRECOMPILED_CORES_DIR}/${sub_folder}/${package}_libretro.so.zip"
+		if [ -f "$SRC" ] ; then
+			unzip -q ${SRC} -d "${ADDON_DIR}/lib/libretro" &>>"$LOG"
+			[ $? -eq 0 ] && echo -e "$ok" || { echo -e "$fail" ; exit_script 1 ; }
+			maybe_add_fallback_precompiled_info ${package}
+		else
+			echo -e "$skip (zipped core not found)"
+			continue
+		fi
+	done
+	echo
+}
+
+maybe_add_fallback_precompiled_info(){
+	if [ $1 = "flycast_xtreme" ] ; then
+		cp -Rf "${ADDON_DIR}/lib/libretro/flycast_libretro.info" "${ADDON_DIR}/lib/libretro/flycast_xtreme_libretro.info" &>>"$LOG"
+		sed -i "s|Flycast|Flycast xtreme|g" "${ADDON_DIR}/lib/libretro/flycast_xtreme_libretro.info" &>>"$LOG"
+	fi
 }
 
 setup_addon(){

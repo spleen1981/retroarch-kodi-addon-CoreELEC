@@ -7,6 +7,7 @@ build(){
 	build_from_lakka
 	setup_addon
 	populating_addon
+	add_fallback_precompiled_cores
 	creating_new_files
 	customize_retroarch
 	apply_hook_function
