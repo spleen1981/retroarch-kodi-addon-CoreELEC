@@ -1,3 +1,14 @@
+v1.7.5
+ - Update Retroarch to 1.21.0
+ - Add glcore video driver support
+ - Set glcore/openal as default video/audio drivers
+ - Fix same_cdi core
+ - [Amlogic-ng] add Flycast 'xtreme' core
+ - [Amlogic-no] Fix Mupenplus_next core
+ - [Amlogic-no] Add Mupenplus core
+ - [Amlogic-no] Add back Chailove core
+ - Update ScummVM core to latest
+
 v1.7.4
  - Update Retroarch to 1.20.0
  - Fix missing libfmt
