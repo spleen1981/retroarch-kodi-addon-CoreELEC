@@ -1,3 +1,6 @@
 [submodule "Lakka-LibreELEC"]
 	path = Lakka-LibreELEC
 	url = https://github.com/libretro/Lakka-LibreELEC
+[submodule "fallback-precompiled-cores"]
+	path = fallback-precompiled-cores
+	url = https://github.com/spleen1981/retroarch-arm-aarch64-precompiled-cores
