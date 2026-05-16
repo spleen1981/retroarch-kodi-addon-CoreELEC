@@ -1,0 +1,85 @@
+diff --git a/packages/lakka/libretro_cores/ecwolf/package.mk b/packages/lakka/libretro_cores/ecwolf/package.mk
+index 2278330721..fb41cfa593 100644
+--- a/packages/lakka/libretro_cores/ecwolf/package.mk
++++ b/packages/lakka/libretro_cores/ecwolf/package.mk
+@@ -1,5 +1,5 @@
+ PKG_NAME="ecwolf"
+-PKG_VERSION="c57ad894d5942740b4896511e8554c9a776b04a6"
++PKG_VERSION="cdba5cd4889ff219bae341dbfdcd1f08b560e96b"
+ PKG_LICENSE="Unknown"
+ PKG_SITE="https://github.com/libretro/ecwolf"
+ PKG_URL="${PKG_SITE}.git"
+diff --git a/packages/lakka/libretro_cores/kronos/patches/kronos-gles_compat.patch b/packages/lakka/libretro_cores/kronos/patches/kronos-gles_compat.patch
+deleted file mode 100644
+index 887adba277..0000000000
+--- a/packages/lakka/libretro_cores/kronos/patches/kronos-gles_compat.patch
++++ /dev/null
+@@ -1,68 +0,0 @@
+-diff --git a/yabause/src/core/video/opengl/common/include/ygl.h b/yabause/src/core/video/opengl/common/include/ygl.h
+-index eef1291..94304b8 100644
+---- a/yabause/src/core/video/opengl/common/include/ygl.h
+-+++ b/yabause/src/core/video/opengl/common/include/ygl.h
+-@@ -197,7 +197,7 @@ extern PFNGLMEMORYBARRIERPROC glMemoryBarrier;
+-         #include <GL/gl.h>
+-     #endif
+-     #if defined(_OGLES3_)
+--        #include <GLES3/gl3.h>
+-+        #include <GLES3/gl31.h>
+-     #endif
+-     #if defined(_OGLES31_)
+-         #include <GLES3/gl31.h>
+-diff --git a/yabause/src/core/video/opengl/compute_shader/src/_gles_compat.h b/yabause/src/core/video/opengl/compute_shader/src/_gles_compat.h
+-new file mode 100644
+-index 0000000..1968d02
+---- /dev/null
+-+++ b/yabause/src/core/video/opengl/compute_shader/src/_gles_compat.h
+-@@ -0,0 +1,24 @@
+-+#ifndef __VIDCS_GLES_COMPAT_H__
+-+#define __VIDCS_GLES_COMPAT_H__
+-+
+-+#include <GLES3/gl31.h>
+-+
+-+/* glGetTexImage non esiste in OpenGL ES. Lo emuliamo via FBO + glReadPixels. */
+-+#undef glGetTexImage
+-+#define glGetTexImage(target, level, format, type, pixels) do { \
+-+    GLint  __cur = 0, __pfbo = 0, __tw = 0, __th = 0; \
+-+    GLuint __fbo = 0; \
+-+    glGetIntegerv(GL_TEXTURE_BINDING_2D, &__cur); \
+-+    glGetIntegerv(GL_FRAMEBUFFER_BINDING, &__pfbo); \
+-+    glGetTexLevelParameteriv((target), (level), GL_TEXTURE_WIDTH,  &__tw); \
+-+    glGetTexLevelParameteriv((target), (level), GL_TEXTURE_HEIGHT, &__th); \
+-+    glGenFramebuffers(1, &__fbo); \
+-+    glBindFramebuffer(GL_FRAMEBUFFER, __fbo); \
+-+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, \
+-+                           (target), (GLuint)__cur, (level)); \
+-+    glReadPixels(0, 0, __tw, __th, (format), (type), (pixels)); \
+-+    glBindFramebuffer(GL_FRAMEBUFFER, __pfbo); \
+-+    glDeleteFramebuffers(1, &__fbo); \
+-+} while (0)
+-+
+-+#endif
+-diff --git a/yabause/src/core/video/opengl/compute_shader/src/vidcs.c b/yabause/src/core/video/opengl/compute_shader/src/vidcs.c
+-index 7b1e05c..d654fc0 100644
+---- a/yabause/src/core/video/opengl/compute_shader/src/vidcs.c
+-+++ b/yabause/src/core/video/opengl/compute_shader/src/vidcs.c
+-@@ -35,6 +35,7 @@
+- #include "yabause.h"
+- #include "ygl.h"
+- #include "yui.h"
+-+#include "_gles_compat.h"
+- #include "vdp1_compute.h"
+- 
+- #define Y_MAX(a, b) ((a) > (b) ? (a) : (b))
+-diff --git a/yabause/src/libretro/libretro-common/include/glsym/rglgen_private_headers.h b/yabause/src/libretro/libretro-common/include/glsym/rglgen_private_headers.h
+-index 2b5e520..c0828a8 100644
+---- a/yabause/src/libretro/libretro-common/include/glsym/rglgen_private_headers.h
+-+++ b/yabause/src/libretro/libretro-common/include/glsym/rglgen_private_headers.h
+-@@ -46,7 +46,7 @@
+- #include <PSGL/psgl.h>
+- #include <GLES/glext.h>
+- #elif defined(HAVE_OPENGL_MODERN)
+--#include <GL3/gl3.h>
+-+#include <GL3/gl31.h>
+- #include <GL3/gl3ext.h>
+- #elif defined(HAVE_OPENGLES3)
+- #include <GLES3/gl3.h>

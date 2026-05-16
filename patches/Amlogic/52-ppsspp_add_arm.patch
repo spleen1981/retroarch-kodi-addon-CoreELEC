@@ -1,0 +1,193 @@
+diff --git a/packages/lakka/libretro_cores/ppsspp/package.mk b/packages/lakka/libretro_cores/ppsspp/package.mk
+index 7d2d4251df..a66154efdd 100644
+--- a/packages/lakka/libretro_cores/ppsspp/package.mk
++++ b/packages/lakka/libretro_cores/ppsspp/package.mk
+@@ -18,6 +18,10 @@ PKG_CMAKE_OPTS_TARGET="-DLIBRETRO=ON \
+                        -DUSE_DISCORD=OFF \
+                        -DUSE_MINIUPNPC=OFF"
+ 
++if [ "${PROJECT}" = "Amlogic" ]; then
++  PKG_CMAKE_OPTS_TARGET+=" -DUSING_FBDEV=ON"
++fi
++
+ # for future compatibility - in case other platforms will use system ffmpeg
+ if [ "${PROJECT}" = "L4T" -a "${DEVICE}" = "Switch" ]; then
+   PKG_CMAKE_OPTS_TARGET=${PKG_CMAKE_OPTS_TARGET//-DUSE_SYSTEM_FFMPEG=ON/-DUSE_SYSTEM_FFMPEG=OFF}
+@@ -57,11 +61,20 @@ elif [ "${TARGET_ARCH}" = "aarch64" ]; then
+   PKG_CMAKE_OPTS_TARGET+=" -DFORCED_CPU=aarch64"
+ fi
+ 
++pre_configure_target() {
++  case "${TARGET_ARCH}" in
++    aarch64)
++      . ${PKG_BUILD}/ffmpeg/linux_lakka.sh
++      PKG_CMAKE_OPTS_TARGET+=" -DFFMPEG_DIR=${PKG_BUILD}/ffmpeg/linux/aarch64"
++      ;;
++    arm)
++      . ${PKG_BUILD}/ffmpeg/linux_lakka.sh
++      PKG_CMAKE_OPTS_TARGET+=" -DFFMPEG_DIR=${PKG_BUILD}/ffmpeg/linux/armv7"
++      ;;
++  esac
++}
++
+ pre_make_target() {
+-  # This script should work on any board that has issues with system ffmpeg in ppsspp
+-  if [ "${ARCH}" = "aarch64" ]; then
+-    . ${PKG_BUILD}/ffmpeg/linux_lakka.sh
+-  fi
+   find ${PKG_BUILD} -name flags.make -exec sed -i "s:isystem :I:g" \{} \;
+   find ${PKG_BUILD} -name build.ninja -exec sed -i "s:isystem :I:g" \{} \;
+ }
+diff --git a/packages/lakka/libretro_cores/ppsspp/patches/02-fix-ffmpeg-atomics.patch b/packages/lakka/libretro_cores/ppsspp/patches/02-fix-ffmpeg-atomics.patch
+index 3685e692ae..1eb4b8af21 100644
+--- a/packages/lakka/libretro_cores/ppsspp/patches/02-fix-ffmpeg-atomics.patch
++++ b/packages/lakka/libretro_cores/ppsspp/patches/02-fix-ffmpeg-atomics.patch
+@@ -1,42 +1,11 @@
+ diff -Naur ppsspp-d18dea4f6a8064fef7b8a36c3eaf1012e6b25d9c/ffmpeg/linux_lakka.sh ppsspp-d18dea4f6a8064fef7b8a36c3eaf1012e6b25d9c-2/ffmpeg/linux_lakka.sh
+ --- ppsspp-d18dea4f6a8064fef7b8a36c3eaf1012e6b25d9c/ffmpeg/linux_lakka.sh	1970-01-01 01:00:00.000000000 +0100
+-+++ ppsspp-d18dea4f6a8064fef7b8a36c3eaf1012e6b25d9c-2/ffmpeg/linux_lakka.sh	2023-09-30 21:39:12.419941225 +0200
+-@@ -0,0 +1,130 @@
+++++ ppsspp-d18dea4f6a8064fef7b8a36c3eaf1012e6b25d9c-2/ffmpeg/linux_lakka.sh	2026-05-15 02:50:00.000000000 +0200
++@@ -0,0 +1,108 @@
+ +#!/bin/bash
+ +
+ +set -e
+ +
+-+#GENERAL="\
+-+#   --enable-cross-compile \
+-+#   --extra-libs="-lgcc" \
+-+#   --arch=aarch64 \
+-+#   --cc=aarch64-linux-gnu-gcc \
+-+#   --cross-prefix=aarch64-linux-gnu- \
+-+#   --nm=aarch64-linux-gnu-gcc-nm"
+-+
+-+GENERAL="\
+-+             --cpu=${TARGET_CPU} \
+-+              --arch=${TARGET_ARCH} \
+-+              --enable-cross-compile \
+-+              --sysinclude=${SYSROOT_PREFIX}/usr/include \
+-+              --nm=${NM} \
+-+              --ar=${AR} \
+-+              --as=${CC} \
+-+              --cc=${CC} \
+-+              --ld=${CC} \
+-+              --host-cc=${HOST_CC} \
+-+              --extra-libs=-lgcc"
+-+
+-+#GENERAL="--cpu="cortex-a57" --arch="aarch64" --enable-cross-compile --sysinclude="/home/gavin/Lakka-LibreELEC/build.Lakka-Switch.aarch64-5.0-devel/toolchain/aarch64-libreelec-linux-gnu/sysroot/usr/include" --nm="/home/gavin/Lakka-LibreELEC/build.Lakka-Switch.aarch64-5.0-devel/toolchain/bin/aarch64-libreelec-linux-gnu-nm" --ar="/home/gavin/Lakka-LibreELEC/build.Lakka-Switch.aarch64-5.0-devel/toolchain/bin/aarch64-libreelec-linux-gnu-ar" --as="/home/gavin/Lakka-LibreELEC/build.Lakka-Switch.aarch64-5.0-devel/toolchain/bin/aarch64-libreelec-linux-gnu-gcc" --cc="/home/gavin/Lakka-LibreELEC/build.Lakka-Switch.aarch64-5.0-devel/toolchain/bin/aarch64-libreelec-linux-gnu-gcc" --ld="/home/gavin/Lakka-LibreELEC/build.Lakka-Switch.aarch64-5.0-devel/toolchain/bin/aarch64-libreelec-linux-gnu-gcc" --host-cc="/home/gavin/Lakka-LibreELEC/build.Lakka-Switch.aarch64-5.0-devel/toolchain/bin/host-gcc" --extra-libs="-lgcc""
+-+
+-+#~ GENERAL="\
+-+   #~ --enable-cross-compile \
+-+   #~ --extra-libs="-lgcc" \
+-+   #~ --arch=arm \
+-+   #~ --cc=arm-linux-gnueabi-gcc \
+-+   #~ --cross-prefix=arm-linux-gnueabi- \
+-+   #~ --nm=arm-linux-gnueabi-nm"
+-+
+ +MODULES="\
+ +   --disable-avdevice \
+ +   --disable-filters \
+@@ -64,7 +33,7 @@ diff -Naur ppsspp-d18dea4f6a8064fef7b8a36c3eaf1012e6b25d9c/ffmpeg/linux_lakka.sh
+ +    --enable-decoder=mp3 \
+ +    --enable-decoder=pcm_s16le \
+ +    --enable-decoder=pcm_s8"
+-+  
+++
+ +DEMUXERS="\
+ +    --enable-demuxer=h264 \
+ +    --enable-demuxer=m4v \
+@@ -80,16 +49,15 @@ diff -Naur ppsspp-d18dea4f6a8064fef7b8a36c3eaf1012e6b25d9c/ffmpeg/linux_lakka.sh
+ +    --enable-demuxer=wav"
+ +
+ +VIDEO_ENCODERS="\
+-+	  --enable-encoder=huffyuv \
+-+	  --enable-encoder=ffv1 \
+-+	  --enable-encoder=mjpeg"
+++   --enable-encoder=huffyuv \
+++   --enable-encoder=ffv1 \
+++   --enable-encoder=mjpeg"
+ +
+ +AUDIO_ENCODERS="\
+-+	  --enable-encoder=pcm_s16le"
+++   --enable-encoder=pcm_s16le"
+ +
+ +MUXERS="\
+-+  	  --enable-muxer=avi"
+-+
+++   --enable-muxer=avi"
+ +
+ +PARSERS="\
+ +    --enable-parser=h264 \
+@@ -99,36 +67,47 @@ diff -Naur ppsspp-d18dea4f6a8064fef7b8a36c3eaf1012e6b25d9c/ffmpeg/linux_lakka.sh
+ +    --enable-parser=aac \
+ +    --enable-parser=aac_latm"
+ +
+++case "${TARGET_ARCH}" in
+++  aarch64)
+++    FF_SUBDIR="aarch64"
+++    FF_ARCH="aarch64"
+++    EXTRA_CFLAGS=" -O3 -fasm -Wno-psabi -mno-outline-atomics -fno-short-enums -fno-strict-aliasing -finline-limit=300 "
+++    ;;
+++  arm)
+++    FF_SUBDIR="armv7"
+++    FF_ARCH="arm"
+++    EXTRA_CFLAGS=" -O3 -fasm -Wno-psabi -fno-short-enums -fno-strict-aliasing -finline-limit=300 -marm "
+++    ;;
+++  *)
+++    echo "linux_lakka.sh: unsupported TARGET_ARCH=${TARGET_ARCH}" >&2
+++    exit 1
+++    ;;
+++esac
+++
+++GENERAL="\
+++  --cpu=${TARGET_CPU} \
+++  --arch=${FF_ARCH} \
+++  --enable-cross-compile \
+++  --sysinclude=${SYSROOT_PREFIX}/usr/include \
+++  --nm=${NM} --ar=${AR} --as=${CC} --cc=${CC} --ld=${CC} \
+++  --host-cc=${HOST_CC} \
+++  --extra-libs=-lgcc"
+++
+++ORIG_PWD="$(pwd)"
+++cd "${PKG_BUILD}/ffmpeg"
+ +
+-+function build_ARM64
+-+{
+-+PWD="$(pwd)"
+-+ORIG_PWD="${PWD}"
+-+cd ${PKG_BUILD}/ffmpeg
+ +./configure --target-os=linux \
+-+    --prefix=./linux/aarch64 \
+++    --prefix=./linux/${FF_SUBDIR} \
+ +    ${GENERAL} \
+-+    --extra-cflags=" -O3 -fasm -Wno-psabi -mno-outline-atomics -fno-short-enums -fno-strict-aliasing -finline-limit=300 " \
+-+    --disable-shared \
+-+    --enable-static \
+-+    --enable-zlib \
+-+    --enable-pic \
+++    --extra-cflags="${EXTRA_CFLAGS}" \
+++    --disable-shared --enable-static --enable-zlib --enable-pic \
+ +    --disable-everything \
+-+    ${MODULES} \
+-+    ${VIDEO_DECODERS} \
+-+    ${AUDIO_DECODERS} \
+-+    ${VIDEO_ENCODERS} \
+-+    ${AUDIO_ENCODERS} \
+-+    ${DEMUXERS} \
+-+    ${MUXERS} \
+-+    ${PARSERS}
+++    ${MODULES} ${VIDEO_DECODERS} ${AUDIO_DECODERS} \
+++    ${VIDEO_ENCODERS} ${AUDIO_ENCODERS} \
+++    ${DEMUXERS} ${MUXERS} ${PARSERS}
+++
+ +make clean
+ +make install
+ +cd "${ORIG_PWD}"
+-+PWD=""
+-+ORIG_PWD=""
+-+}
+-+
+-+build_ARM64
+ +
+-+echo Linux ARM64 build finished
+++echo "Linux ${FF_SUBDIR} build finished"

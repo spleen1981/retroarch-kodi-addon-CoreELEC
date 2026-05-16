@@ -1,22 +1,22 @@
 diff --git a/packages/lakka/libretro_cores/scummvm/package.mk b/packages/lakka/libretro_cores/scummvm/package.mk
-index ca12febd96..8fd0a44977 100644
+index 16b2193106..556e07273c 100644
 --- a/packages/lakka/libretro_cores/scummvm/package.mk
 +++ b/packages/lakka/libretro_cores/scummvm/package.mk
-@@ -3,18 +3,19 @@ PKG_VERSION="e1a7e2931877937a04e55f45a9eec6e6f7d471ff"
+@@ -3,18 +3,19 @@ PKG_VERSION="c9e94a9d7417119c94f4a3b21f4284c3dda926e2"
  PKG_LICENSE="GPLv3"
  PKG_SITE="https://github.com/libretro/scummvm"
  PKG_URL="${PKG_SITE}.git"
 -PKG_DEPENDS_TARGET="toolchain curl fluidsynth flac libvorbis zlib faad2 freetype"
 +PKG_DEPENDS_TARGET="toolchain curl zlib freetype"
- PKG_SHORTDESC="The ScummVM adventure game engine ported to libretro."
- PKG_LONGDESC="ScummVM is a program which allows you to run certain classic graphical point-and-click adventure games, provided you already have their data files."
+ PKG_LONGDESC="ScummVM with libretro backend."
  PKG_TOOLCHAIN="make"
  
- PKG_MAKE_OPTS_TARGET="USE_CLOUD=1 \
--                      USE_SYSTEM_fluidsynt=1 \
+ PKG_MAKE_OPTS_TARGET="all \
+                       USE_CLOUD=1 \
+-                      USE_SYSTEM_fluidsynth=1 \
 -                      USE_SYSTEM_FLAC=1 \
 -                      USE_SYSTEM_vorbis=1 \
-+                      USE_SYSTEM_fluidsynt=0 \
++                      USE_SYSTEM_fluidsynth=0 \
 +                      USE_SYSTEM_FLAC=0 \
 +                      USE_SYSTEM_vorbis=0 \
                        USE_SYSTEM_z=1 \
@@ -27,4 +27,4 @@ index ca12febd96..8fd0a44977 100644
 +                      FORCE_OPENGLES2=1"
  
  pre_make_target() {
-   if [ "${DEVICE}" = "OdroidGoAdvance" ]; then
+   PKG_MAKE_OPTS_TARGET+=" -C ${PKG_BUILD}/backends/platform/libretro"

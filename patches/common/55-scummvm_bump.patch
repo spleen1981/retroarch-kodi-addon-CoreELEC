@@ -1,11 +1,11 @@
 diff --git a/packages/lakka/libretro_cores/scummvm/package.mk b/packages/lakka/libretro_cores/scummvm/package.mk
-index 6c8b2caed0..ca12febd96 100644
+index 16b2193106..78e2d44750 100644
 --- a/packages/lakka/libretro_cores/scummvm/package.mk
 +++ b/packages/lakka/libretro_cores/scummvm/package.mk
 @@ -1,5 +1,5 @@
  PKG_NAME="scummvm"
--PKG_VERSION="8ce898dcc55e56b75b12ba2a5023bb062e918198"
-+PKG_VERSION="55fcf4050ac1102638cd7975677f81ae1a2c2070"
+-PKG_VERSION="c9e94a9d7417119c94f4a3b21f4284c3dda926e2"
++PKG_VERSION="660e13b0764fe2be39b6d723345ecabfbb318cc5"
  PKG_LICENSE="GPLv3"
  PKG_SITE="https://github.com/libretro/scummvm"
  PKG_URL="${PKG_SITE}.git"

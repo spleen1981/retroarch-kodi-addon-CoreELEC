@@ -1,5 +1,5 @@
 diff --git a/packages/lakka/retroarch_base/retroarch/package.mk b/packages/lakka/retroarch_base/retroarch/package.mk
-index bccb5787ba..f6e58236de 100644
+index a49190f1a6..fa73b328cc 100644
 --- a/packages/lakka/retroarch_base/retroarch/package.mk
 +++ b/packages/lakka/retroarch_base/retroarch/package.mk
 @@ -7,7 +7,7 @@ PKG_DEPENDS_TARGET="toolchain freetype zlib ffmpeg libass libvdpau libxkbcommon
@@ -9,5 +9,5 @@ index bccb5787ba..f6e58236de 100644
 -PKG_CONFIGURE_OPTS_TARGET="--disable-vg \
 +PKG_CONFIGURE_OPTS_TARGET="--disable-update_cores --disable-vg --enable-al --disable-ffmpeg \
                             --disable-sdl \
-                            --disable-sdl2 \
-                            --disable-ssl \
+                            --enable-sdl2 \
+                            --enable-zlib \

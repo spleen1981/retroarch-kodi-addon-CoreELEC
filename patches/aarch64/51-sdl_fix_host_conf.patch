@@ -1,0 +1,39 @@
+diff --git a/packages/lakka/lakka_depends/SDL/package.mk b/packages/lakka/lakka_depends/SDL/package.mk
+index f81eaa7c1f..c975c410c3 100644
+--- a/packages/lakka/lakka_depends/SDL/package.mk
++++ b/packages/lakka/lakka_depends/SDL/package.mk
+@@ -76,7 +76,33 @@ PKG_CONFIGURE_OPTS_TARGET="--enable-shared \
+                            --disable-video-x11-xshape \
+                            --disable-video-x11-vm --without-x"
+ 
+-PKG_CONFIGURE_OPTS_HOST="${PKG_CONFIGURE_OPTS_TARGET}"
++PKG_CONFIGURE_OPTS_HOST="--disable-shared \
++                         --enable-static \
++                         --disable-debug \
++                         --disable-video \
++                         --disable-audio \
++                         --disable-alsa \
++                         --disable-alsatest \
++                         --disable-pulseaudio \
++                         --disable-esd \
++                         --disable-arts \
++                         --disable-nas \
++                         --disable-sndio \
++                         --disable-diskaudio \
++                         --disable-dummyaudio \
++                         --disable-oss \
++                         --disable-jack \
++                         --disable-x11 \
++                         --disable-video-x11 \
++                         --disable-video-directfb \
++                         --disable-video-fbcon \
++                         --disable-video-opengl \
++                         --disable-input-tslib \
++                         --disable-pthreads \
++                         --disable-cdrom \
++                         --disable-joystick \
++                         --disable-rpath \
++                         --without-x"
+ 
+ 
+ if [ "${OPENGL_SUPPORT}" = "yes" ]; then
