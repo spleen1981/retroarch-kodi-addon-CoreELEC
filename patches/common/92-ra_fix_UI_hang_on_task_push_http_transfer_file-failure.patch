@@ -1,0 +1,20 @@
+diff --git a/packages/lakka/retroarch_base/retroarch/patches/retroarch-1002-fix-UI-hang-on-task_push_http_transfer_file-failure.patch b/packages/lakka/retroarch_base/retroarch/patches/retroarch-1002-fix-UI-hang-on-task_push_http_transfer_file-failure.patch
+new file mode 100644
+index 0000000000..6c758ca589
+--- /dev/null
++++ b/packages/lakka/retroarch_base/retroarch/patches/retroarch-1002-fix-UI-hang-on-task_push_http_transfer_file-failure.patch
+@@ -0,0 +1,14 @@
++diff --git a/menu/cbs/menu_cbs_ok.c b/menu/cbs/menu_cbs_ok.c
++index 5283b0510c..6572626995 100644
++--- a/menu/cbs/menu_cbs_ok.c
+++++ b/menu/cbs/menu_cbs_ok.c
++@@ -5192,7 +5192,8 @@ static int generic_action_ok_network(const char *path,
++    strlcpy(transf->path, url_path, sizeof(transf->path));
++ 
++    net_http_urlencode_full(url_path_encoded, url_path, sizeof(url_path_encoded));
++-   task_push_http_transfer_file(url_path_encoded, suppress_msg, url_label, callback, transf);
+++   if (!task_push_http_transfer_file(url_path_encoded, suppress_msg, url_label, callback, transf))
+++      menu_st->flags &= ~MENU_ST_FLAG_ENTRIES_NONBLOCKING_REFRESH;
++ 
++    return generic_action_ok_displaylist_push(
++          path, NULL,
