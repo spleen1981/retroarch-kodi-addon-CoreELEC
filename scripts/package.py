@@ -1,32 +1,4 @@
-"""Packaging: assemble the addon dir, generate manifests, zip it up.
-
-Phases (each is a free function called from build.py):
-
-    move_artifacts           Move Lakka build output into the addon dir layout.
-    add_fallback_cores       Unzip pre-compiled cores from fallback-precompiled-cores/.
-    install_committed_source Copy `output/` (our Python source + templates),
-                             substitute placeholders in every `.in` file and
-                             drop the `.in` suffix.
-    emit_addon_xml           Fill in addon.xml.in with version / metadata / changelog.
-    emit_language_files      Emit one PO per language from `langdata.py`.
-    customize_retroarch_cfg  Rewrite path values in retroarch.cfg (legacy sed pipeline).
-    create_archive           Zip the addon dir and drop a `-LATEST.zip` symlink.
-
-Placeholder convention: every file that needs build-time substitution carries
-a `.in` suffix and uses `@TOKEN@` tokens  so the file can be read by tools.
-Files with a `.in` suffix are rendered at packaging time and shipped without the suffix;
-the `.in` source never ships.
-
-Two render stages exist:
-
-    * Eager (install_committed_source)  — files that only need `@ADDON_NAME@`
-      are rendered immediately after the copy. The unsuffixed name is what
-      ends up in the addon zip.
-    * Late  (emit_addon_xml)            — `addon.xml.in` needs metadata that
-      isn't known yet (version, provider, per-language summary blocks,
-      changelog) so it is left intact by the eager stage and rendered later
-      by its own dedicated phase.
-"""
+"""Packaging: assemble the addon dir, generate manifests, zip it up."""
 
 from __future__ import annotations
 

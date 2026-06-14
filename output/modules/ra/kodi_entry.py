@@ -86,6 +86,7 @@ def _launch_retroarch() -> None:
     from .system import run_detached
     lib_dir = paths.ADDON_DIR / "lib"
     bin_dir = paths.ADDON_DIR / "bin"
+    mod_dir = paths.ADDON_DIR / "modules"
     # PATH and LD_LIBRARY_PATH must point at the addon's bin/lib too — the
     # retroarch binary is dynamically linked against bundled libs in
     # $ADDON_DIR/lib (libretro cores, SDL/EGL helpers). systemd-run starts
@@ -94,7 +95,7 @@ def _launch_retroarch() -> None:
     shell_cmd = (
         f". /etc/profile && "
         f"oe_setup_addon {paths.ADDON_NAME} && "
-        f'PYTHONPATH="{lib_dir}${{PYTHONPATH:+:$PYTHONPATH}}" '
+        f'PYTHONPATH="{mod_dir}${{PYTHONPATH:+:$PYTHONPATH}}" '
         f'PATH="{bin_dir}:$PATH" '
         f'LD_LIBRARY_PATH="{lib_dir}${{LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}}" '
         f"exec python3 -m ra start"

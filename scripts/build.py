@@ -196,7 +196,7 @@ def _setup_addon_dir(cfg: BuildConfig) -> None:
     """Wipe and re-create the per-device staging directory."""
     if cfg.addon_dir.exists():
         shutil.rmtree(cfg.addon_dir)
-    for sub in ("", "config", "resources", "bin", "lib"):
+    for sub in ("", "config", "resources", "bin", "lib", "modules"):
         (cfg.addon_dir / sub).mkdir(parents=True, exist_ok=True)
 
 

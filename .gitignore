@@ -2,6 +2,7 @@ build/
 build
 retroarch_work/
 __pycache__/
+.idea/
 local.conf
 *.swp
 *~
