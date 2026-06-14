@@ -1,0 +1,26 @@
+diff --git a/packages/virtual/gbm/package.mk b/packages/virtual/gbm/package.mk
+new file mode 100644
+index 0000000000..217df65ec9
+--- /dev/null
++++ b/packages/virtual/gbm/package.mk
+@@ -0,0 +1,20 @@
++# SPDX-License-Identifier: GPL-2.0
++# Copyright (C) 2026-present Team LibreELEC (https://libreelec.tv)
++
++PKG_NAME="gbm"
++PKG_VERSION="0"
++PKG_LICENSE="OSS"
++PKG_URL=""
++PKG_DEPENDS_TARGET="toolchain mesa"
++PKG_SECTION="virtual"
++PKG_LONGDESC="Base packages for running on GBM"
++
++# NVIDIA drivers for Linux
++if listcontains "${GRAPHIC_DRIVERS}" "nvidia-ng"; then
++  PKG_DEPENDS_TARGET+=" nvidia"
++fi
++
++PKG_INSTALL=$BUILD/install_pkg/${PKG_NAME}-${PKG_VERSION}
++mkdir -p $PKG_INSTALL/usr/lib/
++cp -P $(get_install_dir mesa)/usr/lib/libgbm.so* \
++      $PKG_INSTALL/usr/lib/ 2>/dev/null
