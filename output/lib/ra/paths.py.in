@@ -1,0 +1,127 @@
+"""Central path resolution for the RetroArch Kodi add-on.
+
+Two execution contexts must be supported:
+
+1. Inside Kodi (default.py invoked by the Kodi UI) — xbmcaddon is available
+   and exposes the addon installation path via Addon.getAddonInfo('path').
+
+2. Outside Kodi (systemd-run units, boot-time autostart) — xbmcaddon is not
+   importable. Paths must be derived from $ADDON_DIR / $ADDON_HOME exported by
+   the autostart shim, or from well-known CoreELEC locations as a last resort.
+
+Resolution order, per path:
+    1. explicit environment variable (set by shim or systemd)
+    2. xbmcaddon lookup (only when Kodi context is available)
+    3. derived from $HOME and the compile-time ADDON_NAME
+
+ADDON_NAME is templated by the build script at packaging time. The placeholder
+@ADDON_NAME@ is replaced by the addon id (e.g. script.retroarch.launcher.Amlogic-ng.arm).
+"""
+
+from __future__ import annotations
+
+import os
+from pathlib import Path
+
+ADDON_NAME: str = "@ADDON_NAME@"
+
+
+def _from_env(name: str) -> Path | None:
+    value = os.environ.get(name)
+    return Path(value) if value else None
+
+
+def _from_kodi_addon() -> Path | None:
+    try:
+        import xbmcaddon  # type: ignore[import-not-found]
+    except ImportError:
+        return None
+    try:
+        return Path(xbmcaddon.Addon(id=ADDON_NAME).getAddonInfo("path"))
+    except Exception:
+        return None
+
+
+def _home() -> Path:
+    return Path(os.environ.get("HOME", "/storage"))
+
+
+def _resolve_addon_dir() -> Path:
+    return (
+        _from_env("ADDON_DIR")
+        or _from_kodi_addon()
+        or _home() / ".kodi" / "addons" / ADDON_NAME
+    )
+
+
+def _resolve_addon_home() -> Path:
+    return (
+        _from_env("ADDON_HOME")
+        or _home() / ".kodi" / "userdata" / "addon_data" / ADDON_NAME
+    )
+
+
+ADDON_DIR: Path = _resolve_addon_dir()
+ADDON_HOME: Path = _resolve_addon_home()
+
+BIN_DIR: Path = ADDON_DIR / "bin"
+LIB_DIR: Path = ADDON_DIR / "lib"
+CONFIG_DIR: Path = ADDON_DIR / "config"
+RESOURCES_DIR: Path = ADDON_DIR / "resources"
+
+ICON: Path = RESOURCES_DIR / "icon.png"
+FANART: Path = RESOURCES_DIR / "fanart.jpg"
+
+SETTINGS_FILE: Path = ADDON_HOME / "settings.xml"
+SETTINGS_DEFAULTS_FILE: Path = ADDON_DIR / "settings-default.xml"
+
+RA_BIN: Path = BIN_DIR / "retroarch"
+RA_DEFAULT_CFG: Path = CONFIG_DIR / "retroarch.cfg"
+
+# First-run flag lives in ADDON_HOME (userdata) so it survives a self-update,
+# which wipes ADDON_DIR. The legacy location is migrated by `firstrun`.
+FIRST_RUN_FLAG: Path = ADDON_HOME / "first_run_done"
+FIRST_RUN_FLAG_LEGACY: Path = CONFIG_DIR / "first_run_done"
+
+# Marker dropped by the installer right before it asks systemd to restart
+# Kodi. The next successful start of the addon clears it (and removes the
+# `<addon>.old` backup directory). Missing marker after a restart = the
+# update failed and the backup should be left in place for manual rollback.
+UPDATE_PENDING_FLAG: Path = ADDON_HOME / "update_pending"
+
+RA_CONFIG_DIR: Path = _home() / ".config" / "retroarch"
+RA_CONFIG_FILE: Path = RA_CONFIG_DIR / "retroarch.cfg"
+RA_CONFIG_SUBDIRS: tuple[str, ...] = (
+    "savestates", "savefiles", "remappings", "playlists", "thumbnails",
+    "system", "assets", "joypads", "shaders", "database", "overlays",
+)
+
+ROMS_FOLDER: Path = _home() / "roms"
+ROMS_DOWNLOADS: Path = ROMS_FOLDER / "downloads"
+
+KODI_GUI_SETTINGS: Path = _home() / ".kodi" / "userdata" / "guisettings.xml"
+
+# CoreELEC's user-level autostart hook. The system unit
+# `/usr/lib/systemd/system/kodi-autostart.service` invokes this file via a
+# `sh -c` wrapper at boot if it exists and is executable.
+KODI_AUTOSTART_SH: Path = _home() / ".config" / "autostart.sh"
+
+DISPLAY_MODE: Path = Path("/sys/class/display/mode")
+
+LOG_DIR: Path = ADDON_HOME / "logs"
+LOG_FILE: Path = LOG_DIR / "retroarch.log"
+LOG_FILE_OLD: Path = LOG_DIR / "retroarch.log.old"
+SHUTDOWN_FLAG: Path = Path("/tmp/ra_exit_shutdown")
+REBOOT_FLAG: Path = Path("/tmp/ra_exit_reboot")
+UPDATER_TMP: Path = Path("/tmp/ra_updater.start")
+UPDATE_DOWNLOAD_DIR: Path = Path("/tmp")
+
+
+def ensure_runtime_dirs() -> None:
+    """Create the runtime directories owned by the user. Idempotent."""
+    ADDON_HOME.mkdir(parents=True, exist_ok=True)
+    RA_CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    ROMS_FOLDER.mkdir(parents=True, exist_ok=True)
+    ROMS_DOWNLOADS.mkdir(parents=True, exist_ok=True)
+    for sub in RA_CONFIG_SUBDIRS:
+        (RA_CONFIG_DIR / sub).mkdir(parents=True, exist_ok=True)

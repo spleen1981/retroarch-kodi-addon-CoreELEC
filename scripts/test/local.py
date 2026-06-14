@@ -1,0 +1,14 @@
+"""Local credentials for the test scripts. Copy to `local.py` and edit.
+
+`local.py` is gitignored. Keep the secrets out of source control.
+"""
+
+# Device under test (running CoreELEC + the addon).
+REMOTE_IP: str = "192.168.1.105"
+REMOTE_USER: str = "root"
+REMOTE_PASSWORD: str = "coreelec"
+
+# Optional: override where ra_debug.py looks for the RetroArch checkout
+# whose `git diff` becomes the debug patch. Defaults to ../RetroArch
+# relative to the repo root.
+# RETROARCH_SRC_DIR: str = "/path/to/RetroArch"

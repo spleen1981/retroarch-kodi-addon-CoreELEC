@@ -1,9 +1,8 @@
 build/
 build
-tmp_test_files
 retroarch_work/
+__pycache__/
 local.conf
 *.swp
 *~
 *.log
-*_debug.sh

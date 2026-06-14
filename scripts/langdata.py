@@ -1,0 +1,243 @@
+"""i18n source of truth for the build pipeline.
+
+Two consumers:
+
+    * `package.emit_addon_xml`   uses `translate(id, lang, ...)` to fill the
+                                 <summary>/<description>/<disclaimer> tags
+                                 (ids 0, 1, 2).
+    * `package.emit_language_files` iterates `entries()` to produce one
+                                 strings.po per language under
+                                 resources/language/.
+
+PO files are generated at packaging time and dropped into the
+addon dir.
+
+Placeholder convention: strings with `${RA_NAME_SUFFIX}` are substituted at
+render time. Anything else is literal.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Iterator
+
+
+LANGUAGES: tuple[str, ...] = (
+    "en_gb", "es_es", "cs_cz", "it_it",
+    "zh_cn", "sk_sk", "pt_br", "de_de",
+)
+
+
+@dataclass(frozen=True)
+class Entry:
+    """One translatable string with a context tag and per-language values.
+
+    `ctx` is what lands in the PO file as `msgctxt`. For numeric ids it is
+    `#NNNNN` (Kodi convention); for the three addon.xml metadata strings
+    (Summary / Description / Disclaimer) it is the human-readable label.
+    """
+    msg_id: int
+    ctx: str
+    translations: dict  # lang_code -> raw string
+
+    def text(self, lang_code: str, *, ra_name_suffix: str = "") -> str:
+        """Return the translation for `lang_code`, substituting placeholders.
+
+        Returns "" for languages with no translation — callers that want
+        en_gb fallback should call `translate()` instead.
+        """
+        raw = self.translations.get(lang_code, "")
+        return raw.replace("${RA_NAME_SUFFIX}", ra_name_suffix)
+
+
+def translate(msg_id: int, lang_code: str, *, ra_name_suffix: str = "") -> str:
+    """Render entry `msg_id` for `lang_code` with en_gb fallback.
+
+    Used by `emit_addon_xml` so a missing translation doesn't leave an
+    empty tag in addon.xml.
+    """
+    entry = _BY_ID.get(msg_id)
+    if entry is None:
+        return ""
+    if lang_code in entry.translations:
+        return entry.text(lang_code, ra_name_suffix=ra_name_suffix)
+    return entry.text("en_gb", ra_name_suffix=ra_name_suffix)
+
+
+def entries() -> Iterator[Entry]:
+    """Yield every entry in id order (addon.xml metadata first, labels after)."""
+    return iter(_ENTRIES)
+
+
+# =================================================================== data ==
+
+# Order matters: ids 0/1/2 first (with named ctx), then numeric labels with
+# `#NNNNN` ctx. Listed in source-file order so a diff against the legacy
+# `01-def_lang.sh` is easy to read.
+
+_ENTRIES: tuple[Entry, ...] = (
+    Entry(0, "Addon Summary", {
+        "en_gb": "RetroArch add-on for Kodi (${RA_NAME_SUFFIX}). RetroArch is a frontend for emulators, game engines and media players.",
+        "es_es": "Complemento RetroArch para Kodi (${RA_NAME_SUFFIX}). RetroArch es una interfaz para emuladores, motores de juego y reproductores multimedia.",
+        "cs_cz": "Doplněk RetroArch pro Kodi (${RA_NAME_SUFFIX}). RetroArch je frontend pro emulátory, herní enginy a přehrávače médií.",
+        "it_it": "RetroArch add-on per Kodi (${RA_NAME_SUFFIX}). RetroArch è un frontend per emulatori, giochi e media player.",
+        "sk_sk": "Doplnok RetroArch pre Kodi (${RA_NAME_SUFFIX}). RetroArch je frontend pre emulátory, herné enginy a prehrávače médií.",
+        "zh_cn": "Kodi (${RA_NAME_SUFFIX}) 的 RetroArch 附加组件。RetroArch 是一个模拟器、游戏引擎和媒体播放器的前端。",
+        "pt_br": "Add-on RetroArch para Kodi (${RA_NAME_SUFFIX}). RetroArch é um frontend para emuladores, motores de jogos e reprodutores de mídia.",
+        "de_de": "RetroArch Addon für Kodi (${RA_NAME_SUFFIX}). RetroArch ist ein Frontend für Emulatoren, Game-Engines und Mediaplayer.",
+    }),
+    Entry(1, "Addon Description", {
+        "en_gb": "The add-on provides binary, cores and basic settings to launch RetroArch from Kodi UI, plus additional features to improve user experience. It is built from Lakka sources.",
+        "es_es": "El complemento proporciona binarios, núcleos y configuraciones básicas para lanzar RetroArch desde la interfaz de Kodi, además de características adicionales para mejorar la experiencia del usuario. Está construido a partir de las fuentes de Lakka.",
+        "cs_cz": "Doplněk poskytuje jádra a základní nastavení pro spuštění RetroArch z uživatelského rozhraní Kodi a navíc další funkce pro zlepšení uživatelského zážitku. Je postaven ze zdrojů Lakka.",
+        "it_it": "Questa add-on include i binari, i core e i settaggi di base per eseguire RetroArch dalla UI di Kodi, più funzionalità aggiuntive per migliorare l'esperienza utente. È costruito dai sorgenti di Lakka.",
+        "sk_sk": "Doplnok poskytuje jadrá a základné nastavenia pre spustenie RetroArch z rozhrania Kodi a dodatočné funkcie pre zlepšenie používateľského zážitku. Je postavený na zdrojoch Lakka.",
+        "zh_cn": "此附加组件从 Lakka 源码直接构建，同时提供了二进制，内核，从 Kodi UI 启动 RetroArch 的基本设置，以及改善用户体验的附加功能。",
+        "pt_br": "O add-on fornece binário, núcleos e configurações básicas para inicializar o RetroArch a partir da UI (Interface do Usuário) do Kodi, além de recursos adicionais para melhorar a experiência do usuário. Ele é construído a partir das fontes do Lakka.",
+        "de_de": "Das Addon bietet Binärdateien, Kerne und Grundeinstellungen zum Starten von RetroArch über die Kodi-Benutzeroberfläche sowie zusätzliche Funktionen zur Verbesserung der Benutzerfreundlichkeit. Es basiert auf Lakka.",
+    }),
+    Entry(2, "Addon Disclaimer", {
+        "en_gb": "This is an unofficial add-on. Use github.com/spleen1981/retroarch-kodi-addon-CoreELEC to submit issues.",
+        "es_es": "Este es un complemento no oficial. Utiliza github.com/spleen1981/retroarch-kodi-addon-CoreELEC para reportar problemas.",
+        "cs_cz": "Toto je neoficiální doplněk. K odeslání problémů použijte: github.com/spleen1981/retroarch-kodi-addon-CoreELEC.",
+        "it_it": "Questa è una add-on non ufficiale. Usa github.com/spleen1981/retroarch-kodi-addon-CoreELEC per segnalare eventuali problemi.",
+        "sk_sk": "Toto je neoficiálny doplnok. Na nahlásenie problémov použite github.com/spleen1981/retroarch-kodi-addon-CoreELEC.",
+        "zh_cn": "这是一个非官方的附加组件。使用 github.com/spleen1981/retroarch-kodi-addon-CoreELEC 提交问题。",
+        "pt_br": "Este é um add-on não oficial. Use github.com/spleen1981/retroarch-kodi-addon-CoreELEC para enviar os problemas encontrados.",
+        "de_de": "Dies ist ein inoffizielles Addon. Verwenden Sie github.com/spleen1981/retroarch-kodi-addon-CoreELEC um Probleme zu melden.",
+    }),
+    Entry(32002, "#32002", {
+        "en_gb": "Turn off Xbox360 controllers after closing RetroArch",
+        "es_es": "Apagar los controladores de Xbox360 después de cerrar RetroArch",
+        "cs_cz": "Po vypnutí RetroArch vypněte ovladače Xbox360",
+        "it_it": "Spegni i controller Xbox360 all'uscita di RetroArch",
+        "sk_sk": "Po vypnutí RetroArch vypnite ovládače Xbox360",
+        "zh_cn": "在关闭 RetroArch 时关闭 Xbox360 控制器",
+        "pt_br": "Desligar os controles do Xbox360 após fechar o RetroArch",
+        "de_de": "Schalten Sie Xbox360-Controller aus, nachdem Sie RetroArch geschlossen haben",
+    }),
+    Entry(32003, "#32003", {
+        "en_gb": "Use remote control (CEC) with RetroArch",
+        "es_es": "Usar control remoto (CEC) con RetroArch",
+        "cs_cz": "Použijte dálkové ovládání (CEC) s Retroarch",
+        "it_it": "Usa telecomando (CEC) con Retroarch",
+        "sk_sk": "Použite diaľkové ovládanie (CEC) s Retroarch",
+        "zh_cn": "在 RetroArch 中使用 CEC 控制",
+        "pt_br": "Usar controle remoto (CEC) com o RetroArch",
+        "de_de": "Verwenden Sie die Fernbedienung (CEC) mit RetroArch",
+    }),
+    Entry(32004, "#32004", {
+        "en_gb": "Override Kodi refresh rate settings",
+        "es_es": "Sobrescribir configuraciones de frecuencia de actualización de Kodi",
+        "cs_cz": "Přepsat nastavení obnovovací frekvence Kodi",
+        "it_it": "Ignora frequenza di aggiornamento impostata in Kodi",
+        "sk_sk": "Prepísať nastavenia obnovovacej frekvencie Kodi",
+        "zh_cn": "覆盖 Kodi 的刷新率设置",
+        "pt_br": "Substituir as configurações da taxa de atualização do Kodi",
+        "de_de": "Bildwiederholfrequenz von Kodi überschreiben",
+    }),
+    Entry(32005, "#32005", {
+        "en_gb": "RetroArch refresh rate",
+        "es_es": "Frecuencia de actualización de RetroArch",
+        "cs_cz": "Obnovovací frekvence RetroArch",
+        "it_it": "Frequenza di aggiornamento RetroArch",
+        "sk_sk": "Obnovovacia frekvencia RetroArch",
+        "zh_cn": "RetroArch 刷新率",
+        "pt_br": "Taxa de atualização do RetroArch",
+        "de_de": "RetroArch Bildwiederholfrequenz",
+    }),
+    Entry(32006, "#32006", {
+        "en_gb": "Sync RetroArch audio driver/device with Kodi",
+        "es_es": "Sincronizar el controlador/dispositivo de audio de RetroArch con Kodi",
+        "cs_cz": "Synchronizovat zvukový ovladač/zařízení RetroArch s Kodi",
+        "it_it": "Sincronizza impostazioni driver/device audio di RetroArch con Kodi",
+        "sk_sk": "Synchronizovať zvukový ovládač/zariadenie RetroArch s Kodi",
+        "zh_cn": "将 RetroArch 音频驱动程序/设备与 Kodi 同步",
+        "pt_br": "Sincronizar o driver/dispositivo de áudio do RetroArch com o Kodi",
+        "de_de": "RetroArch Audiotreiber/-Gerät mit Kodi synchronisieren",
+    }),
+    Entry(32007, "#32007", {
+        "en_gb": "Mount remote path for RetroArch ROMs",
+        "es_es": "Montar ruta remota para las ROMs de RetroArch",
+        "cs_cz": "Připojit vzdálenou cestu pro ROMs RetroArch",
+        "it_it": "Monta percorso remoto per le ROM di RetroArch",
+        "sk_sk": "Pripojiť vzdialenú cestu pre ROMky RetroArch",
+        "zh_cn": "为 RetroArch ROMs 挂载远程路径",
+        "pt_br": "Montar caminho remoto para as ROMs do RetroArch",
+        "de_de": "Remote-Pfad (UNC) für RetroArch ROMs mounten",
+    }),
+    Entry(32008, "#32008", {
+        "en_gb": "Save RetroArch logs to file",
+        "es_es": "Guardar los registros de RetroArch en un archivo",
+        "cs_cz": "Uložit protokoly RetroArch do souboru",
+        "it_it": "Salva i log di RetroArch su file",
+        "sk_sk": "Uložiť protokoly RetroArch do súboru",
+        "zh_cn": "将 RetroArch 日志保存到文件",
+        "pt_br": "Salvar os registros do RetroArch para arquivo",
+        "de_de": "RetroArch Protokolle (Logs) in Datei speichern",
+    }),
+    # 32009 has no es_es translation in the legacy source.
+    Entry(32009, "#32009", {
+        "en_gb": "Turn off BT controllers on RetroArch exit (if supported)",
+        "it_it": "Spegni i controller BT all'uscita di RetroArch (se supportato)",
+        "sk_sk": "Vypnúť BT ovládače pri vypnutí RetroArch-u (ak je podporované)",
+        "zh_cn": "在 RetroArch 退出时关闭蓝牙控制器（如果支持的话）",
+        "pt_br": "Desligar os controles Bluetooth ao sair do RetroArch (se suportado)",
+        "de_de": "Schalten Sie die Bluetooth-Controller beim Beenden von RetroArch aus (falls unterstützt)",
+    }),
+    # 32010-32013 have no cs_cz translation in the legacy source.
+    Entry(32010, "#32010", {
+        "en_gb": "Boot the system to",
+        "es_es": "Arrancar el sistema a",
+        "it_it": "Avvia il sistema con",
+        "sk_sk": "Naštartovať systém do",
+        "zh_cn": "启动系统时打开",
+        "pt_br": "Inicializar o sistema com",
+        "de_de": "Booten Sie das System zu",
+    }),
+    Entry(32011, "#32011", {
+        "en_gb": "Currently the system boots to",
+        "es_es": "Actualmente el sistema arranca a",
+        "it_it": "Il sistema attualmente si avvia con",
+        "sk_sk": "Systém aktuálne štartuje do",
+        "zh_cn": "当前启动系统时会打开",
+        "pt_br": "Atualmente o sistema inicializa com",
+        "de_de": "Systemneustart zu",
+    }),
+    Entry(32012, "#32012", {
+        "en_gb": "Do you want to change the setting and boot to",
+        "es_es": "¿Quieres cambiar la configuración y arrancar a",
+        "it_it": "Vuoi cambiare l'impostazione e avviare con",
+        "sk_sk": "Chcete zmeniť nastavenie a štartovať do",
+        "zh_cn": "你是否想要改变系统启动时打开的程序",
+        "pt_br": "Deseja alterar a configuração e inicializar com",
+        "de_de": "Möchten Sie die Einstellung ändern und starten zu",
+    }),
+    Entry(32013, "#32013", {
+        "en_gb": "SMB protocol version",
+        "es_es": "Versión del protocolo SMB",
+        "it_it": "Versione protocollo SMB",
+        "sk_sk": "Verzia SMB protokolu",
+        "zh_cn": "SMB 协议版本",
+        "pt_br": "Versão do protocolo SMB",
+        "de_de": "SMB Protokollversion",
+    }),
+    # 32014 has no cs_cz, sk_sk, zh_cn translation in the legacy source.
+    Entry(32014, "#32014", {
+        "en_gb": "Enable hints",
+        "es_es": "Habilitar sugerencias",
+        "it_it": "Attiva suggerimenti",
+        "pt_br": "Habilitar dicas",
+        "de_de": "Vorschläge aktivieren",
+    }),
+    # 32015 has no cs_cz, sk_sk, zh_cn translation in the legacy source.
+    Entry(32015, "#32015", {
+        "en_gb": "RetroArch assets not found. Assets improves the GUI appearence and can be downloaded from within Retroarch selecting 'Online Updater > Update Assets' (or copied manually to the assets folder).",
+        "es_es": "Recursos de RetroArch no encontrados. Los recursos mejoran la apariencia de la interfaz gráfica y se pueden descargar desde RetroArch seleccionando 'Actualizador en línea > Actualizar recursos' (o copiados manualmente en la carpeta de recursos).",
+        "it_it": "Risorse di RetroArch non trovate. Le Risorse migliorano l'apparenza della GUI, e possono essere scaricate all'interno di RetroArch tramite 'Aggiornamenti Online > Aggiorna Risorse' (o copiate manualmente nella cartella assets).",
+        "pt_br": "Os recursos do RetroArch não foram encontrados. Os recursos melhoram a aparência da GUI (Interface Gráfica do Usuário) e podem ser baixados no Retroarch selecionando 'Atualizador on-line > Atualizar recursos' (ou copiar manualmente para a pasta assets).",
+        "de_de": "RetroArch-Assets nicht gefunden. Assets verbessern das Erscheinungsbild der GUI und können aus Retroarch heruntergeladen werden, indem Sie „Online Updater > Assets aktualisieren“ auswählen (oder manuell in den Assets-Ordner kopiert werden).",
+    }),
+)
+
+_BY_ID: dict[int, Entry] = {e.msg_id: e for e in _ENTRIES}

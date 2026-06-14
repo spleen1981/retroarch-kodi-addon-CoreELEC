@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!--
+    Kodi settings UI schema. `@ADDON_NAME@` is substituted at build time so the
+    RunScript actions point at the variant-specific addon id.
+
+    Action mapping (action="RunScript(@ADDON_NAME@,<arg>)"):
+        boot_toggle    flip auto-boot between Kodi and RetroArch
+        check_updates  download updates.xml and prompt if newer
+        reset          clear the user's retroarch.cfg (with backup)
+-->
+<settings>
+    <category label="128"> <!-- General -->
+        <setting label="128" type="lsep"/>
+        <setting id="ra_boot_toggle" type="action" label="32010" default="KODI" action="RunScript(@ADDON_NAME@,boot_toggle)"/>
+        <setting id="ra_hints" label="32014" type="bool" default="true" />
+        <setting id="ra_autoupdate" label="24063" type="bool" default="true" />
+        <setting id="ra_updatenow" type="action" label="24034" action="RunScript(@ADDON_NAME@,check_updates)"/>
+        <setting id="ra_reset" type="action" label="13007" action="RunScript(@ADDON_NAME@,reset)"/>
+    </category>
+    <category label="35234"> <!-- Controls -->
+        <setting label="35234" type="lsep"/>
+        <setting id="ra_xbox360_shutdown" label="32002" type="bool" default="true" />
+        <setting id="ra_bt_shutdown" label="32009" type="bool" default="false" />
+        <setting id="ra_cec_remote" label="32003" type="bool" default="true" />
+        <setting id="ra_cec_poweroff" label="36029" type="enum" lvalues="13005|36028" default="13005" enable="eq(-1,true)" subsetting="true" />
+    </category>
+    <category label="157"> <!-- Video -->
+        <setting label="157" type="lsep"/>
+        <setting id="ra_force_refresh_rate" label="32004" type="bool" default="true" />
+        <setting id="ra_forced_refresh_rate" label="32005" type="enum" values="50Hz (PAL)|60Hz (NTSC)" default="1" enable="eq(-1,true)" subsetting="true" />
+    </category>
+    <category label="292"> <!-- Audio -->
+        <setting label="292" type="lsep"/>
+        <setting id="ra_sync_audio_settings" label="32006" type="bool" default="true" />
+    </category>
+    <category label="573"> <!-- Paths -->
+        <setting label="573" type="lsep"/>
+        <setting id="ra_roms_remote" label="32007" type="bool" default="false" />
+        <setting id="ra_roms_remote_path" label="573" type="text" default="" enable="eq(-1,true)" subsetting="true"/>
+        <setting id="ra_roms_remote_user" label="1048" type="text" option="hidden" default="" enable="eq(-2,true)" subsetting="true"/>
+        <setting id="ra_roms_remote_password" label="733" type="text" default="" enable="eq(-3,true)" subsetting="true"/>
+        <setting id="ra_roms_remote_vers" label="32013" type="labelenum" values="Default|3|3.11|3.02|3.0|2.1|2.0|1.0" default="Default" enable="eq(-4,true)" subsetting="true" />
+    </category>
+    <category label="14092"> <!-- Log -->
+        <setting label="14092" type="lsep"/>
+        <setting id="ra_log" label="32008" type="bool" default="false" />
+    </category>
+</settings>

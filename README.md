@@ -1,5 +1,5 @@
 # RetroArch Kodi add-on for CoreELEC
-This script creates a RetroArch add-on for Kodi from Lakka sources for CoreELEC (Amlogic devices).
+This project builds a RetroArch add-on for Kodi from Lakka sources for CoreELEC (Amlogic devices).
 Resulting builds have been tested on CoreELEC versions from 19 to 22 both for arm and aarch64.
 
 # Add-on usage
@@ -20,6 +20,7 @@ Core list included by default is same as [Lakka](https://github.com/libretro/Lak
    - Sync Retroarch audio driver/device with Kodi settings
    - Auto update. Check for updates will be performed everytime RetroArch is launched
    - Reset Retroarch configuration. Restores `retroarch.cfg` to defaults and addon to first run condition
+   - Save a combined addon + RetroArch log to file (max verbosity). Each session starts a fresh log; the previous session is rotated to `retroarch.log.old`.
 
 ## Folders
 
@@ -67,6 +68,9 @@ Cores are stored in `lib/libretro` internal subfolder (removed on addon removal)
 
 Screenshots are stored in `/storage/screenshots`.
 
+When the "Save logs to file" setting is enabled, the combined log lives in `<addon_data>/<addon_id>/logs/retroarch.log` (on CoreELEC this is `/storage/.kodi/userdata/addon_data/script.retroarch.launcher.<variant>/logs/`).
+The previous session's log is kept alongside as `retroarch.log.old`.
+
 # Development and build script usage
 [Lakka repository](https://github.com/libretro/Lakka-LibreELEC) is included as a submodule by default.
 To build the addon with default settings type the following:
@@ -74,35 +78,86 @@ To build the addon with default settings type the following:
 ```bash
 git clone --recursive https://github.com/spleen1981/retroarch-kodi-addon-CoreELEC
 cd retroarch-kodi-addon-CoreELEC
-./build.sh
+python3 -m scripts.build --version v1.0.0
 ```
 
-Extra dowloadable contents as `retroarch-assets retroarch-joypad-autoconfig retroarch-overlays libretro-database glsl-shaders` are not included by default to reduce addon size, but can be included setting `INCLUDE_DLC="Y"`(or can be downloaded from RetroArch online updater otherwise).
+Without `--device`, every supported variant is built in sequence. Pass
+`--device` (repeatable) to restrict the build:
 
-Default core list can be customized setting `LIBRERETRO_CORES_ADD` and `LIBRERETRO_CORES_RM` variables.
+```bash
+python3 -m scripts.build --version v1.0.0 --device Amlogic-ng
+python3 -m scripts.build --version v1.0.0 --device Amlogic-ng --device Amlogic-no
+```
 
-Refer to the script source for all other configuration parameters.
+Supported device profiles (see `_DEVICES` in `scripts/build.py`):
+
+| profile        | Lakka project | arch    |
+|----------------|---------------|---------|
+| `Amlogic-ng`   | Amlogic       | arm     |
+| `Amlogic-no`   | Amlogic       | aarch64 |
+
+Useful flags:
+
+   - `--include-dlc` — bundle `retroarch_assets`, `retroarch_overlays`,
+     `libretro_database`, `glsl_shaders`, `slang_shaders` into the zip
+     (much larger; otherwise the user pulls them via RetroArch's online updater).
+   - `--lakka-dir PATH` — path to the Lakka-LibreELEC checkout
+     (default: `./Lakka-LibreELEC`).
+   - `--lakka-version COMMIT` — Lakka commit to check out before building
+     (default: the pinned `DEFAULT_LAKKA_VERSION` in `scripts/build.py`).
+   - `-j N` / `--jobs N` — parallel `make` jobs for Lakka.
+   - `-v` / `--verbose` — stream full Lakka output to the terminal
+     instead of capturing it to `build.log`.
+   - `--keep-work` — keep the `retroarch_work/` staging dir after a
+     successful build (default: removed).
+
+Default cores per device, plus the add/remove modifiers used to be set via `LIBRERETRO_CORES_ADD` / `LIBRERETRO_CORES_RM` environment variables; they are now declared per-profile in `_DEVICES` (fields `cores_add`, `cores_remove`, `cores_fallback`) in `scripts/build.py`. Edit that mapping to customize the core list.
 
 First time the building/compiling process will take a lot of time (the whole toolchain will be compiled with the first package).
 
-Addon zip file will be placed in `build` subfolder.
+Addon zip file will be placed in `build/` subfolder.
+
+## Iterative RetroArch development
+
+For a one-line RA change you don't want to rebuild the whole addon for, the `scripts/test/ra_debug.py` helper exports `git diff` from a local RetroArch checkout as a Lakka patch, builds only the `retroarch` package, and `scp`s the resulting binary to a test device:
+
+```bash
+cp scripts/test/local.py.example scripts/test/local.py    # fill in REMOTE_IP / USER / PASSWORD
+python3 -m scripts.test.ra_debug --device Amlogic-ng
+```
+
+Requires `sshpass` on `$PATH`. The RetroArch source dir defaults to `../RetroArch` relative to the repo root, override with `--ra-src` or by setting `RETROARCH_SRC_DIR` in `local.py`.
+
+Two other helpers under `scripts/test/`:
+   - `python3 -m scripts.test.new_files --device Amlogic-ng` — generates the
+     addon's text files (manifest, source tree, language PO files, settings)
+     into `tmp_test_files/` for inspection. Skips the Lakka build entirely.
+   - `python3 -m scripts.test.apply_patches --device Amlogic-ng [--revert]` —
+     applies (or reverts) the project's Lakka patches without building.
 
 ## Adding new translations
 
-New languages for the addon frontend can be added by modifying [this file](https://github.com/spleen1981/retroarch-kodi-addon-CoreELEC/blob/master/scripts/common/01-def_lang.sh).
+Translations are defined in `scripts/langdata.py` (the source of truth that replaces the legacy `01-def_lang.sh`). All language files needed by Kodi are generated at build time and dropped into the addon dir.
 
-The new language code is to be added in the following variable, separated by space (adding italian language in the following examples, coded it_it):
-```
-LANG_list="en_gb it_it"
-```
-and the new translations for each string are to be added as follows, as per existing structure:
-```
-LANG_32001_en_gb="Stop Kodi service before launching RetroArch"
-LANG_32001_it_it="Ferma il servizio Kodi prima di lanciare RetroArch"
-```
-All language files needed by Kodi will be generated at build time.
+Add a new language code to the `LANGUAGES` tuple at the top of the file:
 
-# Credits
-Thanks to [Lakka](http://lakka.tv) and [CoreELEC](https://coreelec.org/) for their work.
+```python
+LANGUAGES: tuple[str, ...] = (
+    "en_gb", "es_es", "cs_cz", "it_it",
+    "zh_cn", "sk_sk", "pt_br", "de_de",
+    "fr_fr",  # new
+)
+```
 
-Also thanks to [ToKe79](https://github.com/ToKe79) - This work has been developed starting from [his](https://github.com/ToKe79/retroarch-kodi-addon-LibreELEC).
+Then add the per-language string under each `Entry`:
+
+```python
+Entry(32001, "#32001", {
+    "en_gb": "Stop Kodi service before launching RetroArch",
+    "it_it": "Ferma il servizio Kodi prima di lanciare RetroArch",
+    "fr_fr": "Arrêter le service Kodi avant de lancer RetroArch",
+    ...
+}),
+```
+
+Missing translations fall back to `en_gb` at render time, so a partial language is fine to merge.

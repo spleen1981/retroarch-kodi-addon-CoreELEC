@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!--
+    Kodi addon manifest TEMPLATE.
+
+    Placeholders substituted by scripts/build.py at packaging time:
+        @ADDON_NAME@      e.g. script.retroarch.launcher.Amlogic-ng.arm
+        @ADDON_VERSION@   from build args (e.g. v1.0.0)
+        @PROVIDER@        from build args
+        @LANG_METADATA@   <summary/>/<description/>/<disclaimer/> lines, one set per language
+        @CHANGELOG@       XML-escaped contents of CHANGELOG.md
+-->
+<addon id="@ADDON_NAME@" name="RetroArch" version="@ADDON_VERSION@" provider-name="@PROVIDER@">
+    <requires>
+        <import addon="xbmc.python" version="3.0.0"/>
+    </requires>
+    <extension point="xbmc.python.pluginsource" library="default.py">
+        <provides>executable game</provides>
+    </extension>
+    <extension point="xbmc.addon.metadata">
+        <platform>linux</platform>
+        <reuselanguageinvoker>true</reuselanguageinvoker>
+@LANG_METADATA@
+        <forum>https://discourse.coreelec.org/t/retroarch-kodi-add-on-for-coreelec/17482</forum>
+        <source>https://github.com/spleen1981/retroarch-kodi-addon-CoreELEC</source>
+        <assets>
+            <icon>resources/icon.png</icon>
+            <fanart>resources/fanart.jpg</fanart>
+        </assets>
+        <news>
+@CHANGELOG@
+        </news>
+    </extension>
+</addon>
