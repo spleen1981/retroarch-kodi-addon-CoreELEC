@@ -1,0 +1,48 @@
+diff --git a/packages/lakka/retroarch_base/retroarch/patches/retroarch-1005-appimage_cores_dir.patch b/packages/lakka/retroarch_base/retroarch/patches/retroarch-1005-appimage_cores_dir.patch
+new file mode 100644
+index 0000000000..9f2450adf5
+--- /dev/null
++++ b/packages/lakka/retroarch_base/retroarch/patches/retroarch-1005-appimage_cores_dir.patch
+@@ -0,0 +1,42 @@
++diff --git a/retroarch.c b/retroarch.c
++index b16728310b..a1747997cf 100644
++--- a/retroarch.c
+++++ b/retroarch.c
++@@ -7985,6 +7985,37 @@ bool retroarch_main_init(int argc, char *argv[])
++          retroarch_fail(1, "menu_driver_find_driver()");
++    }
++ #endif
+++
+++   /* AppImage: when running inside an AppImage the runtime sets $APPDIR to
+++    * the squashfs mount point (e.g. /tmp/.mount_retroXXXXXX).  Cores and
+++    * their .info files live at $APPDIR/lib/libretro — a path that changes
+++    * at every mount, so it cannot be stored in retroarch.cfg.
+++    *
+++    * Override both libretro_directory and libretro_info_path here, before
+++    * any core scan or menu population runs.  The override is a no-op when
+++    * APPDIR is unset (normal non-AppImage invocation) or when the expected
+++    * directory does not exist inside the AppImage. */
+++   {
+++      const char *appdir = getenv("APPDIR");
+++      if (appdir && *appdir)
+++      {
+++         char appimage_cores[PATH_MAX_LENGTH];
+++         fill_pathname_join(appimage_cores, appdir,
+++               "lib/libretro", sizeof(appimage_cores));
+++         if (path_is_directory(appimage_cores))
+++         {
+++            strlcpy(settings->paths.directory_libretro,
+++                  appimage_cores,
+++                  sizeof(settings->paths.directory_libretro));
+++            strlcpy(settings->paths.path_libretro_info,
+++                  appimage_cores,
+++                  sizeof(settings->paths.path_libretro_info));
+++            RARCH_LOG("AppImage: libretro_directory + info_path -> %s\n",
+++                  appimage_cores);
+++         }
+++      }
+++   }
+++
++    /* Enforce stored brightness if needed */
++    if (frontend_driver_can_set_screen_brightness())
++       frontend_driver_set_screen_brightness(settings->uints.screen_brightness);

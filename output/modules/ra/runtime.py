@@ -85,17 +85,17 @@ class RetroArchRuntime:
     # ----------------------------------------------------------- retroarch
 
     def _exec_retroarch(self) -> int:
-        args = [str(paths.RA_BIN), f"--config={paths.RA_CONFIG_FILE}"]
+        # Launch the AppImage. The AppImage's AppRun sets up LD_LIBRARY_PATH,
+        # detects the DRM/framebuffer backend, and execs retroarch. We pass
+        # --config= and any extra args through; AppRun forwards them verbatim.
+        args = [str(paths.APPIMAGE), f"--config={paths.RA_CONFIG_FILE}"]
         if self.settings.log_to_file:
             args.insert(1, "--verbose")
         args.extend(self.extra_args)
         log.info("exec: %s", " ".join(args))
         if not self.settings.log_to_file:
             return subprocess.call(args)
-        # Combine RA's stdout/stderr into the same file the Python logger is
-        # writing to. Both writers use append mode so individual writes are
-        # atomic on POSIX and interleave correctly. Flush Python handlers
-        # first so our "exec:" line lands before RA's startup banner.
+        # Combine AppImage/RA stdout/stderr into the shared log file.
         for h in logging.getLogger().handlers:
             h.flush()
         with open(paths.LOG_FILE, "a", encoding="utf-8") as fp:
@@ -155,9 +155,8 @@ class RetroArchRuntime:
     # ----------------------------------------------------------- helpers
 
     def _xbox360_shutdown(self) -> None:
-        exe = paths.BIN_DIR / "xbox360-controllers-shutdown"
-        if exe.exists():
-            subprocess.call([str(exe)])
+        subprocess.call([str(paths.APPIMAGE), "--run",
+                         "xbox360-controllers-shutdown"])
 
     def _cycle_bluetooth(self) -> None:
         # bluetoothctl power off / on. Ignore errors — if bluetoothctl

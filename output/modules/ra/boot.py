@@ -49,7 +49,7 @@ def boot_toggle(target: Optional[str] = None) -> int:
     # kodi-autostart.service runs this file — `oe_setup_addon` is called
     # *inside* ra_autostart.sh, not before it. boot_toggle runs from the
     # addon UI, so paths.ADDON_DIR is correctly resolved here.
-    boot_cmd = f'{paths.BIN_DIR / "ra_autostart.sh"} 2>/dev/null'
+    boot_cmd = f'{paths.RA_AUTOSTART_SH} 2>/dev/null'
 
     is_check = target == "check"
 

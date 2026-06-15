@@ -1,0 +1,40 @@
+#!/bin/sh
+# AppImage entry point — runtime for @ADDON_NAME@.
+#
+# Two modes:
+#
+#   Normal:   ./retroarch.AppImage [--config=...] [args...]
+#             Sets up LD_LIBRARY_PATH and execs retroarch.
+#
+#   Sub-cmd:  ./retroarch.AppImage --run <binary> [args...]
+#             Runs any binary bundled in bin/ with the same lib environment.
+#             Used by the Python orchestrator to launch tools packaged inside
+#             the AppImage (cec-mini-kb, xbox360-controllers-shutdown, etc.)
+#             via systemd-run without needing loose binaries in the addon dir.
+#
+# Library loading:
+#   lib/       Userspace shared libs bundled from the Lakka build.
+#   lib-gpu/   libgbm — needed on framebuffer-only platforms where the system
+#              has no libgbm. Skipped on DRM platforms (/dev/dri/card0 present)
+#              so the system Mali libgbm (kernel-matched) takes precedence.
+
+APPDIR="$(dirname "$(readlink -f "$0")")"
+export APPDIR
+
+_setup_libs() {
+    export LD_LIBRARY_PATH="$APPDIR/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+    if [ ! -e /dev/dri/card0 ]; then
+        export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$APPDIR/lib-gpu"
+    fi
+    export PATH="$APPDIR/bin${PATH:+:$PATH}"
+}
+
+if [ "$1" = "--run" ]; then
+    shift
+    binary="$1"; shift
+    _setup_libs
+    exec "$APPDIR/bin/$binary" "$@"
+fi
+
+_setup_libs
+exec "$APPDIR/bin/retroarch" "$@"

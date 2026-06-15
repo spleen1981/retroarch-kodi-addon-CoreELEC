@@ -73,32 +73,25 @@ def _launch_retroarch() -> None:
         1. `. /etc/profile` to make `oe_setup_addon` visible (it's a
            shell function defined in the CoreELEC profile).
         2. `oe_setup_addon <name>` to export `$ADDON_DIR` / `$ADDON_HOME`.
-        3. Prepend the addon's `lib/` directory to `PYTHONPATH`. Recent
-           CoreELEC builds of `oe_setup_addon` do NOT extend PYTHONPATH,
-           so `python3 -m ra` would fail with "No module named ra". We
-           use the Python-resolved `paths.ADDON_DIR` here instead of the
-           shell `$ADDON_DIR` — inside Kodi `paths.ADDON_DIR` comes from
-           `xbmcaddon.Addon().getAddonInfo("path")` and is guaranteed to
-           point at the right place even when the shell variable isn't
-           populated by this CoreELEC version.
+        3. Prepend `ADDON_DIR` to `PYTHONPATH` so Python finds the `modules`
+           package. Recent CoreELEC builds of `oe_setup_addon` do NOT extend
+           PYTHONPATH, so `python3 -m modules` would fail with "No module
+           named modules". We use the Python-resolved `paths.ADDON_DIR` here
+           instead of the shell `$ADDON_DIR` — inside Kodi `paths.ADDON_DIR`
+           comes from `xbmcaddon.Addon().getAddonInfo("path")` and is
+           guaranteed to point at the right place even when the shell variable
+           isn't populated by this CoreELEC version.
         4. Exec the Python entry point.
     """
     from .system import run_detached
-    lib_dir = paths.ADDON_DIR / "lib"
-    bin_dir = paths.ADDON_DIR / "bin"
-    mod_dir = paths.ADDON_DIR / "modules"
-    # PATH and LD_LIBRARY_PATH must point at the addon's bin/lib too — the
-    # retroarch binary is dynamically linked against bundled libs in
-    # $ADDON_DIR/lib (libretro cores, SDL/EGL helpers). systemd-run starts
-    # the unit with a clean environment, so anything not exported here is
-    # gone. Without LD_LIBRARY_PATH the loader fails and retroarch exits 127.
+    # No loose binaries or libs in the thin addon — everything compiled is
+    # inside the AppImage. Only PYTHONPATH is needed so Python finds the
+    # `modules` package; the AppImage handles its own LD_LIBRARY_PATH.
     shell_cmd = (
         f". /etc/profile && "
         f"oe_setup_addon {paths.ADDON_NAME} && "
-        f'PYTHONPATH="{mod_dir}${{PYTHONPATH:+:$PYTHONPATH}}" '
-        f'PATH="{bin_dir}:$PATH" '
-        f'LD_LIBRARY_PATH="{lib_dir}${{LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}}" '
-        f"exec python3 -m ra start"
+        f'PYTHONPATH="{paths.ADDON_DIR}${{PYTHONPATH:+:$PYTHONPATH}}" '
+        f"exec python3 -m modules start"
     )
     run_detached("ra-launcher", "/bin/sh", "-c", shell_cmd)
 

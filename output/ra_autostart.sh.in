@@ -28,11 +28,19 @@
 #     The user sees ~3-5 seconds of Kodi splash before retroarch appears.
 #     That's the cost of CE22 compatibility — earlier CoreELEC versions
 #     could mask kodi outright and let retroarch own the display from boot.
+#
+# Why we set PYTHONPATH explicitly:
+#     Recent CoreELEC builds of `oe_setup_addon` do not extend PYTHONPATH,
+#     so `python3 -m modules` would fail with "No module named modules".
+#     No PATH or LD_LIBRARY_PATH for the addon dir: all compiled binaries
+#     and shared libs live inside the AppImage, which manages its own env.
+#
+# Build-time placeholder `@ADDON_NAME@` is replaced with the addon id.
 
 . /etc/profile
 oe_setup_addon "@ADDON_NAME@"
 
-PYTHONPATH="$ADDON_DIR/modules${PYTHONPATH:+:$PYTHONPATH}"
+PYTHONPATH="$ADDON_DIR${PYTHONPATH:+:$PYTHONPATH}"
 export PYTHONPATH
 
 # Defensive unmask: earlier versions of this shim (and the legacy CE21
@@ -47,9 +55,9 @@ systemctl unmask kodi 2>/dev/null
 # with the current ra_boot_toggle setting and returns 0 only when the
 # setting still wants RA. If not, we self-heal: turn the toggle off (so the
 # next boot goes straight to Kodi) and reboot. Matches the legacy fallback.
-python3 -m ra boot_toggle check
+python3 -m modules boot_toggle check
 if [ $? -ne 0 ] ; then
-	python3 -m ra boot_toggle off
+	python3 -m modules boot_toggle off
 	reboot now
 	exit 1
 fi
@@ -63,23 +71,38 @@ fi
 #
 # Quoting notes: $PYTHONPATH / $ADDON_DIR / $ADDON_HOME are interpolated by
 # the OUTER shell (autostart.sh) at the moment of systemd-run invocation and
-# baked into the command string as literals. \$PATH / \$LD_LIBRARY_PATH are
-# escaped so they evaluate INSIDE the transient unit's shell (where they
-# don't matter much because the unit starts clean, but $i / $(seq) need the
-# escape for the same reason).
+# baked into the command string as literals. \$PATH is escaped so it evaluates
+# INSIDE the transient unit's shell.
 systemd-run -q -u ra-launcher /bin/sh -c "
+	# Wait for kodi.bin to start. autostart.sh is Before=kodi.service, so
+	# at this point kodi.service has not started yet; 30s is generous.
 	for i in \$(seq 1 60); do
 		pgrep -x kodi.bin >/dev/null && break
 		sleep 0.5
 	done
+	# Give kodi a moment to finish opening /dev/dri/card0 and bring up the
+	# display plane. 3s empirically lets the framebuffer settle on Amlogic.
 	sleep 3
+	# Take over the display. We do NOT mask kodi: if retroarch crashes,
+	# runtime._handle_power_action will start kodi again as a fallback, and
+	# manual recovery via SSH (systemctl start kodi) needs to keep working.
 	systemctl stop kodi
 	pgrep splash-image | xargs -r kill -SIGTERM 2>/dev/null
+	# Restore env for the python orchestrator. Single-quoted values are
+	# literals baked in by the outer shell.
+	#
+	# HOME must be exported explicitly: systemd-run starts the transient
+	# unit with a clean env, so HOME is unset there. paths._home() falls
+	# back to '/storage' only when HOME is *unset*; if some other layer
+	# leaves HOME='' instead, Path('') evaluates to '.' and
+	# RA_CONFIG_FILE ends up as ./.config/retroarch/retroarch.cfg —
+	# retroarch is launched with --config=<that wrong path>, can't read
+	# it, and silently falls back to its built-in defaults (symptom: the
+	# user's tuned retroarch.cfg appears 'lost' at boot but works fine
+	# from the UI launch path, which inherits Kodi's HOME).
 	export HOME='$HOME'
 	export PYTHONPATH='$PYTHONPATH'
 	export ADDON_DIR='$ADDON_DIR'
 	export ADDON_HOME='$ADDON_HOME'
-	export PATH='$ADDON_DIR/bin':\$PATH
-	export LD_LIBRARY_PATH='$ADDON_DIR/lib'\${LD_LIBRARY_PATH:+:\$LD_LIBRARY_PATH}
-	exec python3 -m ra start
+	exec python3 -m modules start
 "

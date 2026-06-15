@@ -18,13 +18,12 @@ MINIKB_UNIT = "cec-kb"
 @contextlib.contextmanager
 def minikb_running(settings: AddonSettings) -> Iterator[None]:
     """Run `cec-mini-kb` as a transient systemd unit while inside the context."""
-    bin_path = paths.BIN_DIR / "cec-mini-kb"
-    if not bin_path.exists():
-        log.info("cec: %s not present, skipping mini-kb", bin_path)
+    if not paths.APPIMAGE.exists():
+        log.info("cec: AppImage not present at %s, skipping mini-kb", paths.APPIMAGE)
         yield
         return
 
-    args: list[str] = [str(bin_path)]
+    args: list[str] = [str(paths.APPIMAGE), "--run", "cec-mini-kb"]
     if settings.cec_poweroff == 0:
         # The mini-kb supports a `--poweroff <cmd>` flag: when the CEC
         # remote sends a "power" key, it shells out to <cmd>. We compose
@@ -45,7 +44,7 @@ def minikb_running(settings: AddonSettings) -> Iterator[None]:
 def _compose_poweroff_command(settings: AddonSettings) -> str:
     parts: list[str] = []
     if settings.xbox360_shutdown:
-        xbox_exe = paths.BIN_DIR / "xbox360-controllers-shutdown"
-        parts.append(str(xbox_exe))
+        # xbox360-controllers-shutdown is also inside the AppImage.
+        parts.append(f"{paths.APPIMAGE} --run xbox360-controllers-shutdown")
     parts.append("shutdown -P now")
     return ";".join(parts)

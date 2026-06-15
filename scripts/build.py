@@ -148,6 +148,47 @@ class BuildConfig:
     def archive_name(self) -> str:
         return f"{self.addon_name}-{self.addon_version}.zip"
 
+    @property
+    def lakka_build_subdir(self) -> str:
+        """Name of the per-device Lakka build directory."""
+        return f"build.Lakka-{self.profile.device_lakka}.{self.profile.arch}"
+
+    @property
+    def lakka_build_dir(self) -> Path:
+        """Absolute path to the Lakka per-device build root."""
+        return self.lakka_dir / self.lakka_build_subdir
+
+    @property
+    def readelf(self) -> str:
+        """Full path to the cross readelf from the Lakka toolchain.
+
+        readelf only parses ELF file structure — it does not execute the
+        binary — so the aarch64 cross-readelf runs fine on an x86 host
+        without any emulation.
+        """
+        triplet = (
+            "aarch64-libreelec-linux-gnu"
+            if self.profile.arch == "aarch64"
+            else "arm-libreelec-linux-gnueabihf"
+        )
+        return str(
+            self.lakka_build_dir / "toolchain" / "bin" / f"{triplet}-readelf"
+        )
+
+    @property
+    def appimage_staging_dir(self) -> Path:
+        """Staging directory for AppImage contents (retroarch + libs)."""
+        return self.work_dir / f"{self.addon_name}-appimage"
+
+    @property
+    def appimage_name(self) -> str:
+        return f"retroarch-{self.ra_name_suffix}-{self.addon_version}.AppImage"
+
+    # Paths to appimagetool and the aarch64 runtime binary.
+    # Download from https://github.com/AppImage/appimagetool/releases
+    appimagetool: str = "appimagetool-x86_64.AppImage"
+    appimage_runtime: str = "runtime-aarch64"
+
 
 # =============================================================== driver ===
 
@@ -180,7 +221,24 @@ def build(cfg: BuildConfig) -> None:
 
     _setup_addon_dir(cfg)
     package.move_artifacts(tmp_target, cfg.addon_dir, with_dlc=cfg.include_dlc)
+    package.clean_lib(cfg.addon_dir)
+    package.collect_gpu_libs(cfg.addon_dir)
+    package.collect_deps(
+        cfg.addon_dir,
+        lakka_build_dir=cfg.lakka_build_dir,
+        readelf=cfg.readelf,
+    )
     package.add_fallback_cores(REPO_ROOT, cfg.addon_dir, cfg.profile)
+    # Move retroarch + libs into AppImage staging, build AppImage, drop it
+    # into addon_dir as retroarch.AppImage.
+    package.stage_appimage(cfg.addon_dir, cfg.appimage_staging_dir,
+                           output_dir=OUTPUT_DIR, addon_name=cfg.addon_name)
+    package.create_appimage(
+        cfg.appimage_staging_dir,
+        cfg.addon_dir / "retroarch.AppImage",
+        appimagetool=cfg.appimagetool,
+        runtime=cfg.appimage_runtime,
+    )
     package.install_committed_source(OUTPUT_DIR, cfg.addon_dir, cfg.addon_name)
     package.emit_addon_xml(cfg.addon_dir, cfg.addon_name, cfg.addon_version,
                            cfg.provider, cfg.ra_name_suffix,
@@ -193,10 +251,15 @@ def build(cfg: BuildConfig) -> None:
 
 
 def _setup_addon_dir(cfg: BuildConfig) -> None:
-    """Wipe and re-create the per-device staging directory."""
-    if cfg.addon_dir.exists():
-        shutil.rmtree(cfg.addon_dir)
-    for sub in ("", "config", "resources", "bin", "lib", "modules"):
+    """Wipe and re-create the per-device staging directories."""
+    for d in (cfg.addon_dir, cfg.appimage_staging_dir):
+        if d.exists():
+            shutil.rmtree(d)
+    # Thin addon dirs: no retroarch binary or shared libs here — those go
+    # into the AppImage. lib/ and lib-gpu/ are created temporarily for
+    # move_artifacts/collect_deps and then moved to appimage_staging_dir
+    # by stage_appimage.
+    for sub in ("", "config", "resources", "bin", "lib", "lib-gpu", "modules"):
         (cfg.addon_dir / sub).mkdir(parents=True, exist_ok=True)
 
 

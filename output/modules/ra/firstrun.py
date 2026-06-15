@@ -20,6 +20,7 @@ log = logging.getLogger(__name__)
 # BIOSes the user supplied themselves).
 _NO_CLOBBER_SUBDIRS = frozenset({"system"})
 
+
 def run() -> None:
     """Execute every first-run step, then drop the first-run flag."""
     log.info("firstrun: starting one-time setup")
@@ -33,8 +34,6 @@ def run() -> None:
     _seed_user_language(cfg)
     _override_subdirs(cfg)
     cfg.save()
-
-    _restore_flattened_symlinks(paths.LIB_DIR)
 
     paths.FIRST_RUN_FLAG.parent.mkdir(parents=True, exist_ok=True)
     paths.FIRST_RUN_FLAG.touch()

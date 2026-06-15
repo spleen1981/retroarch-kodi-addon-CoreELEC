@@ -64,6 +64,9 @@ def _resolve_addon_home() -> Path:
 ADDON_DIR: Path = _resolve_addon_dir()
 ADDON_HOME: Path = _resolve_addon_home()
 
+# BIN_DIR and LIB_DIR are kept for compatibility but no longer exist in the
+# thin addon — all compiled binaries and shared libs live inside the AppImage.
+# Use APPIMAGE with --run <binary> to invoke bundled tools at runtime.
 BIN_DIR: Path = ADDON_DIR / "bin"
 LIB_DIR: Path = ADDON_DIR / "lib"
 CONFIG_DIR: Path = ADDON_DIR / "config"
@@ -75,8 +78,16 @@ FANART: Path = RESOURCES_DIR / "fanart.jpg"
 SETTINGS_FILE: Path = ADDON_HOME / "settings.xml"
 SETTINGS_DEFAULTS_FILE: Path = ADDON_DIR / "settings-default.xml"
 
-RA_BIN: Path = BIN_DIR / "retroarch"
+# retroarch is packaged inside the AppImage. The Python orchestrator launches
+# the AppImage directly; it handles LD_LIBRARY_PATH and execs retroarch.
+APPIMAGE: Path = ADDON_DIR / "retroarch.AppImage"
+# RA_BIN is kept as an alias so callers that reference it by name still work.
+RA_BIN: Path = APPIMAGE
 RA_DEFAULT_CFG: Path = CONFIG_DIR / "retroarch.cfg"
+
+# Shell script installed in the addon root; written to ~/.config/autostart.sh
+# by boot.py when the boot-to-RA toggle is enabled.
+RA_AUTOSTART_SH: Path = ADDON_DIR / "ra_autostart.sh"
 
 # First-run flag lives in ADDON_HOME (userdata) so it survives a self-update,
 # which wipes ADDON_DIR. The legacy location is migrated by `firstrun`.

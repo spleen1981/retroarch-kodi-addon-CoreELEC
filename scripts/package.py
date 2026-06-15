@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 import shutil
 import subprocess
 import zipfile
@@ -82,6 +83,334 @@ def move_artifacts(staging: Path, addon_dir: Path, *, with_dlc: bool) -> None:
         log.info("package: moved %s -> %s", src_rel, dst_rel)
 
 
+# ================================================================ clean_lib ==
+
+
+# Subdirectories of lib/ that are allowed to survive cleaning.
+_LIB_ALLOWED_SUBDIRS: frozenset[str] = frozenset({"libretro"})
+
+# libs whose SONAME stem matches these prefixes must go to lib-gpu/
+# instead of lib/. They are loaded conditionally by AppRun only on
+# framebuffer-only platforms (no /dev/dri/card0).
+_GPU_LIB_PREFIXES: tuple[str, ...] = ("libgbm",)
+
+# Libs that must never be bundled — they are either kernel-tied (GPU
+# userspace driver) or always present on the host (glibc family).
+_HOST_ONLY_LIBS: frozenset[str] = frozenset({
+    "libc", "libm", "libpthread", "libdl", "librt", "libgcc_s",
+    "ld-linux", "ld-linux-aarch64",
+    "libmali", "libEGL", "libGL",          # Mali/GPU userspace, kernel-tied
+    "libdrm",                               # keep on system for DRM platforms;
+                                            # FB-only gets it via lib-gpu path
+})
+
+
+def clean_lib(addon_dir: Path) -> None:
+    """Remove build artefacts from lib/ that must not ship.
+
+    After move_artifacts copies usr/lib verbatim, lib/ contains static
+    archives (.a), libtool files (.la), pkg-config data, cmake files, and
+    various subdirectories from devel packages. Only shared libraries
+    (.so / .so.N.N.N symlink chains) and the libretro/ subdir are kept.
+    """
+    lib_dir = addon_dir / "lib"
+    if not lib_dir.is_dir():
+        return
+
+    for entry in list(lib_dir.iterdir()):
+        if entry.is_dir() and not entry.is_symlink():
+            if entry.name not in _LIB_ALLOWED_SUBDIRS:
+                shutil.rmtree(entry)
+                log.debug("clean_lib: removed dir %s", entry.name)
+        elif entry.is_file() or entry.is_symlink():
+            name = entry.name
+            # Keep anything that looks like a shared library:
+            # foo.so  /  foo.so.2  /  foo.so.2.0.1
+            if re.search(r"\.so(\.\d+)*$", name):
+                continue
+            entry.unlink(missing_ok=True)
+            log.debug("clean_lib: removed file %s", name)
+
+    log.info("package: lib/ cleaned")
+
+
+# ============================================================ collect_gpu_libs
+
+
+def collect_gpu_libs(addon_dir: Path) -> None:
+    """Move GPU-fallback libs from lib/ to lib-gpu/.
+
+    lib-gpu/ is added to LD_LIBRARY_PATH by AppRun only on framebuffer-only
+    platforms (no /dev/dri/card0). This lets DRM platforms use their system
+    libgbm (which matches the running Mali kernel driver) while still
+    satisfying the link-time dependency on FB-only systems where the lib is
+    absent.
+    """
+    lib_dir = addon_dir / "lib"
+    lib_gpu_dir = addon_dir / "lib-gpu"
+
+    candidates = [
+        e for e in lib_dir.iterdir()
+        if (e.is_file() or e.is_symlink())
+        and any(e.name.startswith(pfx) for pfx in _GPU_LIB_PREFIXES)
+    ]
+    if not candidates:
+        log.info("package: no GPU-fallback libs found in lib/")
+        return
+
+    lib_gpu_dir.mkdir(exist_ok=True)
+    for entry in candidates:
+        dst = lib_gpu_dir / entry.name
+        shutil.move(str(entry), str(dst))
+        log.info("package: %s -> lib-gpu/", entry.name)
+
+
+# ============================================================== collect_deps ==
+
+
+def collect_deps(addon_dir: Path, lakka_build_dir: Path,
+                 readelf: str = "readelf") -> None:
+    """Walk ELF dependencies of all binaries and copy missing .so into lib/.
+
+    Uses `readelf -d` (cross-aware: pass the full toolchain readelf path via
+    `readelf`) to read DT_NEEDED entries. Walks transitively. Skips libs
+    already present in lib/ or lib-gpu/, host-only libs, and GPU libs
+    (those belong to the system on DRM platforms).
+
+    `lakka_build_dir` is the per-device Lakka build root, e.g.
+    `Lakka-LibreELEC/build.Lakka-AMLGX.aarch64`. Libraries are resolved from
+    two locations under it:
+
+        toolchain/lib/
+            Sysroot libs shipped with the cross-compiler (libc, libstdc++,
+            and other base target libs).
+
+        install_pkg/PKGNAME-VERSION/install/usr/lib/   (glob)
+            Per-package install trees produced by the Lakka build.
+    """
+    lib_dir = addon_dir / "lib"
+    lib_gpu_dir = addon_dir / "lib-gpu"
+
+    # Build a quick lookup of what is already bundled.
+    def _bundled() -> set[str]:
+        bundled: set[str] = set()
+        for d in (lib_dir, lib_gpu_dir):
+            if d.is_dir():
+                bundled.update(e.name for e in d.iterdir()
+                               if e.is_file() or e.is_symlink())
+        return bundled
+
+    # 1) toolchain/lib/ — base target sysroot libs.
+    # 2) install_pkg/*/install/usr/lib/ — every built package's lib dir.
+    #    Also check install/lib/ and install/usr/lib/<arch-triplet>/ as
+    #    some packages install there.
+    search_dirs: list[Path] = []
+    toolchain_lib = lakka_build_dir / "toolchain" / "lib"
+    if toolchain_lib.is_dir():
+        search_dirs.append(toolchain_lib)
+
+    install_pkg = lakka_build_dir / "install_pkg"
+    if install_pkg.is_dir():
+        for pkg_dir in sorted(install_pkg.iterdir()):
+            for sub in (
+                "install/usr/lib",
+                "install/lib",
+                "install/usr/lib/aarch64-linux-gnu",
+                "install/usr/lib/arm-linux-gnueabihf",
+            ):
+                d = pkg_dir / sub
+                if d.is_dir():
+                    search_dirs.append(d)
+
+    def _find_so(soname: str) -> Path | None:
+        for d in search_dirs:
+            candidate = d / soname
+            if candidate.exists():
+                return candidate
+        return None
+
+    def _stem(soname: str) -> str:
+        """Return the base library name without .so* suffix."""
+        return soname.split(".so")[0]
+
+    def _readelf_needed(binary: Path) -> list[str]:
+        try:
+            out = subprocess.check_output(
+                [readelf, "-d", str(binary)],
+                stderr=subprocess.DEVNULL,
+                text=True,
+            )
+        except (subprocess.CalledProcessError, FileNotFoundError) as exc:
+            log.warning("collect_deps: readelf failed on %s: %s", binary.name, exc)
+            return []
+        return re.findall(r"\(NEEDED\)\s+Shared library: \[(.+?)\]", out)
+
+    # Seed the queue with all ELF files under bin/ and lib/ (including cores).
+    queue: list[Path] = []
+    for search_root in (addon_dir / "bin", lib_dir,
+                        lib_dir / "libretro", lib_gpu_dir):
+        if search_root.is_dir():
+            queue.extend(
+                e for e in search_root.rglob("*")
+                if (e.is_file() and not e.is_symlink()
+                    and re.search(r"(\.so(\.\d+)*$|^[^.]+$)", e.name))
+            )
+
+    visited: set[str] = set()
+    while queue:
+        binary = queue.pop()
+        for soname in _readelf_needed(binary):
+            if soname in visited:
+                continue
+            visited.add(soname)
+
+            stem = _stem(soname)
+            if stem in _HOST_ONLY_LIBS:
+                continue
+            if soname in _bundled():
+                continue
+
+            src = _find_so(soname)
+            if src is None:
+                log.warning("collect_deps: %s not found in Lakka build", soname)
+                continue
+
+            # GPU-fallback libs go to lib-gpu/, everything else to lib/.
+            dst_dir = (lib_gpu_dir if any(soname.startswith(pfx)
+                                          for pfx in _GPU_LIB_PREFIXES)
+                       else lib_dir)
+            dst_dir.mkdir(exist_ok=True)
+            shutil.copy2(src, dst_dir / soname)
+            log.info("collect_deps: added %s -> %s/", soname, dst_dir.name)
+            queue.append(dst_dir / soname)  # walk transitivo
+
+
+# ============================================================= stage_appimage
+
+
+def stage_appimage(addon_dir: Path, appimage_dir: Path,
+                   output_dir: Path, addon_name: str) -> None:
+    """Move retroarch + libs from addon_dir into the AppImage staging dir.
+
+    After this step:
+      appimage_dir/bin/retroarch    the main binary
+      appimage_dir/lib/             all shared libs
+      appimage_dir/lib-gpu/         GPU-fallback libs (libgbm)
+      appimage_dir/AppRun           rendered entry point (from output/AppRun.in)
+      appimage_dir/retroarch.desktop  minimal .desktop (required by appimagetool)
+      appimage_dir/retroarch.png    icon (copy of resources/icon.png)
+
+    addon_dir/bin/ retains only the standalone tools (cec-mini-kb, etc.).
+    addon_dir/lib/ and addon_dir/lib-gpu/ are removed (moved to AppImage).
+    """
+    appimage_dir.mkdir(parents=True, exist_ok=True)
+    for sub in ("bin", "lib", "lib-gpu"):
+        (appimage_dir / sub).mkdir(exist_ok=True)
+
+    # Move entire bin/ into AppImage — all compiled binaries (retroarch,
+    # cec-mini-kb, xbox360-controllers-shutdown, …) are bundled together.
+    # The thin addon has no loose binaries; tools are invoked via the
+    # AppImage --run sub-command.
+    bin_src = addon_dir / "bin"
+    bin_dst = appimage_dir / "bin"
+    if bin_src.is_dir():
+        if bin_dst.exists():
+            shutil.rmtree(bin_dst)
+        shutil.move(str(bin_src), str(bin_dst))
+        log.info("stage_appimage: moved bin/ -> appimage/bin/")
+    else:
+        log.warning("stage_appimage: bin/ not found in addon_dir")
+
+    # Move entire lib/ and lib-gpu/ into AppImage.
+    for subdir in ("lib", "lib-gpu"):
+        src = addon_dir / subdir
+        dst = appimage_dir / subdir
+        if src.is_dir():
+            if dst.exists():
+                shutil.rmtree(dst)
+            shutil.move(str(src), str(dst))
+            log.info("stage_appimage: moved %s -> appimage/%s/", subdir, subdir)
+
+    # Restore flattened .symlink placeholders in appimage lib/ at build time.
+    # (At runtime the squashfs is read-only so this must happen here.)
+    _restore_flattened_symlinks(appimage_dir / "lib")
+
+    # Render AppRun from output/AppRun.in.
+    apprun_template = output_dir / "AppRun.in"
+    if apprun_template.exists():
+        rendered = apprun_template.read_text(encoding="utf-8").replace(
+            "@ADDON_NAME@", addon_name
+        )
+        apprun_dst = appimage_dir / "AppRun"
+        apprun_dst.write_text(rendered, encoding="utf-8")
+        os.chmod(apprun_dst, 0o755)
+        log.info("stage_appimage: wrote AppRun")
+
+    # Minimal .desktop file — required by appimagetool.
+    (appimage_dir / "retroarch.desktop").write_text(
+        "[Desktop Entry]\n"
+        "Name=RetroArch\n"
+        "Exec=AppRun\n"
+        "Icon=retroarch\n"
+        "Type=Application\n"
+        "Categories=Game;\n",
+        encoding="utf-8",
+    )
+
+    # Icon — appimagetool looks for <Icon>.png at the AppDir root.
+    icon_src = addon_dir / "resources" / "icon.png"
+    if icon_src.exists():
+        shutil.copy2(icon_src, appimage_dir / "retroarch.png")
+
+
+def create_appimage(appimage_dir: Path, output_path: Path,
+                    appimagetool: str, runtime: str) -> Path:
+    """Pack appimage_dir into an AppImage at output_path.
+
+    Requires `appimagetool` (x86_64 build, runs on host) and the aarch64
+    AppImage runtime binary (passed via `runtime`). Both are available from
+    https://github.com/AppImage/appimagetool/releases.
+
+    Returns output_path.
+    """
+    env = os.environ.copy()
+    env["ARCH"] = "aarch64"
+    subprocess.check_call(
+        [appimagetool, "--runtime-file", runtime,
+         str(appimage_dir), str(output_path)],
+        env=env,
+        **_SUBPROC_KW,
+    )
+    log.info("package: AppImage -> %s", output_path.name)
+    return output_path
+
+
+def _restore_flattened_symlinks(root: Path) -> None:
+    """Restore *.symlink placeholder files to real symlinks.
+
+    Called at build time on the AppImage lib/ staging dir so the squashfs
+    (which is read-only at runtime) contains proper symlinks from the start.
+    """
+    if not root.is_dir():
+        return
+    for placeholder in root.rglob("*.symlink"):
+        try:
+            target = placeholder.read_text(encoding="utf-8").strip()
+        except OSError as exc:
+            log.warning("stage_appimage: cannot read %s: %s", placeholder, exc)
+            continue
+        if not target:
+            continue
+        link_path = placeholder.with_suffix("")
+        try:
+            link_path.unlink(missing_ok=True)
+            link_path.symlink_to(target)
+            placeholder.unlink(missing_ok=True)
+        except OSError as exc:
+            log.warning("stage_appimage: cannot create symlink %s -> %s: %s",
+                        link_path, target, exc)
+
+
 # ===================================================== add_fallback_cores ==
 
 
@@ -141,6 +470,10 @@ def install_committed_source(output_dir: Path, addon_dir: Path,
 
     _render_in_files(addon_dir, addon_name)
     _chmod_executables(addon_dir)
+    # AppRun belongs inside the AppImage only — remove it from the thin addon
+    # if install_committed_source copied it from output/AppRun.in.
+    (addon_dir / "AppRun").unlink(missing_ok=True)
+    (addon_dir / "AppRun.in").unlink(missing_ok=True)
 
 
 def _render_in_files(addon_dir: Path, addon_name: str) -> None:
@@ -168,13 +501,18 @@ def _render_in_files(addon_dir: Path, addon_name: str) -> None:
 
 
 def _chmod_executables(addon_dir: Path) -> None:
-    """`+x` everything under `bin/`. Python files stay 644."""
-    bin_dir = addon_dir / "bin"
-    if not bin_dir.is_dir():
-        return
-    for entry in bin_dir.iterdir():
-        if entry.is_file():
-            os.chmod(entry, 0o755)
+    """`+x` shell scripts and executables in the thin addon root."""
+    # bin/ has been moved entirely into the AppImage by stage_appimage;
+    # only the shell scripts at the addon root need +x here.
+    for name in ("ra_autostart.sh",):
+        p = addon_dir / name
+        if p.is_file():
+            os.chmod(p, 0o755)
+    # AppRun is handled by stage_appimage, but guard here too in case the
+    # order ever changes.
+    apprun = addon_dir / "AppRun"
+    if apprun.is_file():
+        os.chmod(apprun, 0o755)
 
 
 # ========================================================= emit_addon_xml ==
