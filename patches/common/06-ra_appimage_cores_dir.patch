@@ -1,18 +1,17 @@
 diff --git a/packages/lakka/retroarch_base/retroarch/patches/retroarch-1005-appimage_cores_dir.patch b/packages/lakka/retroarch_base/retroarch/patches/retroarch-1005-appimage_cores_dir.patch
 new file mode 100644
-index 0000000000..9f2450adf5
+index 0000000000..8c6955a941
 --- /dev/null
 +++ b/packages/lakka/retroarch_base/retroarch/patches/retroarch-1005-appimage_cores_dir.patch
-@@ -0,0 +1,42 @@
+@@ -0,0 +1,41 @@
 +diff --git a/retroarch.c b/retroarch.c
-+index b16728310b..a1747997cf 100644
++index b16728310b..d58194ec9f 100644
 +--- a/retroarch.c
 ++++ b/retroarch.c
-+@@ -7985,6 +7985,37 @@ bool retroarch_main_init(int argc, char *argv[])
-+          retroarch_fail(1, "menu_driver_find_driver()");
++@@ -7948,6 +7949,36 @@ bool retroarch_main_init(int argc, char *argv[])
++       }
 +    }
-+ #endif
-++
++ 
 ++   /* AppImage: when running inside an AppImage the runtime sets $APPDIR to
 ++    * the squashfs mount point (e.g. /tmp/.mount_retroXXXXXX).  Cores and
 ++    * their .info files live at $APPDIR/lib/libretro — a path that changes
@@ -43,6 +42,6 @@ index 0000000000..9f2450adf5
 ++      }
 ++   }
 ++
-+    /* Enforce stored brightness if needed */
-+    if (frontend_driver_can_set_screen_brightness())
-+       frontend_driver_set_screen_brightness(settings->uints.screen_brightness);
++    /* Pre-initialize all drivers
++     * Attempts to find a default driver for
++     * all driver types.

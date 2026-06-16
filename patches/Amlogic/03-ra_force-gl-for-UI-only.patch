@@ -1,8 +1,8 @@
-diff --git a/packages/lakka/retroarch_base/retroarch/patches/retroarch-9-force-gl-for-UI-only.patch b/packages/lakka/retroarch_base/retroarch/patches/retroarch-9-force-gl-for-UI-only.patch
+diff --git a/packages/lakka/retroarch_base/retroarch/patches/retroarch-1003-force-gl-for-UI-only.patch b/packages/lakka/retroarch_base/retroarch/patches/retroarch-1003-force-gl-for-UI-only.patch
 new file mode 100644
-index 0000000000..c967f5fe8a
+index 0000000000..d286cbcc2c
 --- /dev/null
-+++ b/packages/lakka/retroarch_base/retroarch/patches/retroarch-9-force-gl-for-UI-only.patch
++++ b/packages/lakka/retroarch_base/retroarch/patches/retroarch-1003-force-gl-for-UI-only.patch
 @@ -0,0 +1,54 @@
 +diff --git a/retroarch.c b/retroarch.c
 +index 1577940750..1a398ac392 100644
@@ -44,7 +44,7 @@ index 0000000000..c967f5fe8a
 +       content_state_t *p_content)
 + {
 +@@ -1461,6 +1462,14 @@ static bool content_load(content_ctx_info_t *info,
-+    if (!success)
++    if (!ret)
 +       return false;
 + 
 ++   settings_t *settingss              = config_get_ptr();
