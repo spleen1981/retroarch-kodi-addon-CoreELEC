@@ -185,7 +185,7 @@ def collect_deps(addon_dir: Path, lakka_build_dir: Path,
             Sysroot libs shipped with the cross-compiler (libc, libstdc++,
             and other base target libs).
 
-        install_pkg/PKGNAME-VERSION/install/usr/lib/   (glob)
+        install_pkg/PKGNAME-VERSION/usr/lib/   (glob)
             Per-package install trees produced by the Lakka build.
     """
     lib_dir = addon_dir / "lib"
@@ -201,7 +201,7 @@ def collect_deps(addon_dir: Path, lakka_build_dir: Path,
         return bundled
 
     # 1) toolchain/lib/ — base target sysroot libs.
-    # 2) install_pkg/*/install/usr/lib/ — every built package's lib dir.
+    # 2) install_pkg/*/usr/lib/ — every built package's lib dir.
     #    Also check install/lib/ and install/usr/lib/<arch-triplet>/ as
     #    some packages install there.
     search_dirs: list[Path] = []
@@ -213,10 +213,10 @@ def collect_deps(addon_dir: Path, lakka_build_dir: Path,
     if install_pkg.is_dir():
         for pkg_dir in sorted(install_pkg.iterdir()):
             for sub in (
-                "install/usr/lib",
-                "install/lib",
-                "install/usr/lib/aarch64-linux-gnu",
-                "install/usr/lib/arm-linux-gnueabihf",
+                "usr/lib",
+                "lib",
+                "usr/lib/aarch64-linux-gnu",
+                "usr/lib/arm-linux-gnueabihf",
             ):
                 d = pkg_dir / sub
                 if d.is_dir():
