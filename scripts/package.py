@@ -233,7 +233,17 @@ def collect_deps(addon_dir: Path, lakka_build_dir: Path,
         """Return the base library name without .so* suffix."""
         return soname.split(".so")[0]
 
+    def _is_elf(path: Path) -> bool:
+        """Check ELF magic bytes — skips shell scripts and other non-ELF files."""
+        try:
+            with path.open("rb") as fh:
+                return fh.read(4) == b"\x7fELF"
+        except OSError:
+            return False
+
     def _readelf_needed(binary: Path) -> list[str]:
+        if not _is_elf(binary):
+            return []
         try:
             out = subprocess.check_output(
                 [readelf, "-d", str(binary)],
@@ -357,10 +367,14 @@ def stage_appimage(addon_dir: Path, appimage_dir: Path,
         encoding="utf-8",
     )
 
-    # Icon — appimagetool looks for <Icon>.png at the AppDir root.
-    icon_src = addon_dir / "resources" / "icon.png"
+    # Icon — appimagetool 2.x requires <Icon>.png at the AppDir root.
+    # Read from output_dir (committed source) because install_committed_source
+    # runs AFTER stage_appimage, so addon_dir/resources/ doesn't exist yet.
+    icon_src = output_dir / "resources" / "icon.png"
     if icon_src.exists():
         shutil.copy2(icon_src, appimage_dir / "retroarch.png")
+    else:
+        log.warning("stage_appimage: icon not found at %s — appimagetool may fail", icon_src)
 
 
 def create_appimage(appimage_dir: Path, output_path: Path,

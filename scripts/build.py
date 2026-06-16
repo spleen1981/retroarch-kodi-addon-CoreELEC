@@ -23,11 +23,18 @@ import os
 import shutil
 import subprocess
 import sys
+import urllib.request
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Sequence
 
 from . import lakka, package
+
+# Make the addon's Python package importable from the build scripts.
+# package.py imports ra.ra_config at runtime (lazy import inside
+# customize_retroarch_cfg); that import needs output/modules/ on sys.path.
+import sys as _sys
+_sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "output" / "modules"))
 
 log = logging.getLogger(__name__)
 
@@ -67,7 +74,7 @@ STATIC_PACKAGES: dict[str, tuple[str, ...]] = {
     "MULTIMEDIA":     ("ffmpeg", "dav1d"),
     "WEB":            ("curl",),
     "DEVEL":          ("libfmt",),
-    "VIRTUAL":        ("gbm",)
+    "VIRTUAL":        ("gbm",),
 }
 
 # Additional packages when DLC (assets / overlays / shaders / database) is on.
@@ -184,10 +191,19 @@ class BuildConfig:
     def appimage_name(self) -> str:
         return f"retroarch-{self.ra_name_suffix}-{self.addon_version}.AppImage"
 
-    # Paths to appimagetool and the aarch64 runtime binary.
-    # Download from https://github.com/AppImage/appimagetool/releases
-    appimagetool: str = "appimagetool-x86_64.AppImage"
-    appimage_runtime: str = "runtime-aarch64"
+    @property
+    def appimagetool(self) -> str:
+        """appimagetool installed by the appimagetool host package."""
+        return str(self.lakka_build_dir / "toolchain" / "bin" / "appimagetool")
+
+    @property
+    def appimage_runtime(self) -> str:
+        """AppImage runtime binary installed by the appimage-runtime host package."""
+        runtime_arch = "aarch64" if self.profile.arch == "aarch64" else "armhf"
+        return str(
+            self.lakka_build_dir / "toolchain" / "share" / "appimage"
+            / f"runtime-{runtime_arch}"
+        )
 
 
 # =============================================================== driver ===
@@ -229,6 +245,9 @@ def build(cfg: BuildConfig) -> None:
         readelf=cfg.readelf,
     )
     package.add_fallback_cores(REPO_ROOT, cfg.addon_dir, cfg.profile)
+    # Ensure host-only build tools (appimagetool, runtime) are available.
+    _ensure_appimage_tools(cfg)
+
     # Move retroarch + libs into AppImage staging, build AppImage, drop it
     # into addon_dir as retroarch.AppImage.
     package.stage_appimage(cfg.addon_dir, cfg.appimage_staging_dir,
@@ -248,6 +267,49 @@ def build(cfg: BuildConfig) -> None:
     package.customize_retroarch_cfg(cfg.addon_dir, cfg.addon_name,
                                     with_dlc=cfg.include_dlc)
     package.create_archive(cfg.addon_dir, cfg.build_dir, cfg.archive_name)
+
+
+def _ensure_appimage_tools(cfg: BuildConfig) -> None:
+    """Download appimagetool and the AppImage runtime if not already present.
+
+    These are host-only build tools (not Lakka target packages).  Rather than
+    going through Lakka's package system (which builds for the target), we
+    download them directly into the toolchain directory where the build
+    properties expect to find them.
+    """
+    _HTTP_TIMEOUT = 30.0
+
+    tools = [
+        (
+            cfg.appimagetool,
+            "https://github.com/AppImage/appimagetool/releases/download/"
+            "continuous/appimagetool-x86_64.AppImage",
+            True,   # chmod +x
+        ),
+        (
+            cfg.appimage_runtime,
+            "https://github.com/AppImage/type2-runtime/releases/download/"
+            f"continuous/runtime-{'aarch64' if cfg.profile.arch == 'aarch64' else 'armhf'}",
+            False,  # runtime is data, not executed on host
+        ),
+    ]
+
+    for dst_str, url, executable in tools:
+        dst = Path(dst_str)
+        if dst.exists():
+            log.info("appimage-tools: %s already present", dst.name)
+            continue
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        log.info("appimage-tools: downloading %s", dst.name)
+        try:
+            urllib.request.urlretrieve(url, dst)
+        except OSError as exc:
+            raise RuntimeError(
+                f"Cannot download {dst.name} from {url}: {exc}"
+            ) from exc
+        if executable:
+            os.chmod(dst, 0o755)
+        log.info("appimage-tools: saved %s", dst)
 
 
 def _setup_addon_dir(cfg: BuildConfig) -> None:
