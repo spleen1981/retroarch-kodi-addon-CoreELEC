@@ -113,6 +113,9 @@ def _build_non_secret_options(settings: AddonSettings) -> str:
 
 
 def _umount() -> None:
-    rc = subprocess.call(["umount", str(paths.ROMS_FOLDER)])
+    # -l (lazy): detach the mount immediately even if the CIFS connection
+    # dropped and there are pending kernel I/O operations. Without this,
+    # umount blocks indefinitely on a dead CIFS share, freezing the cleanup.
+    rc = subprocess.call(["umount", "-l", str(paths.ROMS_FOLDER)])
     if rc != 0:
-        log.warning("umount %s returned %d", paths.ROMS_FOLDER, rc)
+        log.warning("umount -l %s returned %d", paths.ROMS_FOLDER, rc)
