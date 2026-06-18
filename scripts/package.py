@@ -568,6 +568,23 @@ def stage_appimage(addon_dir: Path, appimage_dir: Path,
         log.warning("stage_appimage: icon not found at %s — appimagetool may fail", icon_src)
 
 
+def _strip_hidden(root: Path) -> None:
+    """Remove hidden files and directories (name starts with '.') recursively.
+
+    Prevents accidental inclusion of .git, __pycache__, .DS_Store and similar
+    artefacts in the AppImage squashfs or the addon ZIP.
+    """
+    for entry in sorted(root.rglob(".*")):
+        if not entry.exists():
+            continue
+        if entry.is_dir() and not entry.is_symlink():
+            shutil.rmtree(entry)
+            log.debug("package: removed hidden dir %s", entry.relative_to(root))
+        else:
+            entry.unlink(missing_ok=True)
+            log.debug("package: removed hidden file %s", entry.relative_to(root))
+
+
 def create_appimage(appimage_dir: Path, output_path: Path,
                     appimagetool: str, runtime: str) -> Path:
     """Pack appimage_dir into an AppImage at output_path.
@@ -578,6 +595,7 @@ def create_appimage(appimage_dir: Path, output_path: Path,
 
     Returns output_path.
     """
+    _strip_hidden(appimage_dir)
     env = os.environ.copy()
     env["ARCH"] = "aarch64"
     subprocess.check_call(
@@ -928,11 +946,12 @@ def create_archive(addon_dir: Path, build_dir: Path, archive_name: str) -> None:
     if archive_path.exists():
         archive_path.unlink()
 
+    _strip_hidden(addon_dir)
     # Use shell `zip` to preserve symlinks (`-y`). Python's zipfile module
     # stores symlinks as data, which breaks the SSL workaround set up at
-    # first-run.
+    # first-run. The `-x` pattern excludes any remaining hidden entries.
     _run(
-        ["zip", "-y", "-r", archive_name, addon_name],
+        ["zip", "-y", "-r", archive_name, addon_name, "-x", "*/.*"],
         cwd=str(addon_dir.parent), check=True,
     )
     shutil.move(str(addon_dir.parent / archive_name), str(archive_path))
