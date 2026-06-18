@@ -40,7 +40,7 @@
 . /etc/profile
 oe_setup_addon "@ADDON_NAME@"
 
-PYTHONPATH="$ADDON_DIR${PYTHONPATH:+:$PYTHONPATH}"
+PYTHONPATH="$ADDON_DIR/lib${PYTHONPATH:+:$PYTHONPATH}"
 export PYTHONPATH
 
 # Defensive unmask: earlier versions of this shim (and the legacy CE21
@@ -104,5 +104,5 @@ systemd-run -q -u ra-launcher /bin/sh -c "
 	export PYTHONPATH='$PYTHONPATH'
 	export ADDON_DIR='$ADDON_DIR'
 	export ADDON_HOME='$ADDON_HOME'
-	exec python3 -m modules start
+	exec python3 -m ra start
 "

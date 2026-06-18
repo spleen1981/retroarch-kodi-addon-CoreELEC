@@ -85,13 +85,14 @@ def _launch_retroarch() -> None:
     """
     from .system import run_detached
     # No loose binaries or libs in the thin addon — everything compiled is
-    # inside the AppImage. Only PYTHONPATH is needed so Python finds the
-    # `modules` package; the AppImage handles its own LD_LIBRARY_PATH.
+    # inside the AppImage. PYTHONPATH points at lib/ (the standard Kodi addon
+    # Python modules directory) so `python3 -m ra` finds the ra package.
+    lib_dir = paths.ADDON_DIR / "lib"
     shell_cmd = (
         f". /etc/profile && "
         f"oe_setup_addon {paths.ADDON_NAME} && "
-        f'PYTHONPATH="{paths.ADDON_DIR}${{PYTHONPATH:+:$PYTHONPATH}}" '
-        f"exec python3 -m modules start"
+        f'PYTHONPATH="{lib_dir}${{PYTHONPATH:+:$PYTHONPATH}}" '
+        f"exec python3 -m ra start"
     )
     run_detached("ra-launcher", "/bin/sh", "-c", shell_cmd)
 

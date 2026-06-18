@@ -34,7 +34,7 @@ from . import lakka, package
 # package.py imports ra.ra_config at runtime (lazy import inside
 # customize_retroarch_cfg); that import needs output/modules/ on sys.path.
 import sys as _sys
-_sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "output" / "modules"))
+_sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "output" / "lib"))
 
 log = logging.getLogger(__name__)
 
@@ -326,7 +326,7 @@ def _setup_addon_dir(cfg: BuildConfig) -> None:
     # into the AppImage. lib/ and lib-gpu/ are created temporarily for
     # move_artifacts/collect_deps and then moved to appimage_staging_dir
     # by stage_appimage.
-    for sub in ("", "config", "resources", "bin", "lib", "lib-gpu", "modules"):
+    for sub in ("", "config", "resources", "bin", "lib", "lib-gpu"):
         (cfg.addon_dir / sub).mkdir(parents=True, exist_ok=True)
 
 
