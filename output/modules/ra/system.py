@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import contextlib
 import logging
+import os
 import subprocess
 import time
 from typing import Callable, Iterator, Optional
@@ -131,9 +132,21 @@ def run_detached(unit_name: str, *args: str) -> int:
     Used for child processes that must outlive the parent retroarch
     invocation but still be stoppable by name (cec-mini-kb, the updater).
     """
-    cmd = ["systemd-run", "-q", "-u", unit_name, *args]
+    # --collect: systemd removes the transient unit automatically once it
+    # reaches an inactive state (including failed). Without this, a previous
+    # failed instance of the same unit name blocks the next systemd-run call.
+    cmd = ["systemd-run", "-q", "--collect", "-u", unit_name, *args]
     log.info("systemd-run: %s", " ".join(cmd))
-    return subprocess.call(cmd)
+    env = os.environ.copy()
+    if "FUSERMOUNT" not in env:
+        for _candidate in (
+            "/usr/bin/fusermount3", "/usr/bin/fusermount",
+            "/bin/fusermount3", "/bin/fusermount",
+        ):
+            if os.path.isfile(_candidate):
+                env["FUSERMOUNT"] = _candidate
+                break
+    return subprocess.call(cmd, env=env)
 
 
 def stop_unit(unit_name: str) -> int:

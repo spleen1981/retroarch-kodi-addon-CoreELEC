@@ -30,6 +30,7 @@ class RetroArchRuntime:
     def run(self) -> int:
         """Set up subsystems, exec retroarch, tear down, return its exit code."""
         self._install_signal_handlers()
+        self._ensure_appimage_executable()
         try:
             with self._stack:
                 self._prepare_filesystem()
@@ -84,22 +85,54 @@ class RetroArchRuntime:
 
     # ----------------------------------------------------------- retroarch
 
+    def _ensure_appimage_executable(self) -> None:
+        """Ensure the AppImage has execute permission.
+
+        Kodi's addon installer strips the execute bit when extracting ZIPs.
+        Called once at the very start of run() — before cec-kb or any other
+        subsystem tries to invoke the AppImage.
+        """
+        if paths.APPIMAGE.exists() and not os.access(paths.APPIMAGE, os.X_OK):
+            import stat as _stat
+            paths.APPIMAGE.chmod(
+                paths.APPIMAGE.stat().st_mode
+                | _stat.S_IXUSR | _stat.S_IXGRP | _stat.S_IXOTH
+            )
+            log.info("runtime: made %s executable", paths.APPIMAGE.name)
+
     def _exec_retroarch(self) -> int:
         # Launch the AppImage. The AppImage's AppRun sets up LD_LIBRARY_PATH,
         # detects the DRM/framebuffer backend, and execs retroarch. We pass
         # --config= and any extra args through; AppRun forwards them verbatim.
+        #
+        # The AppImage type2-runtime mounts the squashfs via FUSE and needs
+        # fusermount/fusermount3 in PATH. The systemd-run transient unit
+        # inherits a minimal PATH, so we extend it with the common locations
+        # where CoreELEC installs fusermount.
         args = [str(paths.APPIMAGE), f"--config={paths.RA_CONFIG_FILE}"]
         if self.settings.log_to_file:
             args.insert(1, "--verbose")
         args.extend(self.extra_args)
         log.info("exec: %s", " ".join(args))
+        env = os.environ.copy()
+        # FUSERMOUNT: needed for both mount AND unmount of the AppImage squashfs.
+        # Without it, the runtime can't find fusermount on exit → FUSE cleanup
+        # hangs → system freezes after retroarch exits.
+        if "FUSERMOUNT" not in env:
+            for _candidate in (
+                "/usr/bin/fusermount3", "/usr/bin/fusermount",
+                "/bin/fusermount3", "/bin/fusermount",
+            ):
+                if os.path.isfile(_candidate):
+                    env["FUSERMOUNT"] = _candidate
+                    break
         if not self.settings.log_to_file:
-            return subprocess.call(args)
+            return subprocess.call(args, env=env)
         # Combine AppImage/RA stdout/stderr into the shared log file.
         for h in logging.getLogger().handlers:
             h.flush()
         with open(paths.LOG_FILE, "a", encoding="utf-8") as fp:
-            return subprocess.call(args, stdout=fp, stderr=subprocess.STDOUT)
+            return subprocess.call(args, env=env, stdout=fp, stderr=subprocess.STDOUT)
 
     # ----------------------------------------------------- filesystem prep
 
@@ -155,8 +188,15 @@ class RetroArchRuntime:
     # ----------------------------------------------------------- helpers
 
     def _xbox360_shutdown(self) -> None:
+        env = os.environ.copy()
+        if "FUSERMOUNT" not in env:
+            for _c in ("/usr/bin/fusermount", "/usr/bin/fusermount3",
+                       "/bin/fusermount", "/bin/fusermount3"):
+                if os.path.isfile(_c):
+                    env["FUSERMOUNT"] = _c
+                    break
         subprocess.call([str(paths.APPIMAGE), "--run",
-                         "xbox360-controllers-shutdown"])
+                         "xbox360-controllers-shutdown"], env=env)
 
     def _cycle_bluetooth(self) -> None:
         # bluetoothctl power off / on. Ignore errors — if bluetoothctl
