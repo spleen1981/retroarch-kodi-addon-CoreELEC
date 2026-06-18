@@ -28,12 +28,12 @@
 APPDIR="$(dirname "$(readlink -f "$0")")"
 export APPDIR
 
-_setup_libs() {
-    export LD_LIBRARY_PATH="$APPDIR/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+_appimage_lib_path() {
     if [ ! -e /dev/dri/card0 ]; then
-        export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$APPDIR/lib-gpu"
+        echo "$APPDIR/lib:$APPDIR/lib-gpu"
+    else
+        echo "$APPDIR/lib"
     fi
-    export PATH="$APPDIR/bin${PATH:+:$PATH}"
 }
 
 if [ "$1" = "--run" ]; then
@@ -66,5 +66,11 @@ if [ "$1" = "--run" ]; then
     exec "$APPDIR/bin/$binary" "$@"
 fi
 
-_setup_libs
+# Normal mode (retroarch): AppImage libs first.
+if [ ! -e /dev/dri/card0 ]; then
+    export LD_LIBRARY_PATH="$APPDIR/lib:$APPDIR/lib-gpu${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+else
+    export LD_LIBRARY_PATH="$APPDIR/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+fi
+export PATH="$APPDIR/bin${PATH:+:$PATH}"
 exec "$APPDIR/bin/retroarch" "$@"
