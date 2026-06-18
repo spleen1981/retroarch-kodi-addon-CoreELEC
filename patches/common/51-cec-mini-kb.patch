@@ -1,30 +1,43 @@
 diff --git a/packages/lakka/lakka_tools/cec-mini-kb/package.mk b/packages/lakka/lakka_tools/cec-mini-kb/package.mk
 new file mode 100644
-index 0000000000..71335fefd0
+index 0000000000..031040307a
 --- /dev/null
 +++ b/packages/lakka/lakka_tools/cec-mini-kb/package.mk
-@@ -0,0 +1,24 @@
+@@ -0,0 +1,20 @@
 +# SPDX-License-Identifier: GPL-3.0-or-later
 +# 2021 Giovanni Cascione
 +
 +PKG_NAME="cec-mini-kb"
-+PKG_VERSION="be4289751bd80470c33847073a790b83356696db"
-+PKG_SHA256=""
-+PKG_REV=""
-+PKG_ARCH="any"
++PKG_VERSION="fea75efa52e73b1fc70750e308b153cfba84696f"
 +PKG_LICENSE="GPLv3"
 +PKG_SITE="https://github.com/spleen1981/cec-mini-kb"
-+PKG_URL="$PKG_SITE".git
++PKG_URL="${PKG_SITE}/archive/${PKG_VERSION}.tar.gz"
 +PKG_DEPENDS_TARGET="toolchain libcec"
-+PKG_SECTION="tools"
-+PKG_SHORTDESC="Small utility to use a CEC remote controller as a mini keyboard"
 +PKG_LONGDESC="Small utility to use a CEC remote controller as a mini keyboard"
 +PKG_TOOLCHAIN="make"
 +
-+PKG_IS_ADDON="no"
-+PKG_AUTORECONF="no"
-+
 +makeinstall_target() {
-+  mkdir -p $INSTALL/usr/bin/
-+  cp cec-mini-kb $INSTALL/usr/bin/
++  mkdir -p ${INSTALL}/usr/bin/
++  cp -v cec-mini-kb ${INSTALL}/usr/bin/
 +}
++
++post_install() {
++  enable_service cec-mini-kb.service
++}
+diff --git a/packages/lakka/lakka_tools/cec-mini-kb/system.d/cec-mini-kb.service b/packages/lakka/lakka_tools/cec-mini-kb/system.d/cec-mini-kb.service
+new file mode 100644
+index 0000000000..73bafc588d
+--- /dev/null
++++ b/packages/lakka/lakka_tools/cec-mini-kb/system.d/cec-mini-kb.service
+@@ -0,0 +1,11 @@
++[Unit]
++Description=cec-mini-kb
++After=retroarch.service
++Requires=retroarch.service
++
++[Service]
++ExecStart=/usr/bin/cec-mini-kb --poweroff "shutdown -P now"
++Restart=no
++
++[Install]
++WantedBy=retroarch.service
