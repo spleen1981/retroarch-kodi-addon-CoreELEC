@@ -50,31 +50,17 @@ PKG_SUBDIRS: dict[str, str] = {
     "LIBRETRO_CORES":  "lakka/libretro_cores",
     "LIBRETRO_BASE":   "lakka/retroarch_base",
     "LAKKA_TOOLS":     "lakka/lakka_tools",
-    "LAKKA_DEPENDS":   "lakka/lakka_depends",
-    "AUDIO":           "audio",
-    "COMPRESS":        "compress",
-    "SYSTEM_TOOLS":    "addons/addon-depends/system-tools-depends",
-    "ADDON_DEPENDS":   "addons/addon-depends",
-    "MULTIMEDIA":      "multimedia",
-    "WEB":             "web",
-    "DEVEL":           "devel",
-    "VIRTUAL":         "virtual",
 }
 
 # Static, per-family package lists (excluding LIBRETRO_CORES which is dynamic).
+# Library-only packages (flac, curl, ffmpeg, SDL2, zstd, libzip, …) are
+# intentionally omitted: Lakka builds them automatically as PKG_DEPENDS_TARGET
+# of retroarch or the tool packages, so they appear in install_pkg/ and are
+# picked up by collect_deps / collect_pkg_deps without explicit listing here.
 STATIC_PACKAGES: dict[str, tuple[str, ...]] = {
     "LIBRETRO_BASE":  ("retroarch", "core_info", "retroarch_joypad_autoconfig"),
     "LAKKA_TOOLS":    ("joyutils", "sixpair", "empty",
                        "xbox360_controllers_shutdown", "cec-mini-kb"),
-    "LAKKA_DEPENDS":  ("SDL2_input",),
-    "AUDIO":          ("flac", "libogg", "openal-soft"),
-    "COMPRESS":       ("zstd",),
-    "SYSTEM_TOOLS":   ("diffutils",),
-    "ADDON_DEPENDS":  ("libzip",),
-    "MULTIMEDIA":     ("ffmpeg", "dav1d"),
-    "WEB":            ("curl",),
-    "DEVEL":          ("libfmt",),
-    "VIRTUAL":        ("gbm",),
 }
 
 # Additional packages when DLC (assets / overlays / shaders / database) is on.
@@ -170,17 +156,26 @@ class BuildConfig:
         """Full path to the cross readelf from the Lakka toolchain.
 
         readelf only parses ELF file structure — it does not execute the
-        binary — so the aarch64 cross-readelf runs fine on an x86 host
-        without any emulation.
+        binary — so the cross-readelf runs fine on an x86 host without
+        emulation. Falls back to the system readelf when the cross binary
+        is absent (e.g. ARM toolchain uses a different triplet name).
         """
-        triplet = (
+        toolchain_bin = self.lakka_build_dir / "toolchain" / "bin"
+        # Try the known triplet first; fall back to any *-readelf in the
+        # toolchain bin, then to the system readelf (which reads ELF files
+        # of any architecture — no emulation needed).
+        known_triplet = (
             "aarch64-libreelec-linux-gnu"
             if self.profile.arch == "aarch64"
             else "arm-libreelec-linux-gnueabihf"
         )
-        return str(
-            self.lakka_build_dir / "toolchain" / "bin" / f"{triplet}-readelf"
-        )
+        candidate = toolchain_bin / f"{known_triplet}-readelf"
+        if candidate.exists():
+            return str(candidate)
+        # Auto-detect: pick the first *-readelf found in the toolchain.
+        for found in sorted(toolchain_bin.glob("*-readelf")):
+            return str(found)
+        return "readelf"
 
     @property
     def appimage_staging_dir(self) -> Path:
@@ -235,23 +230,33 @@ def build(cfg: BuildConfig) -> None:
             subdirs=PKG_SUBDIRS, work_dir=cfg.work_dir,
         )
 
-    _setup_addon_dir(cfg)
-    package.move_artifacts(tmp_target, cfg.addon_dir, with_dlc=cfg.include_dlc)
-    package.clean_lib(cfg.addon_dir)
-    package.collect_gpu_libs(cfg.addon_dir)
-    package.collect_deps(
-        cfg.addon_dir,
-        lakka_build_dir=cfg.lakka_build_dir,
-        readelf=cfg.readelf,
-    )
-    package.add_fallback_cores(REPO_ROOT, cfg.addon_dir, cfg.profile)
+        # Addon assembly steps that read the Lakka source tree (package.mk
+        # files created by patches) must run while patches are still applied.
+        _setup_addon_dir(cfg)
+        package.move_artifacts(tmp_target, cfg.addon_dir, with_dlc=cfg.include_dlc)
+        package.clean_lib(cfg.addon_dir)
+        package.collect_gpu_libs(cfg.addon_dir)
+        package.collect_deps(
+            cfg.addon_dir,
+            lakka_build_dir=cfg.lakka_build_dir,
+            readelf=cfg.readelf,
+        )
+        package.collect_pkg_deps(
+            cfg.addon_dir,
+            lakka_dir=cfg.lakka_dir,
+            lakka_build_dir=cfg.lakka_build_dir,
+            package_list=package_list,
+            subdirs=PKG_SUBDIRS,
+        )
+        package.add_fallback_cores(REPO_ROOT, cfg.addon_dir, cfg.profile)
     # Ensure host-only build tools (appimagetool, runtime) are available.
     _ensure_appimage_tools(cfg)
 
     # Move retroarch + libs into AppImage staging, build AppImage, drop it
     # into addon_dir as retroarch.AppImage.
     package.stage_appimage(cfg.addon_dir, cfg.appimage_staging_dir,
-                           output_dir=OUTPUT_DIR, addon_name=cfg.addon_name)
+                           output_dir=OUTPUT_DIR, addon_name=cfg.addon_name,
+                           lakka_build_dir=cfg.lakka_build_dir)
     package.create_appimage(
         cfg.appimage_staging_dir,
         cfg.addon_dir / "retroarch.AppImage",

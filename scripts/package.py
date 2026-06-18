@@ -89,6 +89,7 @@ def move_artifacts(staging: Path, addon_dir: Path, *, with_dlc: bool) -> None:
 # Subdirectories of lib/ that are allowed to survive cleaning.
 _LIB_ALLOWED_SUBDIRS: frozenset[str] = frozenset({"libretro"})
 
+
 # libs whose SONAME stem matches these prefixes must go to lib-gpu/
 # instead of lib/. They are loaded conditionally by AppRun only on
 # framebuffer-only platforms (no /dev/dri/card0).
@@ -97,11 +98,21 @@ _GPU_LIB_PREFIXES: tuple[str, ...] = ("libgbm",)
 # Libs that must never be bundled — they are either kernel-tied (GPU
 # userspace driver) or always present on the host (glibc family).
 _HOST_ONLY_LIBS: frozenset[str] = frozenset({
+    # glibc / dynamic linker — always present on the target system
     "libc", "libm", "libpthread", "libdl", "librt", "libgcc_s",
-    "ld-linux", "ld-linux-aarch64",
-    "libmali", "libEGL", "libGL",          # Mali/GPU userspace, kernel-tied
-    "libdrm",                               # keep on system for DRM platforms;
-                                            # FB-only gets it via lib-gpu path
+    "libstdc++",
+    "ld-linux", "ld-linux-aarch64", "ld-linux-armhf", "ld-linux-x86-64",
+    # libcec on Amlogic is kernel-tied (AOCEC hardware adapter) — the
+    # Lakka-built libcec.so.7 lacks Amlogic support. AppRun creates a
+    # runtime compat symlink @LIBCEC_SONAME@ -> system libcec in /tmp.
+    "libcec",
+    # Mali/GPU userspace — kernel-tied, must come from the host system
+    "libmali", "libEGL", "libGL",
+    "libGLESv2", "libGLESv1_CM",
+    "libGLdispatch", "libOpenGL",
+    "libGLX",
+    # libdrm — kept on system for DRM platforms; FB-only gets it via lib-gpu
+    "libdrm",
 })
 
 
@@ -221,6 +232,12 @@ def collect_deps(addon_dir: Path, lakka_build_dir: Path,
                 d = pkg_dir / sub
                 if d.is_dir():
                     search_dirs.append(d)
+                    # Also search immediate subdirectories — some packages
+                    # install private libs one level deeper (e.g. PulseAudio
+                    # puts libpulsecommon in usr/lib/pulseaudio/).
+                    for child in d.iterdir():
+                        if child.is_dir():
+                            search_dirs.append(child)
 
     def _find_so(soname: str) -> Path | None:
         for d in search_dirs:
@@ -295,11 +312,175 @@ def collect_deps(addon_dir: Path, lakka_build_dir: Path,
             queue.append(dst_dir / soname)  # walk transitivo
 
 
+
+# ======================================================= collect_pkg_deps ==
+
+
+def collect_pkg_deps(addon_dir: Path, lakka_dir: Path,
+                     lakka_build_dir: Path,
+                     package_list: dict[str, tuple[str, ...]],
+                     subdirs: dict[str, str],
+                     readelf: str = "readelf") -> None:
+    """Bundle .so files from PKG_DEPENDS_TARGET of compiled packages.
+
+    readelf -d only sees DT_NEEDED (static link-time deps). Libraries loaded
+    via dlopen() at runtime are invisible to it. This function closes that gap:
+    for every package we compile, we parse its PKG_DEPENDS_TARGET from the
+    Lakka package.mk and bundle all .so files found in those dep packages'
+    install_pkg dirs.
+
+    Example: cec-mini-kb has PKG_DEPENDS_TARGET="toolchain libcec" →
+    we find libcec-7.1.1/ in install_pkg/ and copy libcec.so.7 into lib/.
+    """
+    lib_dir = addon_dir / "lib"
+    lib_dir.mkdir(exist_ok=True)
+
+    install_pkg = lakka_build_dir / "install_pkg"
+    if not install_pkg.is_dir():
+        return
+
+    # Build a map: package-name-prefix → list of install_pkg subdirs
+    pkg_install_map: dict[str, list[Path]] = {}
+    for d in install_pkg.iterdir():
+        # dir names are "pkgname-version" or "pkgname-HASH"
+        prefix = d.name.split("-")[0]
+        pkg_install_map.setdefault(prefix, []).append(d)
+
+    def _already_bundled(name: str) -> bool:
+        return (lib_dir / name).exists()
+
+    def _find_so_in_pkg(pkg_name: str) -> list[Path]:
+        """Return all .so* files from a dep package's install dirs."""
+        found: list[Path] = []
+        for pkg_dir in pkg_install_map.get(pkg_name, []):
+            for sub in ("usr/lib", "lib",
+                        "usr/lib/aarch64-linux-gnu",
+                        "usr/lib/arm-linux-gnueabihf"):
+                d = pkg_dir / sub
+                if d.is_dir():
+                    found.extend(
+                        f for f in d.iterdir()
+                        if (f.is_file() or f.is_symlink())
+                        and re.search(r"\.so(\.\d+)*$", f.name)
+                    )
+                    for child in d.iterdir():
+                        if child.is_dir():
+                            found.extend(
+                                f for f in child.iterdir()
+                                if (f.is_file() or f.is_symlink())
+                                and re.search(r"\.so(\.\d+)*$", f.name)
+                            )
+        return found
+
+    # Packages whose PKG_DEPENDS_TARGET we should walk.
+    # Focus on tool packages (executables that may dlopen libs at runtime).
+    skip_deps = frozenset({
+        "toolchain", "toolchain_pkg_dir",
+        "virtual", "glibc", "linux", "linux-headers",
+    })
+
+    for family, pkgs in package_list.items():
+        subdir = subdirs.get(family)
+        if subdir is None:
+            continue
+        for pkg in pkgs:
+            pkg_mk = lakka_dir / "packages" / subdir / pkg / "package.mk"
+            if not pkg_mk.is_file():
+                continue
+            deps = _parse_pkg_depends_target(pkg_mk)
+            for dep in deps:
+                if dep in skip_deps:
+                    continue
+                sos = _find_so_in_pkg(dep)
+                for so in sos:
+                    stem = _stem_from_path(so)
+                    if stem in _HOST_ONLY_LIBS:
+                        continue
+                    if _already_bundled(so.name):
+                        continue
+                    try:
+                        shutil.copy2(so, lib_dir / so.name)
+                        log.info("collect_pkg_deps: %s (dep of %s) -> lib/",
+                                 so.name, pkg)
+                    except OSError as exc:
+                        log.warning("collect_pkg_deps: cannot copy %s: %s",
+                                    so.name, exc)
+
+
+def _parse_pkg_depends_target(pkg_mk: Path) -> list[str]:
+    """Extract the space-separated package list from PKG_DEPENDS_TARGET."""
+    text = pkg_mk.read_text(encoding="utf-8", errors="replace")
+    parts: list[str] = []
+    in_var = False
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not in_var:
+            if not stripped.startswith("PKG_DEPENDS_TARGET"):
+                continue
+            _, _, rhs = stripped.partition("=")
+            in_var = True
+        else:
+            rhs = stripped
+        rhs = rhs.strip().strip('"').strip("'")
+        continuation = rhs.endswith("\\")
+        if continuation:
+            rhs = rhs[:-1]
+        parts.extend(rhs.split())
+        if not continuation:
+            break
+    return parts
+
+
+def _stem_from_path(p: Path) -> str:
+    return p.name.split(".so")[0]
+
+
 # ============================================================= stage_appimage
 
 
+def _detect_soname(lakka_build_dir: Path, pkg_prefix: str,
+                   lib_name: str, default: str) -> str:
+    """Return the SONAME for lib_name from the Lakka build output.
+
+    Strategy (in order):
+    1. Follow the unversioned dev symlink: lib_name.so → lib_name.so.N
+       e.g. libcec.so → libcec.so.7  (most packages have this)
+    2. Find a lib_name.so.N file directly (single-number SONAME pattern)
+       e.g. libudev.so.1  (systemd may omit the unversioned dev symlink)
+
+    Falls back to `default` if neither strategy finds a match.
+    """
+    soname_re = re.compile(rf"^{re.escape(lib_name)}\.so\.\d+$")
+    install_pkg = lakka_build_dir / "install_pkg"
+    if install_pkg.is_dir():
+        for pkg_dir in sorted(install_pkg.iterdir()):
+            if not pkg_dir.name.startswith(pkg_prefix):
+                continue
+            lib_dir = pkg_dir / "usr" / "lib"
+            if not lib_dir.is_dir():
+                continue
+            # Strategy 1: unversioned dev symlink
+            unversioned = lib_dir / f"{lib_name}.so"
+            if unversioned.is_symlink():
+                target = Path(os.readlink(str(unversioned))).name
+                if soname_re.match(target):
+                    log.info("stage_appimage: %s SONAME=%s (symlink in %s)",
+                             lib_name, target, pkg_dir.name)
+                    return target
+            # Strategy 2: SONAME file present directly
+            for entry in lib_dir.iterdir():
+                if soname_re.match(entry.name):
+                    log.info("stage_appimage: %s SONAME=%s (file in %s)",
+                             lib_name, entry.name, pkg_dir.name)
+                    return entry.name
+    log.warning("stage_appimage: %s SONAME not detected, using default %s",
+                lib_name, default)
+    return default
+
+
 def stage_appimage(addon_dir: Path, appimage_dir: Path,
-                   output_dir: Path, addon_name: str) -> None:
+                   output_dir: Path, addon_name: str,
+                   lakka_build_dir: Path | None = None) -> None:
     """Move retroarch + libs from addon_dir into the AppImage staging dir.
 
     After this step:
@@ -345,11 +526,21 @@ def stage_appimage(addon_dir: Path, appimage_dir: Path,
     # (At runtime the squashfs is read-only so this must happen here.)
     _restore_flattened_symlinks(appimage_dir / "lib")
 
+    # Detect kernel-tied lib SONAMEs from the Lakka build by following the
+    # unversioned .so symlinks in install_pkg. Baked into AppRun so the
+    # compat dir uses the exact SONAME the binaries were compiled against.
+    _lbd = lakka_build_dir or Path("/nonexistent")
+    libcec_soname  = _detect_soname(_lbd, "libcec",  "libcec",  "libcec.so.7")
+    libudev_soname = _detect_soname(_lbd, "systemd", "libudev", "libudev.so.1")
+
     # Render AppRun from output/AppRun.in.
     apprun_template = output_dir / "AppRun.in"
     if apprun_template.exists():
-        rendered = apprun_template.read_text(encoding="utf-8").replace(
-            "@ADDON_NAME@", addon_name
+        rendered = (
+            apprun_template.read_text(encoding="utf-8")
+            .replace("@ADDON_NAME@", addon_name)
+            .replace("@LIBCEC_SONAME@",  libcec_soname)
+            .replace("@LIBUDEV_SONAME@", libudev_soname)
         )
         apprun_dst = appimage_dir / "AppRun"
         apprun_dst.write_text(rendered, encoding="utf-8")
