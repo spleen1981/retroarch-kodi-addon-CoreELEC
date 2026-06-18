@@ -5,12 +5,19 @@
 #
 #   Normal:   ./retroarch.AppImage [--config=...] [args...]
 #             Sets up LD_LIBRARY_PATH and execs retroarch.
+#             AppImage libs take precedence (bundled ffmpeg, SDL2, etc.).
 #
 #   Sub-cmd:  ./retroarch.AppImage --run <binary> [args...]
 #             Runs any binary bundled in bin/ with the same lib environment.
 #             Used by the Python orchestrator to launch tools packaged inside
 #             the AppImage (cec-mini-kb, xbox360-controllers-shutdown, etc.)
 #             via systemd-run without needing loose binaries in the addon dir.
+#             Kernel-tied system libs (libcec, libudev) are resolved at
+#             runtime from the host and take precedence over AppImage libs.
+#             libcec is accessed via a compat symlink libcec.so.7 that
+#             points to whatever libcec.so.N the host ships, so the
+#             platform-specific adapter (e.g. Amlogic AOCEC) is used.
+#             Works across CoreELEC versions regardless of libcec.so version.
 #
 # Library loading:
 #   lib/       Userspace shared libs bundled from the Lakka build.
@@ -32,7 +39,30 @@ _setup_libs() {
 if [ "$1" = "--run" ]; then
     shift
     binary="$1"; shift
-    _setup_libs
+
+    # Runtime compat dir — fixed path, survives exec(), cleaned on reboot.
+    _compat="/tmp/.appimage_syslibs_@ADDON_NAME@"
+    mkdir -p "$_compat"
+
+    # libcec: create libcec.so.7 symlink pointing to the highest versioned
+    # libcec.so.N on the host.  The host's libcec has platform-specific
+    # adapter support (e.g. Amlogic AOCEC) that the Lakka-built version lacks.
+    # libcec SONAME baked in at AppImage build time by stage_appimage.
+    _sys_libcec=$(find /usr/lib /lib -name "libcec.so.*" 2>/dev/null \
+        | grep -E "libcec\.so\.[0-9]" | sort -V | tail -1)
+    if [ -n "$_sys_libcec" ]; then
+        ln -sf "$_sys_libcec" "$_compat/@LIBCEC_SONAME@" 2>/dev/null || true
+    fi
+
+    # libudev: use host version (matches running udev/kernel).
+    _sys_libudev=$(find /usr/lib /lib -name "@LIBUDEV_SONAME@" 2>/dev/null | head -1)
+    if [ -n "$_sys_libudev" ]; then
+        ln -sf "$_sys_libudev" "$_compat/@LIBUDEV_SONAME@" 2>/dev/null || true
+    fi
+
+    _applib="$(_appimage_lib_path)"
+    export LD_LIBRARY_PATH="$_compat:/usr/lib:/lib:${_applib}${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+    export PATH="$APPDIR/bin${PATH:+:$PATH}"
     exec "$APPDIR/bin/$binary" "$@"
 fi
 
