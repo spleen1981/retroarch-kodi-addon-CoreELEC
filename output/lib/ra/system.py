@@ -126,6 +126,20 @@ def _restart_kodi_if_wanted(
         systemctl("start", "kodi")
 
 
+def _resolve_fusermount() -> str:
+    """Return an absolute path to fusermount3/fusermount, or empty string."""
+    candidate = os.environ.get("FUSERMOUNT", "")
+    if candidate:
+        return candidate
+    for path in (
+        "/usr/bin/fusermount3", "/usr/bin/fusermount",
+        "/bin/fusermount3", "/bin/fusermount",
+    ):
+        if os.path.isfile(path):
+            return path
+    return ""
+
+
 def run_detached(unit_name: str, *args: str) -> int:
     """Run a command as a transient systemd unit and return immediately.
 
@@ -135,17 +149,22 @@ def run_detached(unit_name: str, *args: str) -> int:
     # --collect: systemd removes the transient unit automatically once it
     # reaches an inactive state (including failed). Without this, a previous
     # failed instance of the same unit name blocks the next systemd-run call.
-    cmd = ["systemd-run", "-q", "--collect", "-u", unit_name, *args]
+    #
+    # FUSERMOUNT must be forwarded explicitly via --setenv= because systemd-run
+    # creates the transient unit with a minimal clean environment — the env
+    # passed to subprocess.call() reaches systemd-run itself but is NOT
+    # inherited by the spawned unit. Without FUSERMOUNT, the AppImage type-2
+    # runtime cannot find fusermount3 in the unit's minimal PATH, so the FUSE
+    # squashfs mount hangs and the AppImage never reaches exec.
+    fusermount = _resolve_fusermount()
+    cmd = ["systemd-run", "-q", "--collect", "-u", unit_name]
+    if fusermount:
+        cmd.append(f"--setenv=FUSERMOUNT={fusermount}")
+    cmd.extend(args)
     log.info("systemd-run: %s", " ".join(cmd))
     env = os.environ.copy()
-    if "FUSERMOUNT" not in env:
-        for _candidate in (
-            "/usr/bin/fusermount3", "/usr/bin/fusermount",
-            "/bin/fusermount3", "/bin/fusermount",
-        ):
-            if os.path.isfile(_candidate):
-                env["FUSERMOUNT"] = _candidate
-                break
+    if fusermount:
+        env["FUSERMOUNT"] = fusermount
     return subprocess.call(cmd, env=env)
 
 

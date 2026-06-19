@@ -12,11 +12,8 @@
 #             Used by the Python orchestrator to launch tools packaged inside
 #             the AppImage (cec-mini-kb, xbox360-controllers-shutdown, etc.)
 #             via systemd-run without needing loose binaries in the addon dir.
-#             Kernel-tied system libs (libcec, libudev) are resolved at
-#             runtime from the host and take precedence over AppImage libs.
-#             libcec is accessed via a compat symlink libcec.so.7 that
-#             points to whatever libcec.so.N the host ships, so the
-#             platform-specific adapter (e.g. Amlogic AOCEC) is used.
+#             libcec is resolved at runtime from the host via a compat symlink
+#             so the platform-specific adapter (e.g. Amlogic AOCEC) is used.
 #             Works across CoreELEC versions regardless of libcec.so version.
 #
 # Library loading:
@@ -52,12 +49,6 @@ if [ "$1" = "--run" ]; then
         | grep -E "libcec\.so\.[0-9]" | sort -V | tail -1)
     if [ -n "$_sys_libcec" ]; then
         ln -sf "$_sys_libcec" "$_compat/@LIBCEC_SONAME@" 2>/dev/null || true
-    fi
-
-    # libudev: use host version (matches running udev/kernel).
-    _sys_libudev=$(find /usr/lib /lib -name "@LIBUDEV_SONAME@" 2>/dev/null | head -1)
-    if [ -n "$_sys_libudev" ]; then
-        ln -sf "$_sys_libudev" "$_compat/@LIBUDEV_SONAME@" 2>/dev/null || true
     fi
 
     _applib="$(_appimage_lib_path)"
