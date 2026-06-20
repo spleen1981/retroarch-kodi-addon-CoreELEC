@@ -47,7 +47,7 @@ class RetroArchRuntime:
 
     def _enter_subsystems(self, cfg: RetroArchConfig) -> None:
         """Enter every subsystem context manager into the ExitStack."""
-        from . import audio, cec, mount, system, video
+        from . import audio, mount, system, video
 
         # Stop Kodi; everything below assumes Kodi is not running.
         # Skip the restart on the way out when a power action is pending —
@@ -71,15 +71,11 @@ class RetroArchRuntime:
         if self.settings.sync_audio_settings:
             audio.sync_into(cfg)
 
-        # cec-mini-kb runs alongside retroarch and is stopped on cleanup.
-        if self.settings.cec_remote:
-            self._stack.enter_context(cec.minikb_running(self.settings))
+        # cec-mini-kb and xbox360-controllers-shutdown are started and stopped
+        # by AppRun within the single FUSE mount shared with retroarch.
+        # RA_CEC* and RA_XBOX360_SHUTDOWN env vars are passed to the AppImage
+        # in _exec_retroarch; no separate processes or systemd units needed.
 
-        # On exit (after the stack unwinds), optionally power off xbox360
-        # controllers and cycle bluetooth. Registered as callbacks so they
-        # run regardless of how the stack unwinds.
-        if self.settings.xbox360_shutdown:
-            self._stack.callback(self._xbox360_shutdown)
         if self.settings.bt_shutdown:
             self._stack.callback(self._cycle_bluetooth)
 
@@ -89,8 +85,8 @@ class RetroArchRuntime:
         """Ensure the AppImage has execute permission.
 
         Kodi's addon installer strips the execute bit when extracting ZIPs.
-        Called once at the very start of run() — before cec-kb or any other
-        subsystem tries to invoke the AppImage.
+        Called once at the very start of run() — before any subsystem tries
+        to invoke the AppImage.
         """
         if paths.APPIMAGE.exists() and not os.access(paths.APPIMAGE, os.X_OK):
             import stat as _stat
@@ -101,21 +97,18 @@ class RetroArchRuntime:
             log.info("runtime: made %s executable", paths.APPIMAGE.name)
 
     def _exec_retroarch(self) -> int:
-        # Launch the AppImage. The AppImage's AppRun sets up LD_LIBRARY_PATH,
-        # detects the DRM/framebuffer backend, and execs retroarch. We pass
-        # --config= and any extra args through; AppRun forwards them verbatim.
-        #
-        # The AppImage type2-runtime mounts the squashfs via FUSE and needs
-        # fusermount/fusermount3 in PATH. The systemd-run transient unit
-        # inherits a minimal PATH, so we extend it with the common locations
-        # where CoreELEC installs fusermount.
+        # Launch the AppImage. AppRun sets up LD_LIBRARY_PATH, starts
+        # cec-mini-kb and xbox360-controllers-shutdown within the same
+        # squashfs mount (no additional FUSE mounts), runs retroarch, then
+        # cleans up the tools on exit. We communicate settings via RA_*
+        # env vars so AppRun can configure the tools at launch time.
         args = [str(paths.APPIMAGE), f"--config={paths.RA_CONFIG_FILE}"]
         if self.settings.log_to_file:
             args.insert(1, "--verbose")
         args.extend(self.extra_args)
         log.info("exec: %s", " ".join(args))
         env = os.environ.copy()
-        # FUSERMOUNT: needed for both mount AND unmount of the AppImage squashfs.
+        # FUSERMOUNT: needed for mount AND unmount of the AppImage squashfs.
         # Without it, the runtime can't find fusermount on exit → FUSE cleanup
         # hangs → system freezes after retroarch exits.
         if "FUSERMOUNT" not in env:
@@ -126,6 +119,11 @@ class RetroArchRuntime:
                 if os.path.isfile(_candidate):
                     env["FUSERMOUNT"] = _candidate
                     break
+        # CEC and xbox360 settings: read by AppRun to start/stop tools.
+        from . import cec
+        env.update(cec.appimage_env(self.settings))
+        if self.settings.xbox360_shutdown:
+            env["RA_XBOX360_SHUTDOWN"] = "1"
         if not self.settings.log_to_file:
             return subprocess.call(args, env=env)
         # Combine AppImage/RA stdout/stderr into the shared log file.
@@ -186,17 +184,6 @@ class RetroArchRuntime:
         signal.signal(signal.SIGINT, _raise_exit)
 
     # ----------------------------------------------------------- helpers
-
-    def _xbox360_shutdown(self) -> None:
-        env = os.environ.copy()
-        if "FUSERMOUNT" not in env:
-            for _c in ("/usr/bin/fusermount", "/usr/bin/fusermount3",
-                       "/bin/fusermount", "/bin/fusermount3"):
-                if os.path.isfile(_c):
-                    env["FUSERMOUNT"] = _c
-                    break
-        subprocess.call([str(paths.APPIMAGE), "--run",
-                         "xbox360-controllers-shutdown"], env=env)
 
     def _cycle_bluetooth(self) -> None:
         # bluetoothctl power off / on. Ignore errors — if bluetoothctl

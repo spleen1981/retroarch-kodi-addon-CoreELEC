@@ -1,20 +1,10 @@
 #!/bin/sh
 # AppImage entry point — runtime for @ADDON_NAME@.
 #
-# Two modes:
-#
-#   Normal:   ./retroarch.AppImage [--config=...] [args...]
-#             Sets up LD_LIBRARY_PATH and execs retroarch.
-#             AppImage libs take precedence (bundled ffmpeg, SDL2, etc.).
-#
-#   Sub-cmd:  ./retroarch.AppImage --run <binary> [args...]
-#             Runs any binary bundled in bin/ with the same lib environment.
-#             Used by the Python orchestrator to launch tools packaged inside
-#             the AppImage (cec-mini-kb, xbox360-controllers-shutdown, etc.)
-#             via systemd-run without needing loose binaries in the addon dir.
-#             libcec is resolved at runtime from the host via a compat symlink
-#             so the platform-specific adapter (e.g. Amlogic AOCEC) is used.
-#             Works across CoreELEC versions regardless of libcec.so version.
+# Environment variables set by the Python orchestrator:
+#   RA_CEC=1              start cec-mini-kb (no poweroff handler)
+#   RA_CEC_POWEROFF=1     start cec-mini-kb with CEC standby → shutdown
+#   RA_XBOX360_SHUTDOWN=1 run xbox360-controllers-shutdown after retroarch exits
 #
 # Library loading:
 #   lib/       Userspace shared libs bundled from the Lakka build.
@@ -33,35 +23,60 @@ _appimage_lib_path() {
     fi
 }
 
-if [ "$1" = "--run" ]; then
-    shift
-    binary="$1"; shift
-
-    # Runtime compat dir — fixed path, survives exec(), cleaned on reboot.
-    _compat="/tmp/.appimage_syslibs_@ADDON_NAME@"
-    mkdir -p "$_compat"
-
-    # libcec: create libcec.so.7 symlink pointing to the highest versioned
-    # libcec.so.N on the host.  The host's libcec has platform-specific
-    # adapter support (e.g. Amlogic AOCEC) that the Lakka-built version lacks.
-    # libcec SONAME baked in at AppImage build time by stage_appimage.
-    _sys_libcec=$(find /usr/lib /lib -name "libcec.so.*" 2>/dev/null \
-        | grep -E "libcec\.so\.[0-9]" | sort -V | tail -1)
-    if [ -n "$_sys_libcec" ]; then
-        ln -sf "$_sys_libcec" "$_compat/@LIBCEC_SONAME@" 2>/dev/null || true
-    fi
-
-    _applib="$(_appimage_lib_path)"
-    export LD_LIBRARY_PATH="$_compat:/usr/lib:/lib:${_applib}${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-    export PATH="$APPDIR/bin${PATH:+:$PATH}"
-    exec "$APPDIR/bin/$binary" "$@"
+# compat dir: host libcec symlink so cec-mini-kb uses the platform-specific
+# CEC adapter (e.g. Amlogic AOCEC) instead of the Lakka-built version.
+_compat="/tmp/.appimage_syslibs_@ADDON_NAME@"
+mkdir -p "$_compat"
+_sys_libcec=$(find /usr/lib /lib -name "libcec.so.*" 2>/dev/null \
+    | grep -E "libcec\.so\.[0-9]" | sort -V | tail -1)
+if [ -n "$_sys_libcec" ]; then
+    ln -sf "$_sys_libcec" "$_compat/@LIBCEC_SONAME@" 2>/dev/null || true
 fi
 
-# Normal mode (retroarch): AppImage libs first.
-if [ ! -e /dev/dri/card0 ]; then
-    export LD_LIBRARY_PATH="$APPDIR/lib:$APPDIR/lib-gpu${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-else
-    export LD_LIBRARY_PATH="$APPDIR/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-fi
+# LD_LIBRARY_PATH for CEC tools: host libcec first, then AppImage libs.
+_tool_lib="$_compat:/usr/lib:/lib:$(_appimage_lib_path)"
+
+# LD_LIBRARY_PATH for retroarch: AppImage libs first.
+export LD_LIBRARY_PATH="$(_appimage_lib_path)${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 export PATH="$APPDIR/bin${PATH:+:$PATH}"
-exec "$APPDIR/bin/retroarch" "$@"
+
+# Start cec-mini-kb in background if requested.
+# The --poweroff command runs only on a CEC standby event (TV power button),
+# not on SIGTERM — SIGTERM causes a clean exit without triggering poweroff.
+_cec_pid=""
+if [ "${RA_CEC_POWEROFF:-0}" = "1" ]; then
+    _poweroff="shutdown -P now"
+    if [ "${RA_XBOX360_SHUTDOWN:-0}" = "1" ]; then
+        # xbox360-controllers-shutdown runs from this same squashfs mount.
+        # LD_LIBRARY_PATH is inherited from cec-mini-kb's environment.
+        # No quoting needed: the path never contains spaces on CoreELEC.
+        _poweroff="$APPDIR/bin/xbox360-controllers-shutdown;$_poweroff"
+    fi
+    LD_LIBRARY_PATH="$_tool_lib" \
+        "$APPDIR/bin/cec-mini-kb" --poweroff "$_poweroff" &
+    _cec_pid=$!
+elif [ "${RA_CEC:-0}" = "1" ]; then
+    LD_LIBRARY_PATH="$_tool_lib" "$APPDIR/bin/cec-mini-kb" &
+    _cec_pid=$!
+fi
+
+# Run retroarch (not via exec so this shell stays alive for cleanup).
+"$APPDIR/bin/retroarch" "$@"
+_rc=$?
+
+# Stop cec-mini-kb. SIGTERM is sufficient: it causes a clean exit without
+# triggering the --poweroff handler (which fires only on CEC standby events).
+if [ -n "$_cec_pid" ]; then
+    kill "$_cec_pid" 2>/dev/null
+    wait "$_cec_pid" 2>/dev/null
+fi
+
+# Xbox360 controller shutdown on retroarch exit.
+# Always runs when enabled regardless of RA_CEC_POWEROFF: if the CEC power
+# button was pressed, xbox360-shutdown already ran inside the --poweroff
+# command, but running it again during system shutdown is harmless.
+if [ "${RA_XBOX360_SHUTDOWN:-0}" = "1" ]; then
+    LD_LIBRARY_PATH="$_tool_lib" "$APPDIR/bin/xbox360-controllers-shutdown"
+fi
+
+exit $_rc

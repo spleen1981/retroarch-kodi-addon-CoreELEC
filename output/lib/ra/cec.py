@@ -1,50 +1,19 @@
-"""CEC integration: run cec-mini-kb alongside retroarch."""
+"""CEC integration: env vars for the AppImage launch."""
 
 from __future__ import annotations
 
-import contextlib
-import logging
-from typing import Iterator
-
-from . import paths
 from .settings import AddonSettings
-from .system import run_detached, stop_unit
-
-log = logging.getLogger(__name__)
-
-MINIKB_UNIT = "cec-kb"
 
 
-@contextlib.contextmanager
-def minikb_running(settings: AddonSettings) -> Iterator[None]:
-    """Run `cec-mini-kb` as a transient systemd unit while inside the context."""
-    if not paths.APPIMAGE.exists():
-        log.info("cec: AppImage not present at %s, skipping mini-kb", paths.APPIMAGE)
-        yield
-        return
+def appimage_env(settings: AddonSettings) -> dict[str, str]:
+    """Return RA_CEC_* env vars to pass to the AppImage invocation.
 
-    args: list[str] = [str(paths.APPIMAGE), "--run", "cec-mini-kb"]
+    cec-mini-kb is started and stopped by AppRun within the single FUSE
+    mount shared with retroarch.  The Python orchestrator only needs to
+    declare intent via these variables; AppRun handles the lifecycle.
+    """
+    if not settings.cec_remote:
+        return {}
     if settings.cec_poweroff == 0:
-        # The mini-kb supports a `--poweroff <cmd>` flag: when the CEC
-        # remote sends a "power" key, it shells out to <cmd>. We compose
-        # the chain (xbox360 shutdown then `shutdown -P now`) once and
-        # pass it as a single argv element.
-        args.append("--poweroff")
-        args.append(_compose_poweroff_command(settings))
-
-    rc = run_detached(MINIKB_UNIT, *args)
-    if rc != 0:
-        log.warning("cec: systemd-run for %s returned %d", MINIKB_UNIT, rc)
-    try:
-        yield
-    finally:
-        stop_unit(MINIKB_UNIT)
-
-
-def _compose_poweroff_command(settings: AddonSettings) -> str:
-    parts: list[str] = []
-    if settings.xbox360_shutdown:
-        # xbox360-controllers-shutdown is also inside the AppImage.
-        parts.append(f"{paths.APPIMAGE} --run xbox360-controllers-shutdown")
-    parts.append("shutdown -P now")
-    return ";".join(parts)
+        return {"RA_CEC_POWEROFF": "1"}
+    return {"RA_CEC": "1"}
