@@ -124,6 +124,10 @@ class RetroArchRuntime:
         env.update(cec.appimage_env(self.settings))
         if self.settings.xbox360_shutdown:
             env["RA_XBOX360_SHUTDOWN"] = "1"
+        # Single source of truth for the shutdown-flag path: AppRun checks it
+        # to switch the TV off (SIGUSR1 to cec-mini-kb) when the user picks
+        # "shutdown" inside RetroArch.
+        env["RA_SHUTDOWN_FLAG"] = str(paths.SHUTDOWN_FLAG)
         if not self.settings.log_to_file:
             return subprocess.call(args, env=env)
         # Combine AppImage/RA stdout/stderr into the shared log file.
