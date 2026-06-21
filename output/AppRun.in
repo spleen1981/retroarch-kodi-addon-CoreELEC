@@ -75,16 +75,20 @@ _rc=$?
 # Stop cec-mini-kb. SIGTERM is sufficient: it causes a clean exit without
 # triggering the --poweroff handler (which fires only on CEC standby events).
 if [ -n "$_cec_pid" ]; then
-    # If the user chose "shutdown" inside RetroArch (flag file present) and the
-    # CEC poweroff feature is enabled, tell cec-mini-kb to turn the TV off via
-    # SIGUSR1 before we stop it. cec-mini-kb must still be alive for the signal
-    # to reach it, so this happens before the kill below. Gated on the shutdown
-    # flag (not reboot) so a reboot does not switch the TV off. Give libcec a
-    # moment to transmit the CEC standby command to the TV before terminating.
     if [ "${RA_CEC_POWEROFF:-0}" = "1" ] && [ -f "$RA_SHUTDOWN_FLAG" ]; then
-        kill -s SIGUSR1 "$_cec_pid" 2>/dev/null
-        sleep 1
+        # Shutdown chosen inside RetroArch + CEC poweroff enabled: SIGUSR1 so
+        # cec-mini-kb turns the TV off as it exits. If the libcec standby
+        # blocks (it can stall waiting on the adapter), the poll loop below
+        # force-kills after a few seconds so the shutdown always proceeds.
+        kill -s USR1 "$_cec_pid" 2>/dev/null
+        _n=0
+        while kill -0 "$_cec_pid" 2>/dev/null && [ "$_n" -lt 5 ]; do
+            sleep 1
+            _n=$((_n + 1))
+        done
+        kill -9 "$_cec_pid" 2>/dev/null
     else
+        # Normal exit / reboot: SIGTERM, clean exit, TV left on, returns promptly.
         kill "$_cec_pid" 2>/dev/null
     fi
     wait "$_cec_pid" 2>/dev/null
