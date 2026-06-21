@@ -8,7 +8,7 @@ index 0000000000..031040307a
 +# 2021 Giovanni Cascione
 +
 +PKG_NAME="cec-mini-kb"
-+PKG_VERSION="4aaa0dc83638c2dca4861e39b7326e6faff7aa6b"
++PKG_VERSION="5a09c5e0392c35411f4c198b7513f0f2d19940fa"
 +PKG_LICENSE="GPLv3"
 +PKG_SITE="https://github.com/spleen1981/cec-mini-kb"
 +PKG_URL="${PKG_SITE}/archive/${PKG_VERSION}.tar.gz"
