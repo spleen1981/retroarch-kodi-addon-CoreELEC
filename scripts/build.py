@@ -41,6 +41,11 @@ log = logging.getLogger(__name__)
 REPO_ROOT = Path(__file__).resolve().parent.parent
 OUTPUT_DIR = REPO_ROOT / "output"
 
+# v2.0.0: the addon is platform-independent. A single ZIP carries this id; the
+# per-platform RetroArch AppImage is a separate release asset (named
+# retroarch-<platform>-<version>.AppImage) downloaded at runtime into userdata.
+ADDON_ID = "script.retroarch.launcher"
+
 # Pinned Lakka commit. Bumped intentionally — keep in sync with the README.
 DEFAULT_LAKKA_VERSION = "c4d3f32b0e3d76889353ea0f6c81f947d6c6f103"
 
@@ -84,6 +89,11 @@ class DeviceProfile:
     cores_remove: tuple[str, ...] = ()
     cores_fallback: tuple[str, ...] = ()
     fallback_subdir: str = ""
+    # AppImage target token. Empty → the family-wide '<family>-any.<arch>'
+    # (e.g. 'Amlogic-any.arm'), which any device of that family+arch matches
+    # opportunistically at runtime. Set a '<device>.<arch>' value only when a
+    # device genuinely needs its own build.
+    appimage_target: str = ""
 
 
 _DEVICES: dict[str, DeviceProfile] = {
@@ -120,6 +130,8 @@ class BuildConfig:
     work_dir: Path = field(default_factory=lambda: REPO_ROOT / "retroarch_work")
     # Parallel `make` job count for Lakka. None -> let Lakka pick its default.
     jobs: int | None = None
+    # AppImage target override (CLI). Empty -> profile.appimage_target -> arch.
+    appimage_target_override: str = ""
 
     @property
     def profile(self) -> DeviceProfile:
@@ -127,19 +139,50 @@ class BuildConfig:
 
     @property
     def addon_name(self) -> str:
-        return f"script.retroarch.launcher.{self.device}.{self.profile.arch}"
+        # Platform-independent id (v2). Same for every device.
+        return ADDON_ID
 
     @property
-    def ra_name_suffix(self) -> str:
-        return f"{self.device}.{self.profile.arch}"
+    def appimage_target(self) -> str:
+        """Target token baked into the AppImage filename / manifest platform.
+
+        Defaults to the family-wide '<family>-any.<arch>' (e.g. 'Amlogic-any.arm'):
+        any device of that family+arch matches it opportunistically at runtime,
+        so a single build serves Amlogic-ng, -ne, -no, … Precedence: the
+        `--appimage-target` CLI override wins, then the profile's
+        `appimage_target`, then the derived '<family>-any.<arch>'. The generic
+        target is always SoC-family scoped (never just the architecture).
+        """
+        if self.appimage_target_override:
+            return self.appimage_target_override
+        if self.profile.appimage_target:
+            return self.profile.appimage_target
+        family = self.device.rsplit("-", 1)[0] if "-" in self.device else self.device
+        return f"{family}-any.{self.profile.arch}"
 
     @property
     def addon_dir(self) -> Path:
-        return self.work_dir / self.addon_name
+        # The single, universal addon dir assembled once (phase 2). Shared
+        # across devices — only written during assembly, never in the
+        # per-device AppImage phase (which uses staging_dir).
+        return self.work_dir / ADDON_ID
+
+    @property
+    def staging_dir(self) -> Path:
+        """Per-device scratch dir: Lakka artifacts are extracted here, then
+        bin/lib are moved into the AppImage, leaving resources+config that
+        feed the universal addon assembly."""
+        return self.work_dir / f"staging-{self.device}"
 
     @property
     def archive_name(self) -> str:
-        return f"{self.addon_name}-{self.addon_version}.zip"
+        return f"{ADDON_ID}-{self.addon_version}.zip"
+
+    @property
+    def appimage_version(self) -> str:
+        """Numeric version for the AppImage filename (no leading 'v'), so it
+        matches paths.appimage_filename() used at download time."""
+        return self.addon_version.lstrip("vV")
 
     @property
     def lakka_build_subdir(self) -> str:
@@ -179,17 +222,17 @@ class BuildConfig:
 
     @property
     def appimage_staging_dir(self) -> Path:
-        """Staging directory for AppImage contents (retroarch + libs)."""
-        return self.work_dir / f"{self.addon_name}-appimage"
+        """Per-device staging directory for AppImage contents (retroarch + libs)."""
+        return self.work_dir / f"appimage-staging-{self.device}"
 
     @property
     def appimage_name(self) -> str:
-        return f"retroarch-{self.ra_name_suffix}-{self.addon_version}.AppImage"
+        return f"retroarch-{self.appimage_target}-{self.appimage_version}.AppImage"
 
     @property
-    def appimagetool(self) -> str:
-        """appimagetool installed by the appimagetool host package."""
-        return str(self.lakka_build_dir / "toolchain" / "bin" / "appimagetool")
+    def appimage_out(self) -> Path:
+        """Final AppImage path — a release asset, dropped in build/, NOT in the ZIP."""
+        return self.build_dir / self.appimage_name
 
     @property
     def appimage_runtime(self) -> str:
@@ -200,13 +243,37 @@ class BuildConfig:
             / f"runtime-{runtime_arch}"
         )
 
+    # AppImageKit release tag used for the fuse2 runtime. Pinned to a fixed
+    # release (not "continuous") for reproducible builds. The type2-runtime
+    # from AppImage/type2-runtime uses fuse3/fusermount3 which is absent on
+    # CoreELEC; AppImageKit release 13 uses libfuse.so.2 via dlopen() and
+    # calls fuse_mount/fuse_unmount in-process — no external fusermount binary
+    # required, clean unmount when the AppImage process exits.
+    _APPIMAGE_RUNTIME_RELEASE = "13"
+
 
 # =============================================================== driver ===
 
 
-def build(cfg: BuildConfig) -> None:
-    """Run every phase of the build for a single device profile."""
-    log.info("=== building %s @ %s ===", cfg.addon_name, cfg.addon_version)
+@dataclass
+class AppImageArtifact:
+    """One built per-platform AppImage release asset."""
+    platform: str
+    version: str       # numeric (no leading 'v')
+    path: Path
+    sha256: str
+
+
+def build_appimage(cfg: BuildConfig) -> AppImageArtifact:
+    """Phase 1 (per device): build the per-platform RetroArch AppImage.
+
+    Runs the Lakka build, extracts artifacts into the per-device staging dir,
+    moves bin/lib into the AppImage, and writes the AppImage as a release asset
+    in build/ (NOT inside the addon ZIP). Leaves cfg.staging_dir holding the
+    device-independent resources+config that phase 2 (assemble_addon) uses to
+    build the single universal addon ZIP.
+    """
+    log.info("=== building AppImage %s @ %s ===", cfg.appimage_target, cfg.addon_version)
     if not cfg.lakka_dir.is_dir():
         raise FileNotFoundError(f"Lakka source dir not found: {cfg.lakka_dir}")
 
@@ -230,72 +297,99 @@ def build(cfg: BuildConfig) -> None:
             subdirs=PKG_SUBDIRS, work_dir=cfg.work_dir,
         )
 
-        # Addon assembly steps that read the Lakka source tree (package.mk
-        # files created by patches) must run while patches are still applied.
-        _setup_addon_dir(cfg)
-        package.move_artifacts(tmp_target, cfg.addon_dir, with_dlc=cfg.include_dlc)
-        package.clean_lib(cfg.addon_dir)
-        package.collect_gpu_libs(cfg.addon_dir)
+        # Artifact extraction reads the Lakka source tree (package.mk files
+        # created by patches) so it must run while patches are still applied.
+        # Everything lands in the per-device STAGING dir, never the universal
+        # addon dir.
+        _setup_staging_dir(cfg)
+        package.move_artifacts(tmp_target, cfg.staging_dir, with_dlc=cfg.include_dlc)
+        package.clean_lib(cfg.staging_dir)
+        package.collect_gpu_libs(cfg.staging_dir)
         package.collect_deps(
-            cfg.addon_dir,
+            cfg.staging_dir,
             lakka_build_dir=cfg.lakka_build_dir,
             readelf=cfg.readelf,
         )
         package.collect_pkg_deps(
-            cfg.addon_dir,
+            cfg.staging_dir,
             lakka_dir=cfg.lakka_dir,
             lakka_build_dir=cfg.lakka_build_dir,
             package_list=package_list,
             subdirs=PKG_SUBDIRS,
         )
-        package.add_fallback_cores(REPO_ROOT, cfg.addon_dir, cfg.profile)
-    # Ensure host-only build tools (appimagetool, runtime) are available.
+        package.add_fallback_cores(REPO_ROOT, cfg.staging_dir, cfg.profile)
+    # Ensure the AppImage runtime binary is available.
     _ensure_appimage_tools(cfg)
 
-    # Move retroarch + libs into AppImage staging, build AppImage, drop it
-    # into addon_dir as retroarch.AppImage.
-    package.stage_appimage(cfg.addon_dir, cfg.appimage_staging_dir,
-                           output_dir=OUTPUT_DIR, addon_name=cfg.addon_name,
+    # Move retroarch + libs out of staging into the AppImage and write it as a
+    # standalone release asset in build/. staging_dir keeps resources+config.
+    package.stage_appimage(cfg.staging_dir, cfg.appimage_staging_dir,
+                           output_dir=OUTPUT_DIR, addon_name=ADDON_ID,
                            lakka_build_dir=cfg.lakka_build_dir)
     package.create_appimage(
         cfg.appimage_staging_dir,
-        cfg.addon_dir / "retroarch.AppImage",
-        appimagetool=cfg.appimagetool,
+        cfg.appimage_out,
         runtime=cfg.appimage_runtime,
     )
-    package.install_committed_source(OUTPUT_DIR, cfg.addon_dir, cfg.addon_name)
-    package.emit_addon_xml(cfg.addon_dir, cfg.addon_name, cfg.addon_version,
-                           cfg.provider, cfg.ra_name_suffix,
+    sha = package.sha256_file(cfg.appimage_out)
+    log.info("AppImage -> %s (sha256=%s)", cfg.appimage_out.name, sha)
+    return AppImageArtifact(platform=cfg.appimage_target, version=cfg.appimage_version,
+                            path=cfg.appimage_out, sha256=sha)
+
+
+def assemble_addon(cfg: BuildConfig) -> tuple[Path, str]:
+    """Phase 2 (once): assemble the single universal addon ZIP.
+
+    `cfg` references a device whose staging_dir already holds the extracted
+    resources+config (build_appimage(cfg) ran for it). Resources are
+    device-independent, so we take them from this one reference build. The
+    addon carries no platform suffix (passed "" to the metadata emitters) and
+    no bundled AppImage. Returns (zip_path, sha256).
+    """
+    src = cfg.staging_dir
+    if not src.is_dir():
+        raise RuntimeError(f"reference staging dir missing: {src}")
+
+    addon_dir = cfg.addon_dir
+    if addon_dir.exists():
+        shutil.rmtree(addon_dir)
+    addon_dir.mkdir(parents=True, exist_ok=True)
+    # Device-independent thin-addon content (resources + seed config).
+    for sub in ("resources", "config"):
+        s = src / sub
+        if s.is_dir():
+            shutil.copytree(s, addon_dir / sub, symlinks=True)
+
+    package.install_committed_source(OUTPUT_DIR, addon_dir, ADDON_ID)
+    package.emit_addon_xml(addon_dir, ADDON_ID, cfg.addon_version,
+                           cfg.provider, "",  # universal: no platform suffix
                            changelog=REPO_ROOT / "CHANGELOG.md")
-    package.emit_language_files(cfg.addon_dir, cfg.addon_version,
-                                cfg.ra_name_suffix)
-    package.customize_retroarch_cfg(cfg.addon_dir, cfg.addon_name,
-                                    with_dlc=cfg.include_dlc)
-    package.create_archive(cfg.addon_dir, cfg.build_dir, cfg.archive_name)
+    package.emit_language_files(addon_dir, cfg.addon_version, "")
+    package.customize_retroarch_cfg(addon_dir, ADDON_ID, with_dlc=cfg.include_dlc)
+    package.create_archive(addon_dir, cfg.build_dir, cfg.archive_name)
+
+    zip_path = cfg.build_dir / ADDON_ID / cfg.archive_name
+    sha = package.sha256_file(zip_path) if zip_path.is_file() else ""
+    log.info("addon ZIP -> %s (sha256=%s)", zip_path.name, sha)
+    return zip_path, sha
 
 
 def _ensure_appimage_tools(cfg: BuildConfig) -> None:
-    """Download appimagetool and the AppImage runtime if not already present.
+    """Download the AppImage runtime binary if not already present.
 
-    These are host-only build tools (not Lakka target packages).  Rather than
-    going through Lakka's package system (which builds for the target), we
-    download them directly into the toolchain directory where the build
-    properties expect to find them.
+    The runtime is a host-independent data file (not executed on the build
+    host). appimagetool is no longer needed: create_appimage assembles the
+    AppImage directly using the system mksquashfs + cat(runtime, squashfs).
     """
     _HTTP_TIMEOUT = 30.0
 
     tools = [
         (
-            cfg.appimagetool,
-            "https://github.com/AppImage/appimagetool/releases/download/"
-            "continuous/appimagetool-x86_64.AppImage",
-            True,   # chmod +x
-        ),
-        (
             cfg.appimage_runtime,
-            "https://github.com/AppImage/type2-runtime/releases/download/"
-            f"continuous/runtime-{'aarch64' if cfg.profile.arch == 'aarch64' else 'armhf'}",
-            False,  # runtime is data, not executed on host
+            "https://github.com/AppImage/AppImageKit/releases/download/"
+            f"{BuildConfig._APPIMAGE_RUNTIME_RELEASE}/"
+            f"obsolete-runtime-{'aarch64' if cfg.profile.arch == 'aarch64' else 'armhf'}",
+            False,
         ),
     ]
 
@@ -317,17 +411,18 @@ def _ensure_appimage_tools(cfg: BuildConfig) -> None:
         log.info("appimage-tools: saved %s", dst)
 
 
-def _setup_addon_dir(cfg: BuildConfig) -> None:
-    """Wipe and re-create the per-device staging directories."""
-    for d in (cfg.addon_dir, cfg.appimage_staging_dir):
+def _setup_staging_dir(cfg: BuildConfig) -> None:
+    """Wipe and re-create the per-device staging directories.
+
+    Staging holds the extracted Lakka artifacts. bin/lib/lib-gpu are temporary
+    (moved into the AppImage by stage_appimage); resources/config remain and
+    feed the universal addon assembly.
+    """
+    for d in (cfg.staging_dir, cfg.appimage_staging_dir):
         if d.exists():
             shutil.rmtree(d)
-    # Thin addon dirs: no retroarch binary or shared libs here — those go
-    # into the AppImage. lib/ and lib-gpu/ are created temporarily for
-    # move_artifacts/collect_deps and then moved to appimage_staging_dir
-    # by stage_appimage.
     for sub in ("", "config", "resources", "bin", "lib", "lib-gpu"):
-        (cfg.addon_dir / sub).mkdir(parents=True, exist_ok=True)
+        (cfg.staging_dir / sub).mkdir(parents=True, exist_ok=True)
 
 
 # ---------------------------------------------- libretro core list resolve
@@ -529,6 +624,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--keep-work", action="store_true",
                         help="Keep the retroarch_work/ staging dir after a "
                              "successful build (default: remove it).")
+    parser.add_argument("--appimage-target", default="",
+                        help="Override the AppImage target token (filename + "
+                             "manifest platform). Default: the family-wide "
+                             "'<family>-any.<arch>' (e.g. 'Amlogic-any.arm'). "
+                             "Set e.g. 'Amlogic-ng.arm' for a device-specific "
+                             "build. Use with a single --device so it applies "
+                             "to the intended profile.")
     args = parser.parse_args(argv)
 
     log_file = _configure_output(verbose=args.verbose)
@@ -536,6 +638,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     last_work_dir: Path | None = None
     try:
         devices = args.device or sorted(_DEVICES.keys())
+        artifacts: list[AppImageArtifact] = []
+        ref_cfg: BuildConfig | None = None
+        # Phase 1: one AppImage per device.
         for device in devices:
             cfg = BuildConfig(
                 device=device,
@@ -545,16 +650,41 @@ def main(argv: Sequence[str] | None = None) -> int:
                 lakka_dir=Path(args.lakka_dir).resolve(),
                 lakka_version=args.lakka_version,
                 jobs=args.jobs,
+                appimage_target_override=args.appimage_target,
             )
             last_work_dir = cfg.work_dir
             try:
-                build(cfg)
+                artifacts.append(build_appimage(cfg))
             except subprocess.CalledProcessError as exc:
                 log.error("build failed for %s: %s", device, exc)
                 return 1
             except (FileNotFoundError, RuntimeError) as exc:
                 log.error("%s: %s", device, exc)
                 return 1
+            if ref_cfg is None:
+                ref_cfg = cfg
+
+        # Phase 2: assemble the single universal addon ZIP from the reference
+        # device's staging (resources are device-independent).
+        if ref_cfg is None:
+            log.error("no devices built; nothing to assemble")
+            return 1
+        zip_path, zip_sha = assemble_addon(ref_cfg)
+
+        # Phase 3: emit updates-v2-current.xml — a build artifact (gitignored)
+        # with the real sha256 hashes and EMPTY policy placeholders. The
+        # committed updates.xml is hand-curated and never overwritten by the
+        # build; the maintainer copies the fresh hashes from here.
+        package.emit_updates_current(
+            REPO_ROOT / "updates-v2-current.xml",
+            addon_id=ADDON_ID,
+            addon_version=args.addon_version,
+            addon_zip=zip_path,
+            addon_sha256=zip_sha,
+            artifacts=[(a.platform, a.version, a.path.name, a.sha256)
+                       for a in artifacts],
+        )
+
         if not args.keep_work and last_work_dir is not None and last_work_dir.exists():
             log.info("cleaning up %s", last_work_dir)
             shutil.rmtree(last_work_dir, ignore_errors=True)

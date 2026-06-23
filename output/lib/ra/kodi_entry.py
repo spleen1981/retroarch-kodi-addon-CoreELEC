@@ -45,11 +45,29 @@ def main(argv: Sequence[str]) -> None:
         return
 
     manual_update = cmd == "check_updates"
-    if manual_update or addon.getSetting("ra_autoupdate") == "true":
+    want_update = manual_update or addon.getSetting("ra_autoupdate") == "true"
+
+    # The add-on and the per-platform AppImage ship paired in each release, so a
+    # single "auto-update" / "check for updates" covers both streams.
+    #
+    # The ADD-ON ZIP is checked FIRST.
+    if want_update:
         result = _run_updater(addon, dialog, manual_update=manual_update)
-        if result is _UPDATE_INSTALLING or manual_update:
-            # Updater restarts Kodi when done; do not also launch RA.
+        if result is _UPDATE_INSTALLING:
+            # Updater restarts Kodi when done; the new add-on resumes the flow.
             return
+
+    # AppImage: mandatory presence/compatibility, plus an optional update when
+    # checking. Runs in Kodi UI context so the progress bar works, before we
+    # detach to the ra-launcher unit.
+    from . import appimage
+    ready = appimage.ensure_ready_interactive(addon, dialog, allow_update=want_update)
+
+    # A manual "check for updates" stops here — it never launches RetroArch.
+    if manual_update:
+        return
+    if not ready:
+        return
 
     if addon.getSetting("ra_hints") == "true":
         _test_assets(dialog)
@@ -209,6 +227,20 @@ def plugin_main(argv: Sequence[str]) -> None:
 
     addon = xbmcaddon.Addon(id=paths.ADDON_NAME)
     dialog = xbmcgui.Dialog()
+
+    # A missing/incompatible RetroArch AppImage is a hard stop, so the yesno +
+    # progress dialog is justified here even though the *autoupdate* flow is
+    # deliberately skipped in plugin mode. If not ready, close the directory so
+    # the Games window doesn't hang, then return without launching.
+    from . import appimage
+    if not appimage.ensure_ready_interactive(addon, dialog, allow_update=False):
+        try:
+            handle = int(argv[1])
+        except (IndexError, ValueError):
+            handle = -1
+        if handle >= 0:
+            xbmcplugin.endOfDirectory(handle, succeeded=True, cacheToDisc=False)
+        return
 
     if addon.getSetting("ra_hints") == "true":
         _test_assets(dialog)

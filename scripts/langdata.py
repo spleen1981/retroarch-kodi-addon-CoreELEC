@@ -45,9 +45,15 @@ class Entry:
 
         Returns "" for languages with no translation — callers that want
         en_gb fallback should call `translate()` instead.
+
+        When `ra_name_suffix` is empty (the v2 platform-independent build),
+        drop the " (${RA_NAME_SUFFIX})" parenthetical cleanly so the summary
+        reads "RetroArch add-on for Kodi." instead of "… for Kodi ()."
         """
         raw = self.translations.get(lang_code, "")
-        return raw.replace("${RA_NAME_SUFFIX}", ra_name_suffix)
+        if ra_name_suffix:
+            return raw.replace("${RA_NAME_SUFFIX}", ra_name_suffix)
+        return raw.replace(" (${RA_NAME_SUFFIX})", "").replace("${RA_NAME_SUFFIX}", "")
 
 
 def translate(msg_id: int, lang_code: str, *, ra_name_suffix: str = "") -> str:

@@ -488,8 +488,6 @@ def stage_appimage(addon_dir: Path, appimage_dir: Path,
       appimage_dir/lib/             all shared libs
       appimage_dir/lib-gpu/         GPU-fallback libs (libgbm)
       appimage_dir/AppRun           rendered entry point (from output/AppRun.in)
-      appimage_dir/retroarch.desktop  minimal .desktop (required by appimagetool)
-      appimage_dir/retroarch.png    icon (copy of resources/icon.png)
 
     addon_dir/bin/ retains only the standalone tools (cec-mini-kb, etc.).
     addon_dir/lib/ and addon_dir/lib-gpu/ are removed (moved to AppImage).
@@ -547,26 +545,6 @@ def stage_appimage(addon_dir: Path, appimage_dir: Path,
         os.chmod(apprun_dst, 0o755)
         log.info("stage_appimage: wrote AppRun")
 
-    # Minimal .desktop file — required by appimagetool.
-    (appimage_dir / "retroarch.desktop").write_text(
-        "[Desktop Entry]\n"
-        "Name=RetroArch\n"
-        "Exec=AppRun\n"
-        "Icon=retroarch\n"
-        "Type=Application\n"
-        "Categories=Game;\n",
-        encoding="utf-8",
-    )
-
-    # Icon — appimagetool 2.x requires <Icon>.png at the AppDir root.
-    # Read from output_dir (committed source) because install_committed_source
-    # runs AFTER stage_appimage, so addon_dir/resources/ doesn't exist yet.
-    icon_src = output_dir / "resources" / "icon.png"
-    if icon_src.exists():
-        shutil.copy2(icon_src, appimage_dir / "retroarch.png")
-    else:
-        log.warning("stage_appimage: icon not found at %s — appimagetool may fail", icon_src)
-
 
 def _strip_hidden(root: Path) -> None:
     """Remove hidden files and directories (name starts with '.') recursively.
@@ -586,24 +564,34 @@ def _strip_hidden(root: Path) -> None:
 
 
 def create_appimage(appimage_dir: Path, output_path: Path,
-                    appimagetool: str, runtime: str) -> Path:
+                    runtime: str) -> Path:
     """Pack appimage_dir into an AppImage at output_path.
 
-    Requires `appimagetool` (x86_64 build, runs on host) and the aarch64
-    AppImage runtime binary (passed via `runtime`). Both are available from
-    https://github.com/AppImage/appimagetool/releases.
+    Assembles the AppImage manually:
+      1. mksquashfs compresses the AppDir with xz — the only compression
+         the AppImageKit fuse2 runtime (squashfuse 0.1.100) supports.
+      2. The AppImage is cat(runtime, squashfs): the type-2 format is a
+         plain concatenation of the runtime ELF and the squashfs image.
+
+    Requires `mksquashfs` (squashfs-tools) on the host PATH.
 
     Returns output_path.
     """
     _strip_hidden(appimage_dir)
-    env = os.environ.copy()
-    env["ARCH"] = "aarch64"
-    subprocess.check_call(
-        [appimagetool, "--runtime-file", runtime,
-         str(appimage_dir), str(output_path)],
-        env=env,
-        **_SUBPROC_KW,
-    )
+    squashfs = output_path.with_suffix(".squashfs")
+    try:
+        subprocess.check_call(
+            ["mksquashfs", str(appimage_dir), str(squashfs),
+             "-comp", "xz", "-noappend", "-no-progress", "-b", "1048576"],
+            **_SUBPROC_KW,
+        )
+        with open(output_path, "wb") as out:
+            for src in (runtime, str(squashfs)):
+                with open(src, "rb") as f:
+                    shutil.copyfileobj(f, out)
+        os.chmod(output_path, 0o755)
+    finally:
+        squashfs.unlink(missing_ok=True)
     log.info("package: AppImage -> %s", output_path.name)
     return output_path
 
@@ -960,3 +948,72 @@ def create_archive(addon_dir: Path, build_dir: Path, archive_name: str) -> None:
     latest.unlink(missing_ok=True)
     os.symlink(archive_name, latest)
     log.info("package: archive at %s", archive_path)
+
+
+# ======================================================= updates.xml v2 ====
+
+# GitHub release-asset base. Asset URLs are <base>/<tag>/<filename>, where the
+# tag is the addon version string (e.g. v2.0.0).
+_RELEASE_BASE = (
+    "https://github.com/spleen1981/retroarch-kodi-addon-CoreELEC/releases/download"
+)
+
+
+def sha256_file(path: Path) -> str:
+    """Return the hex SHA-256 of a file (streamed, 1 MiB blocks)."""
+    import hashlib
+    h = hashlib.sha256()
+    with path.open("rb") as fh:
+        for chunk in iter(lambda: fh.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def emit_updates_current(dst: Path, *, addon_id: str, addon_version: str,
+                         addon_zip: Path, addon_sha256: str,
+                         artifacts: list[tuple[str, str, str, str]]) -> None:
+    """Write `updates-v2-current.xml`: a per-build reference manifest.
+
+    The build can compute everything it produced (version, asset filename → URL,
+    sha256) but NOT the human-curated policy values (min OS version, the
+    requires_addon/requires_appimage compatibility floor). Those are emitted as
+    EMPTY placeholders (min_ver="", min="") for the maintainer to fill in when
+    merging the fresh hashes into the committed, hand-curated `updates.xml`.
+
+    This file is a build artifact — add it to .gitignore. It intentionally does
+    NOT carry the legacy <latest> entries (those live only in the curated file).
+
+    `artifacts` is a list of (platform, version, filename, sha256).
+    """
+    tag = addon_version
+    lines: list[str] = [
+        '<?xml version="1.0" encoding="utf-8"?>',
+        "<!-- BUILD ARTIFACT — real sha256 hashes, EMPTY policy placeholders.",
+        "     Fill min_ver / requires_* and merge into the committed updates.xml. -->",
+        "<updates>",
+    ]
+
+    addon_url = f"{_RELEASE_BASE}/{tag}/{addon_zip.name}"
+    lines += [
+        f'  <addon id="{addon_id}" distro="coreelec">',
+        f"    <version>{addon_version}</version>",
+        f"    <download_url>{addon_url}</download_url>",
+        f"    <sha256>{addon_sha256}</sha256>",
+        '    <requires_appimage min=""/>',
+        "  </addon>",
+    ]
+
+    for platform, version, filename, sha in artifacts:
+        url = f"{_RELEASE_BASE}/{tag}/{filename}"
+        lines += [
+            f'  <appimage platform="{platform}" distro="coreelec" min_ver="">',
+            f"    <version>{version}</version>",
+            f"    <download_url>{url}</download_url>",
+            f"    <sha256>{sha}</sha256>",
+            '    <requires_addon min=""/>',
+            "  </appimage>",
+        ]
+
+    lines.append("</updates>")
+    dst.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    log.info("package: wrote %s", dst)

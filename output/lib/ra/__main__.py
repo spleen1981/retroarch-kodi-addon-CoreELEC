@@ -45,6 +45,14 @@ def _cmd_check_assets(_argv: Sequence[str]) -> int:
     return 0 if assets_empty() else 1
 
 
+def _cmd_appimage_ready(_argv: Sequence[str]) -> int:
+    # Headless readiness probe for the boot shim: 0 when a compatible RetroArch
+    # AppImage is installed, non-zero otherwise. No dialogs, no network. The
+    # shim uses this to avoid stopping Kodi when there is nothing to launch.
+    from .appimage import is_ready_offline
+    return 0 if is_ready_offline() else 1
+
+
 def _cmd_clear_flags(_argv: Sequence[str]) -> int:
     from .firstrun import clear_flag
     clear_flag()
@@ -67,6 +75,7 @@ _COMMANDS: dict[str, Callable[[Sequence[str]], int]] = {
     "check_updates": _cmd_check_updates,
     "install_update": _cmd_install_update,
     "check_assets": _cmd_check_assets,
+    "appimage_ready": _cmd_appimage_ready,
     "clear_flags": _cmd_clear_flags,
     "clear_cfg": _cmd_clear_cfg,
     "boot_toggle": _cmd_boot_toggle,

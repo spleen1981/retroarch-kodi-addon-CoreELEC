@@ -8,7 +8,8 @@ import os
 import signal
 import subprocess
 import sys
-from typing import Sequence
+from pathlib import Path
+from typing import Optional, Sequence
 
 from . import paths
 from .ra_config import RetroArchConfig
@@ -24,12 +25,20 @@ class RetroArchRuntime:
         self.settings = settings
         self.extra_args = list(extra_args)
         self._stack = contextlib.ExitStack()
+        self._appimage: Optional[Path] = None  # resolved in run()
 
     # ------------------------------------------------------------------ run
 
     def run(self) -> int:
         """Set up subsystems, exec retroarch, tear down, return its exit code."""
         self._install_signal_handlers()
+        # Offline AppImage readiness guard. MUST run before _enter_subsystems
+        # stops Kodi — on the boot path Kodi was already stopped by the shim,
+        # so aborting here would leave a black screen unless we restart it.
+        # The UI launch path (kodi_entry) has already offered the download
+        # dialog; this is the backstop for the boot path and direct invocations.
+        if not self._appimage_ready():
+            return 1
         self._ensure_appimage_executable()
         try:
             with self._stack:
@@ -42,6 +51,24 @@ class RetroArchRuntime:
         finally:
             self._handle_power_action()
         return rc
+
+    def _appimage_ready(self) -> bool:
+        """Resolve the installed AppImage; abort cleanly if not usable.
+
+        No dialogs here (we may be headless). On abort, restart Kodi if it is
+        not running (boot path) so the user is not stranded at a black screen.
+        """
+        from . import appimage, system
+        state, current = appimage.evaluate()
+        if state is not appimage.State.READY:
+            log.error("runtime: AppImage not ready (%s) for platform %s; aborting",
+                      state.value, paths.PLATFORM)
+            if not system._kodi_active():
+                log.info("runtime: restarting kodi after aborted launch")
+                system.systemctl("start", "kodi")
+            return False
+        self._appimage = current
+        return True
 
     # -------------------------------------------------------- subsystems --
 
@@ -84,17 +111,19 @@ class RetroArchRuntime:
     def _ensure_appimage_executable(self) -> None:
         """Ensure the AppImage has execute permission.
 
-        Kodi's addon installer strips the execute bit when extracting ZIPs.
-        Called once at the very start of run() — before any subsystem tries
-        to invoke the AppImage.
+        A manually-dropped AppImage (or one extracted from a ZIP) may lack the
+        execute bit. Called after _appimage_ready() has resolved self._appimage.
         """
-        if paths.APPIMAGE.exists() and not os.access(paths.APPIMAGE, os.X_OK):
+        appimage = self._appimage
+        if appimage is None:
+            return
+        if appimage.exists() and not os.access(appimage, os.X_OK):
             import stat as _stat
-            paths.APPIMAGE.chmod(
-                paths.APPIMAGE.stat().st_mode
+            appimage.chmod(
+                appimage.stat().st_mode
                 | _stat.S_IXUSR | _stat.S_IXGRP | _stat.S_IXOTH
             )
-            log.info("runtime: made %s executable", paths.APPIMAGE.name)
+            log.info("runtime: made %s executable", appimage.name)
 
     def _exec_retroarch(self) -> int:
         # Launch the AppImage. AppRun sets up LD_LIBRARY_PATH, starts
@@ -102,7 +131,7 @@ class RetroArchRuntime:
         # squashfs mount (no additional FUSE mounts), runs retroarch, then
         # cleans up the tools on exit. We communicate settings via RA_*
         # env vars so AppRun can configure the tools at launch time.
-        args = [str(paths.APPIMAGE), f"--config={paths.RA_CONFIG_FILE}"]
+        args = [str(self._appimage), f"--config={paths.RA_CONFIG_FILE}"]
         if self.settings.log_to_file:
             args.insert(1, "--verbose")
         args.extend(self.extra_args)

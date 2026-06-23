@@ -74,22 +74,9 @@ fi
 # baked into the command string as literals. \$PATH is escaped so it evaluates
 # INSIDE the transient unit's shell.
 systemd-run -q -u ra-launcher /bin/sh -c "
-	# Wait for kodi.bin to start. autostart.sh is Before=kodi.service, so
-	# at this point kodi.service has not started yet; 30s is generous.
-	for i in \$(seq 1 60); do
-		pgrep -x kodi.bin >/dev/null && break
-		sleep 0.5
-	done
-	# Give kodi a moment to finish opening /dev/dri/card0 and bring up the
-	# display plane. 3s empirically lets the framebuffer settle on Amlogic.
-	sleep 3
-	# Take over the display. We do NOT mask kodi: if retroarch crashes,
-	# runtime._handle_power_action will start kodi again as a fallback, and
-	# manual recovery via SSH (systemctl start kodi) needs to keep working.
-	systemctl stop kodi
-	pgrep splash-image | xargs -r kill -SIGTERM 2>/dev/null
-	# Restore env for the python orchestrator. Single-quoted values are
-	# literals baked in by the outer shell.
+	# Restore env for the python orchestrator FIRST — the readiness probe and
+	# the launch both need it. Single-quoted values are literals baked in by
+	# the outer shell.
 	#
 	# HOME must be exported explicitly: systemd-run starts the transient
 	# unit with a clean env, so HOME is unset there. paths._home() falls
@@ -104,5 +91,29 @@ systemd-run -q -u ra-launcher /bin/sh -c "
 	export PYTHONPATH='$PYTHONPATH'
 	export ADDON_DIR='$ADDON_DIR'
 	export ADDON_HOME='$ADDON_HOME'
+	# Wait for kodi.bin to start. autostart.sh is Before=kodi.service, so
+	# at this point kodi.service has not started yet; 30s is generous.
+	for i in \$(seq 1 60); do
+		pgrep -x kodi.bin >/dev/null && break
+		sleep 0.5
+	done
+	# The RetroArch AppImage is a separate, userdata-resident package that may
+	# not be installed yet (fresh v2 install, or a self-update that raised the
+	# minimum version). If no compatible AppImage is present, do NOT stop kodi —
+	# there is nothing to launch, and a headless boot has no dialog to offer the
+	# download. Stay in kodi; the user launches the add-on from the UI, which
+	# prompts for the download. This probe is offline and fast.
+	if ! python3 -m ra appimage_ready; then
+		echo 'ra_autostart: no compatible RetroArch package; staying in kodi' >&2
+		exit 0
+	fi
+	# Give kodi a moment to finish opening /dev/dri/card0 and bring up the
+	# display plane. 3s empirically lets the framebuffer settle on Amlogic.
+	sleep 3
+	# Take over the display. We do NOT mask kodi: if retroarch crashes,
+	# runtime._handle_power_action will start kodi again as a fallback, and
+	# manual recovery via SSH (systemctl start kodi) needs to keep working.
+	systemctl stop kodi
+	pgrep splash-image | xargs -r kill -SIGTERM 2>/dev/null
 	exec python3 -m ra start
 "
