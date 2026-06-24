@@ -178,9 +178,9 @@ SETTINGS_DEFAULTS_FILE: Path = ADDON_DIR / "settings-default.xml"
 # Its filename carries a TARGET token and the version:
 #     retroarch-<target>-<version>.AppImage
 # where <target> is one of this host's platform_candidates() — either the exact
-# '<device>.<arch>' (device-specific build) or the bare '<arch>' (arch-wide
-# build). The active AppImage depends on filesystem state; resolve it via
-# installed_appimage().
+# '<device>.<arch>' (device-specific build) or the family-wide '<family>-any.<arch>'
+# (generic build). The active AppImage depends on filesystem state; resolve it
+# via installed_appimage().
 APPIMAGE_DIR: Path = ADDON_HOME / "appimage"
 _APPIMAGE_PREFIX: str = "retroarch-"
 _APPIMAGE_SUFFIX: str = ".AppImage"
@@ -190,8 +190,8 @@ def appimage_filename(version: str, target: str) -> str:
     """Filename for the AppImage of `version` built for `target`.
 
     `target` is the token the matching manifest entry used (a device-specific
-    '<device>.<arch>' or the arch-wide '<arch>'), so a downloaded file keeps the
-    specificity it was published with.
+    '<device>.<arch>' or the family-wide '<family>-any.<arch>'), so a downloaded
+    file keeps the specificity it was published with.
     """
     ver = version.lstrip("vV")
     return f"{_APPIMAGE_PREFIX}{target}-{ver}{_APPIMAGE_SUFFIX}"
@@ -203,8 +203,8 @@ def _target_and_version(name: str) -> tuple[str, str] | None:
 
     The target itself contains '-' and '.', so we parse relative to the known
     candidate set (most specific first) rather than naively splitting. Trying
-    '<device>.<arch>' before '<arch>' means 'retroarch-Amlogic-ne.arm-2.0.0'
-    is never mis-read as the arch-wide 'arm' target.
+    '<device>.<arch>' before '<family>-any.<arch>' means a device-specific name
+    is never mis-read as the family-wide target.
     """
     if not name.startswith(_APPIMAGE_PREFIX) or not name.endswith(_APPIMAGE_SUFFIX):
         return None
@@ -242,7 +242,7 @@ def installed_appimages() -> list[Path]:
 def installed_appimage() -> Path | None:
     """Return the best installed AppImage for this host, or None.
 
-    Selection: device-specific beats arch-wide (target specificity is the
+    Selection: device-specific beats family-wide (target specificity is the
     primary key), then highest version within the same specificity. Returns
     None when the platform/arch is unknown, the dir is absent, or nothing
     matches a candidate target.
@@ -311,6 +311,11 @@ DISPLAY_MODE: Path = Path("/sys/class/display/mode")
 LOG_DIR: Path = ADDON_HOME / "logs"
 LOG_FILE: Path = LOG_DIR / "retroarch.log"
 LOG_FILE_OLD: Path = LOG_DIR / "retroarch.log.old"
+
+# Derived, regenerable data (e.g. the `retroarch --features` driver cache).
+# Safe to delete: it is rebuilt on demand. Kept separate from settings/logs.
+CACHE_DIR: Path = ADDON_HOME / "cache"
+AUDIO_FEATURES_CACHE: Path = CACHE_DIR / "audio_features.json"
 SHUTDOWN_FLAG: Path = Path("/tmp/ra_exit_shutdown")
 REBOOT_FLAG: Path = Path("/tmp/ra_exit_reboot")
 UPDATER_TMP: Path = Path("/tmp/ra_updater.start")
@@ -321,6 +326,7 @@ def ensure_runtime_dirs() -> None:
     """Create the runtime directories owned by the user. Idempotent."""
     ADDON_HOME.mkdir(parents=True, exist_ok=True)
     APPIMAGE_DIR.mkdir(parents=True, exist_ok=True)
+    CACHE_DIR.mkdir(parents=True, exist_ok=True)
     RA_CONFIG_DIR.mkdir(parents=True, exist_ok=True)
     ROMS_FOLDER.mkdir(parents=True, exist_ok=True)
     ROMS_DOWNLOADS.mkdir(parents=True, exist_ok=True)

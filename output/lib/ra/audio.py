@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import subprocess
 import xml.etree.ElementTree as ET
@@ -94,26 +95,79 @@ def _split_driver_device(raw: str) -> tuple[str, str]:
 
 
 def _retroarch_supports_driver(driver: str) -> bool:
-    """Check `retroarch --features` for `<driver>: yes`."""
+    """True if RetroArch was built with `driver` (per `retroarch --features`).
+
+    Backed by a cache so the (FUSE-mounting) `--features` probe runs at most
+    once per AppImage build, not every launch — see `_supported_drivers`.
+    """
+    return driver.lower() in _supported_drivers()
+
+
+def _supported_drivers() -> set[str]:
+    """Return the set of audio-driver tokens RetroArch supports.
+
+    Cached in userdata (paths.AUDIO_FEATURES_CACHE). The cache key is the
+    AppImage's (filename, size, mtime) — cheap to compute (one os.stat, no
+    hashing) and it changes whenever the AppImage is replaced, whether by a
+    download (atomic rename → new mtime) or a manual copy (cp/mv → new mtime).
+    On a key match we skip the probe entirely; otherwise we run `--features`
+    once and rewrite the cache.
+    """
+    appimage = paths.installed_appimage()
+    if appimage is None:
+        log.warning("audio: no RetroArch AppImage installed; skipping driver check")
+        return set()
+    try:
+        st = appimage.stat()
+        sig = f"{appimage.name}:{st.st_size}:{int(st.st_mtime)}"
+    except OSError:
+        sig = ""
+
+    if sig:
+        try:
+            data = json.loads(paths.AUDIO_FEATURES_CACHE.read_text(encoding="utf-8"))
+            if data.get("sig") == sig:
+                return set(data.get("drivers", []))
+        except (OSError, ValueError):
+            pass
+
+    drivers = _probe_features(appimage)
+    if sig:
+        try:
+            paths.CACHE_DIR.mkdir(parents=True, exist_ok=True)
+            paths.AUDIO_FEATURES_CACHE.write_text(
+                json.dumps({"sig": sig, "drivers": sorted(drivers)}),
+                encoding="utf-8",
+            )
+        except OSError as exc:
+            log.warning("audio: cannot write features cache: %s", exc)
+    return drivers
+
+
+def _probe_features(appimage) -> set[str]:
+    """Run `retroarch --features` via the AppImage; return the supported subset
+    of the drivers we care about (the `_DRIVER_MAP` values).
+
+    Uses the same loose match as before — a line containing the driver token
+    and ": yes" — but only for alsa/pulse/pipewire, so we never depend on the
+    exact column layout of `--features`.
+    """
     try:
         result = subprocess.run(
-            [str(paths.RA_BIN), "--features"],
+            [str(appimage), "--features"],
             capture_output=True,
             text=True,
             timeout=10,
         )
     except (OSError, subprocess.TimeoutExpired) as exc:
         log.warning("audio: retroarch --features failed: %s", exc)
-        return False
-    # Output lines look like: "\tDriver name (alsa)            : yes"
-    # We match any line that contains the driver name (case-insensitive)
-    # followed by ": yes" later on the line.
-    needle = driver.lower()
-    for line in result.stdout.splitlines():
-        lower = line.lower()
-        if needle in lower and ": yes" in lower:
-            return True
-    return False
+        return set()
+    lines = [ln.lower() for ln in result.stdout.splitlines()]
+    supported: set[str] = set()
+    for driver in set(_DRIVER_MAP.values()):
+        if any(driver in ln and ": yes" in ln for ln in lines):
+            supported.add(driver)
+    return supported
 
 
 def _alsa_device_exists(device: str) -> bool:
