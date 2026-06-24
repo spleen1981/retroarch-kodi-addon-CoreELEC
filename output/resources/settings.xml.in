@@ -45,4 +45,11 @@
         <setting label="14092" type="lsep"/>
         <setting id="ra_log" label="32008" type="bool" default="false" />
     </category>
+    <category label="19033"> <!-- Information -->
+        <setting label="19033" type="lsep"/>
+        <setting id="ra_info_version" label="32016" type="text" enable="false" default=""/>
+        <setting id="ra_info_platform" label="32017" type="text" enable="false" default=""/>
+        <setting id="ra_info_package" label="32018" type="text" enable="false" default=""/>
+        <setting id="ra_info_refresh" type="action" label="32019" action="RunScript(@ADDON_NAME@,refresh_info)"/>
+    </category>
 </settings>

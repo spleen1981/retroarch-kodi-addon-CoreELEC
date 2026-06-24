@@ -44,6 +44,12 @@ def main(argv: Sequence[str]) -> None:
         _boot_toggle(addon, dialog)
         return
 
+    # Keep the read-only Info settings fresh on every invocation (and on the
+    # explicit Refresh action from that category).
+    _update_info_settings(addon)
+    if cmd == "refresh_info":
+        return
+
     manual_update = cmd == "check_updates"
     want_update = manual_update or addon.getSetting("ra_autoupdate") == "true"
 
@@ -62,6 +68,9 @@ def main(argv: Sequence[str]) -> None:
     # detach to the ra-launcher unit.
     from . import appimage
     ready = appimage.ensure_ready_interactive(addon, dialog, allow_update=want_update)
+
+    # Reflect the post-import/-download package in the Info settings.
+    _update_info_settings(addon)
 
     # A manual "check for updates" stops here — it never launches RetroArch.
     if manual_update:
@@ -197,6 +206,27 @@ def _test_assets(dialog) -> None:
         import xbmcaddon  # type: ignore[import-not-found]
         addon = xbmcaddon.Addon(id=paths.ADDON_NAME)
         dialog.ok(NOTIF_TITLE, _localized(addon, 32015))
+
+
+def _update_info_settings(addon) -> None:
+    """Populate the read-only Info settings (shown inline in that category).
+
+    Written whenever the add-on runs, so opening Settings shows the state as of
+    the last invocation; the Refresh action repopulates them on demand.
+    """
+    from . import appimage
+    addon.setSetting("ra_info_version", addon.getAddonInfo("version"))
+    addon.setSetting("ra_info_platform", paths.PLATFORM or "unknown")
+    rows = appimage.installed_summary()
+    if not rows:
+        addon.setSetting("ra_info_package", "(none installed)")
+        return
+    r = next((x for x in rows if x["active"]), rows[0])
+    extra = f"  +{len(rows) - 1} more" if len(rows) > 1 else ""
+    addon.setSetting(
+        "ra_info_package",
+        f"v{r['version']} — {r['target']} — {r['size_mb']:.0f} MB{extra}",
+    )
 
 
 def _localized(addon, msg_id: int) -> str:

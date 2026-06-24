@@ -135,6 +135,29 @@ def import_dropped() -> tuple[list[str], int]:
     return imported, rejected
 
 
+def installed_summary() -> list[dict]:
+    """Per-installed-AppImage info for the settings 'Info' view.
+
+    Each row: name, target, version, size_mb, active (the one that would run).
+    """
+    active = paths.installed_appimage()
+    rows: list[dict] = []
+    for p in sorted(paths.installed_appimages()):
+        meta = paths.appimage_meta(p.name)
+        if meta is None:
+            continue
+        target, version = meta
+        try:
+            size_mb = p.stat().st_size / (1 << 20)
+        except OSError:
+            size_mb = 0.0
+        rows.append({
+            "name": p.name, "target": target, "version": version,
+            "size_mb": size_mb, "active": p == active,
+        })
+    return rows
+
+
 def is_ready_offline() -> bool:
     """True when a compatible AppImage is installed. Logs the reason if not.
 

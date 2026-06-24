@@ -244,6 +244,22 @@ _ENTRIES: tuple[Entry, ...] = (
         "pt_br": "Os recursos do RetroArch não foram encontrados. Os recursos melhoram a aparência da GUI (Interface Gráfica do Usuário) e podem ser baixados no Retroarch selecionando 'Atualizador on-line > Atualizar recursos' (ou copiar manualmente para a pasta assets).",
         "de_de": "RetroArch-Assets nicht gefunden. Assets verbessern das Erscheinungsbild der GUI und können aus Retroarch heruntergeladen werden, indem Sie „Online Updater > Assets aktualisieren“ auswählen (oder manuell in den Assets-Ordner kopiert werden).",
     }),
+    Entry(32016, "#32016", {
+        "en_gb": "Add-on version",
+        "it_it": "Versione add-on",
+    }),
+    Entry(32017, "#32017", {
+        "en_gb": "Platform",
+        "it_it": "Piattaforma",
+    }),
+    Entry(32018, "#32018", {
+        "en_gb": "RetroArch package",
+        "it_it": "Pacchetto RetroArch",
+    }),
+    Entry(32019, "#32019", {
+        "en_gb": "Refresh info",
+        "it_it": "Aggiorna info",
+    }),
 )
 
 _BY_ID: dict[int, Entry] = {e.msg_id: e for e in _ENTRIES}

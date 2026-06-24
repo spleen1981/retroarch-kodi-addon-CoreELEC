@@ -231,6 +231,11 @@ def is_host_appimage(name: str) -> bool:
     return _target_and_version(name) is not None
 
 
+def appimage_meta(name: str) -> tuple[str, str] | None:
+    """(target, version) parsed from a host AppImage filename, or None."""
+    return _target_and_version(name)
+
+
 def _version_key(version: str) -> tuple[int, ...]:
     """Parse 'v1.2.3' / '1.2.3' into a comparable tuple of ints."""
     parts: list[int] = []
