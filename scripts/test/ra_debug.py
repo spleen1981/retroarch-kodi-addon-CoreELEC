@@ -5,7 +5,7 @@ package-level patch into Lakka, builds only the `retroarch` package, and
 scp's the resulting binary onto a test device. This is the loop you want
 when debugging a one-line RA change without rebuilding the whole addon.
 
-    python -m scripts.test.ra_debug --device Amlogic-ng
+    python -m scripts.test.ra_debug --target Amlogic-any.arm
 
 Credentials and the RetroArch source path come from `scripts/test/local.py`
 (see `local.py.example`).
@@ -23,7 +23,7 @@ from typing import Sequence
 
 from .. import lakka
 from ..build import (DEFAULT_LAKKA_VERSION, PKG_SUBDIRS, REPO_ROOT,
-                     BuildConfig, _DEVICES)
+                     BuildConfig, _TARGETS)
 
 log = logging.getLogger(__name__)
 
@@ -91,7 +91,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Iterative RetroArch build+deploy loop.",
     )
-    parser.add_argument("--device", choices=sorted(_DEVICES.keys()), required=True)
+    parser.add_argument("--target", choices=sorted(_TARGETS.keys()), required=True)
     parser.add_argument("--lakka-dir", default=str(REPO_ROOT / "Lakka-LibreELEC"))
     parser.add_argument("--lakka-version", default=DEFAULT_LAKKA_VERSION)
     parser.add_argument("--ra-src",
@@ -106,7 +106,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     sshpass = _check_sshpass()
 
     cfg = BuildConfig(
-        device=args.device,
+        target=args.target,
         addon_version="debug",
         lakka_dir=Path(args.lakka_dir).resolve(),
         lakka_version=args.lakka_version,
@@ -131,7 +131,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     cfg.build_dir.mkdir(parents=True, exist_ok=True)
 
     try:
-        with lakka.patched(cfg.lakka_dir, REPO_ROOT, cfg.device, profile.project,
+        with lakka.patched(cfg.lakka_dir, REPO_ROOT, cfg.target, profile.project,
                            profile.arch, cfg.lakka_version):
             _export_debug_patch(ra_src, debug_patch)
             try:
