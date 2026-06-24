@@ -15,7 +15,7 @@ Resolution order, per path:
     3. derived from $HOME and the compile-time ADDON_NAME
 
 ADDON_NAME is templated by the build script at packaging time. From v2.0.0 the
-addon is platform-independent, so the placeholder @ADDON_NAME@ is replaced by a
+addon is platform-independent, so the placeholder script.retroarch.launcher is replaced by a
 single static id (script.retroarch.launcher) with no device/arch suffix. The
 platform is instead detected at runtime (see PLATFORM) and only ever appears in
 the name of the per-platform RetroArch AppImage, which lives in userdata so it
@@ -27,7 +27,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-ADDON_NAME: str = "@ADDON_NAME@"
+ADDON_NAME: str = "script.retroarch.launcher"
 
 
 def _from_env(name: str) -> Path | None:
