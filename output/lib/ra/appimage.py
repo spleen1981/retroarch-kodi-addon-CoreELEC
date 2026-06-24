@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import enum
 import logging
+import shutil
 import urllib.request
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
@@ -82,8 +83,65 @@ def evaluate() -> tuple[State, Optional[Path]]:
     return State.READY, current
 
 
+def import_dropped() -> tuple[list[str], int]:
+    """Import host-matching AppImages dropped in the well-known import folders.
+
+    Lets a user install/update the RetroArch package by copying it (over Samba)
+    into /storage/.update or /storage/downloads instead of the deep userdata
+    path. For every `retroarch-*.AppImage` found there:
+      - host-matching builds are MOVED into APPIMAGE_DIR (consumed) and made
+        executable;
+      - incompatible builds (wrong family/arch, or malformed name) are DELETED
+        (also consumed) so the import folder doesn't keep useless files.
+
+    After importing, prunes the AppImage dir to the single active build. No
+    network, no hash (manual trust, like a direct drop) — the filename target
+    must match one of this host's candidates.
+
+    Returns (imported_names, rejected_count).
+    """
+    if not paths.platform_candidates():
+        return [], 0
+    imported: list[str] = []
+    rejected = 0
+    for src_dir in paths.APPIMAGE_IMPORT_DIRS:
+        if not src_dir.is_dir():
+            continue
+        for entry in sorted(src_dir.glob("retroarch-*.AppImage")):
+            if not entry.is_file():
+                continue
+            if paths.is_host_appimage(entry.name):
+                paths.APPIMAGE_DIR.mkdir(parents=True, exist_ok=True)
+                dst = paths.APPIMAGE_DIR / entry.name
+                try:
+                    shutil.move(str(entry), str(dst))
+                    dst.chmod(0o755)
+                    log.info("appimage: imported %s from %s", entry.name, src_dir)
+                    imported.append(entry.name)
+                except OSError as exc:
+                    log.warning("appimage: cannot import %s: %s", entry.name, exc)
+            else:
+                try:
+                    entry.unlink()
+                    rejected += 1
+                    log.info("appimage: rejected incompatible drop %s", entry.name)
+                except OSError as exc:
+                    log.warning("appimage: cannot remove %s: %s", entry.name, exc)
+    if imported:
+        # Keep only the single active build for this host.
+        current = paths.installed_appimage()
+        if current is not None:
+            _cleanup_other_versions(current)
+    return imported, rejected
+
+
 def is_ready_offline() -> bool:
-    """True when a compatible AppImage is installed. Logs the reason if not."""
+    """True when a compatible AppImage is installed. Logs the reason if not.
+
+    Imports any host-matching AppImage dropped in the import folders first, so
+    a boot-to-RA start picks up a manually-placed package.
+    """
+    import_dropped()
     state, _ = evaluate()
     if state is not State.READY:
         log.warning("appimage: not ready (%s) for platform %s",
@@ -98,13 +156,13 @@ def fetch_appimage_release() -> Optional[AppImageRelease]:
     """Fetch updates.xml and return the best `<appimage>` entry for this host.
 
     An entry matches when its `platform` is one of this host's candidate targets
-    (`paths.platform_candidates()` — the exact '<device>.<arch>' or the arch-wide
-    '<arch>'), its `distro` matches, and its `min_ver`/`max_ver` bracket the host
-    OS. Entries whose `<requires_addon min>` exceeds the installed add-on version
-    are rejected ("update the add-on first").
+    (`paths.platform_candidates()` — the exact '<device>.<arch>' or the family-wide
+    '<family>-any.<arch>'), its `distro` matches, and its `min_ver`/`max_ver`
+    bracket the host OS. Entries whose `<requires_addon min>` exceeds the installed
+    add-on version are rejected ("update the add-on first").
 
     Among the survivors the selection mirrors installed_appimage(): device-
-    specific beats arch-wide (target specificity is primary), highest version is
+    specific beats family-wide (target specificity is primary), highest version is
     the tiebreaker.
     """
     cands = paths.platform_candidates()
@@ -246,9 +304,9 @@ def _human(done: int, total: int) -> str:
 def _cleanup_other_versions(keep: Path) -> None:
     """Remove other installed AppImages usable on this host, keeping `keep`.
 
-    Covers every candidate target (device-specific and arch-wide), so a fresh
+    Covers every candidate target (device-specific and family-wide), so a fresh
     download supersedes both an older device-specific build and a stale
-    arch-wide one.
+    family-wide one.
     """
     for p in paths.installed_appimages():
         if p != keep:
@@ -285,6 +343,18 @@ def ensure_ready_interactive(addon, dialog, *, allow_update: bool = False) -> bo
 
     `addon` is an xbmcaddon.Addon (for notifications), `dialog` an xbmcgui.Dialog.
     """
+    # First, pick up any AppImage the user dropped into the import folders
+    # (/storage/.update, /storage/downloads) — a simpler manual-install path.
+    # Two sequential toasts: how many imported, then how many rejected.
+    imported, rejected = import_dropped()
+    if imported:
+        n = len(imported)
+        _notify(dialog, f"Imported {n} RetroArch package{'s' if n != 1 else ''}")
+    if rejected:
+        _notify(dialog,
+                f"Removed {rejected} incompatible RetroArch "
+                f"package{'s' if rejected != 1 else ''}")
+
     state, current = evaluate()
 
     if state is State.UNSUPPORTED:

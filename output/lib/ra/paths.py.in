@@ -185,6 +185,14 @@ APPIMAGE_DIR: Path = ADDON_HOME / "appimage"
 _APPIMAGE_PREFIX: str = "retroarch-"
 _APPIMAGE_SUFFIX: str = ".AppImage"
 
+# Well-known, user-reachable folders (exposed over Samba on CoreELEC) where a
+# user can drop a downloaded AppImage instead of digging into the deep userdata
+# path. The add-on imports any host-matching AppImage from here at launch.
+APPIMAGE_IMPORT_DIRS: tuple[Path, ...] = (
+    _home() / ".update",
+    _home() / "downloads",
+)
+
 
 def appimage_filename(version: str, target: str) -> str:
     """Filename for the AppImage of `version` built for `target`.
@@ -215,6 +223,12 @@ def _target_and_version(name: str) -> tuple[str, str] | None:
             if version:
                 return target, version
     return None
+
+
+def is_host_appimage(name: str) -> bool:
+    """True if `name` is a RetroArch AppImage built for one of this host's
+    candidate targets (correct family/arch)."""
+    return _target_and_version(name) is not None
 
 
 def _version_key(version: str) -> tuple[int, ...]:
