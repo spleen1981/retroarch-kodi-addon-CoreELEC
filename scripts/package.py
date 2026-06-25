@@ -582,7 +582,7 @@ def create_appimage(appimage_dir: Path, output_path: Path,
     try:
         subprocess.check_call(
             ["mksquashfs", str(appimage_dir), str(squashfs),
-             "-comp", "xz", "-noappend", "-no-progress", "-b", "1048576"],
+             "-comp", "zstd", "-noappend", "-no-progress", "-b", "1048576"],
             **_SUBPROC_KW,
         )
         with open(output_path, "wb") as out:
