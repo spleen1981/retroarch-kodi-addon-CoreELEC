@@ -63,7 +63,7 @@ class RetroArchRuntime:
         if state is not appimage.State.READY:
             log.error("runtime: AppImage not ready (%s) for platform %s; aborting",
                       state.value, paths.PLATFORM)
-            if not system._kodi_active():
+            if not system.kodi_active():
                 log.info("runtime: restarting kodi after aborted launch")
                 system.systemctl("start", "kodi")
             return False

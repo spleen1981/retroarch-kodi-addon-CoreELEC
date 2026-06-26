@@ -55,7 +55,8 @@ def is_masked(unit: str) -> bool:
     return "masked" in result.stdout.strip().lower()
 
 
-def _kodi_active() -> bool:
+def kodi_active() -> bool:
+    """True when the kodi.service systemd unit is currently active."""
     rc = subprocess.call(
         ["systemctl", "is-active", "--quiet", "kodi"],
         stdout=subprocess.DEVNULL,
@@ -68,7 +69,7 @@ def _wait_for_kodi_exit(timeout_s: float) -> bool:
     """Poll `systemctl is-active kodi` until inactive or timeout."""
     deadline = time.monotonic() + timeout_s
     while time.monotonic() < deadline:
-        if not _kodi_active():
+        if not kodi_active():
             return True
         time.sleep(0.1)
     return False
@@ -101,7 +102,7 @@ def kodi_stopped(
     restart_on_exit: Optional[Callable[[], bool]] = None,
 ) -> Iterator[None]:
     """Stop Kodi for the duration of the context, restart it on exit."""
-    if _kodi_active():
+    if kodi_active():
         _stop_kodi_via_restartapp()
     else:
         log.info("kodi already stopped (boot path); skipping graceful stop")
