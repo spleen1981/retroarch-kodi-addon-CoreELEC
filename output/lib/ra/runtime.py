@@ -11,7 +11,7 @@ import sys
 from pathlib import Path
 from typing import Optional, Sequence
 
-from . import paths
+from . import paths, system
 from .ra_config import RetroArchConfig
 from .settings import AddonSettings
 
@@ -58,7 +58,7 @@ class RetroArchRuntime:
         No dialogs here (we may be headless). On abort, restart Kodi if it is
         not running (boot path) so the user is not stranded at a black screen.
         """
-        from . import appimage, system
+        from . import appimage
         state, current = appimage.evaluate()
         if state is not appimage.State.READY:
             log.error("runtime: AppImage not ready (%s) for platform %s; aborting",
@@ -74,7 +74,7 @@ class RetroArchRuntime:
 
     def _enter_subsystems(self, cfg: RetroArchConfig) -> None:
         """Enter every subsystem context manager into the ExitStack."""
-        from . import audio, mount, system, video
+        from . import audio, mount, video
 
         # Stop Kodi; everything below assumes Kodi is not running.
         # Skip the restart on the way out when a power action is pending —
@@ -141,13 +141,9 @@ class RetroArchRuntime:
         # Without it, the runtime can't find fusermount on exit → FUSE cleanup
         # hangs → system freezes after retroarch exits.
         if "FUSERMOUNT" not in env:
-            for _candidate in (
-                "/usr/bin/fusermount3", "/usr/bin/fusermount",
-                "/bin/fusermount3", "/bin/fusermount",
-            ):
-                if os.path.isfile(_candidate):
-                    env["FUSERMOUNT"] = _candidate
-                    break
+            fm = system.resolve_fusermount()
+            if fm:
+                env["FUSERMOUNT"] = fm
         # CEC and xbox360 settings: read by AppRun to start/stop tools.
         from . import cec
         env.update(cec.appimage_env(self.settings))

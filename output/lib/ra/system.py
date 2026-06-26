@@ -127,7 +127,7 @@ def _restart_kodi_if_wanted(
         systemctl("start", "kodi")
 
 
-def _resolve_fusermount() -> str:
+def resolve_fusermount() -> str:
     """Return an absolute path to fusermount3/fusermount, or empty string."""
     candidate = os.environ.get("FUSERMOUNT", "")
     if candidate:
@@ -157,7 +157,7 @@ def run_detached(unit_name: str, *args: str) -> int:
     # inherited by the spawned unit. Without FUSERMOUNT, the AppImage type-2
     # runtime cannot find fusermount3 in the unit's minimal PATH, so the FUSE
     # squashfs mount hangs and the AppImage never reaches exec.
-    fusermount = _resolve_fusermount()
+    fusermount = resolve_fusermount()
     cmd = ["systemd-run", "-q", "--collect", "-u", unit_name]
     if fusermount:
         cmd.append(f"--setenv=FUSERMOUNT={fusermount}")
