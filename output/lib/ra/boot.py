@@ -25,7 +25,7 @@ log = logging.getLogger(__name__)
 # Invariant token used to find our line in autostart.sh on disable. Matching
 # the full command would miss the line if the addon dir changed between
 # enable and disable (e.g. after a reinstall under a slightly different id).
-_BOOT_MARKER = "ra_autostart.sh"
+_BOOT_MARKER = "# ra-addon-autostart"
 
 
 def boot_toggle(target: Optional[str] = None) -> int:
@@ -49,7 +49,7 @@ def boot_toggle(target: Optional[str] = None) -> int:
     # kodi-autostart.service runs this file — `oe_setup_addon` is called
     # *inside* ra_autostart.sh, not before it. boot_toggle runs from the
     # addon UI, so paths.ADDON_DIR is correctly resolved here.
-    boot_cmd = f'/bin/sh {paths.RA_AUTOSTART_SH} 2>/dev/null'
+    boot_cmd = f'/bin/sh {paths.RA_AUTOSTART_SH} 2>/dev/null  {_BOOT_MARKER}'
 
     is_check = target == "check"
 
