@@ -22,7 +22,7 @@
         <setting id="ra_xbox360_shutdown" label="32002" type="bool" default="true" />
         <setting id="ra_bt_shutdown" label="32009" type="bool" default="false" />
         <setting id="ra_cec_remote" label="32003" type="bool" default="true" />
-        <setting id="ra_cec_poweroff" label="36029" type="enum" lvalues="13005|36028" default="13005" enable="eq(-1,true)" subsetting="true" />
+        <setting id="ra_cec_poweroff" label="36029" type="enum" lvalues="13005|36028" default="0" enable="eq(-1,true)" subsetting="true" />
     </category>
     <category label="157"> <!-- Video -->
         <setting label="157" type="lsep"/>
