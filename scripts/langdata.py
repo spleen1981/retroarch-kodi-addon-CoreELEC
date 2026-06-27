@@ -173,14 +173,8 @@ _ENTRIES: tuple[Entry, ...] = (
         "de_de": "Remote-Pfad (UNC) für RetroArch ROMs mounten",
     }),
     Entry(32008, "#32008", {
-        "en_gb": "Save RetroArch logs to file",
-        "es_es": "Guardar los registros de RetroArch en un archivo",
-        "cs_cz": "Uložit protokoly RetroArch do souboru",
-        "it_it": "Salva i log di RetroArch su file",
-        "sk_sk": "Uložiť protokoly RetroArch do súboru",
-        "zh_cn": "将 RetroArch 日志保存到文件",
-        "pt_br": "Salvar os registros do RetroArch para arquivo",
-        "de_de": "RetroArch Protokolle (Logs) in Datei speichern",
+        "en_gb": "RetroArch log level",
+        "it_it": "Livello log RetroArch",
     }),
     # 32009 has no es_es translation in the legacy source.
     Entry(32009, "#32009", {
@@ -259,6 +253,18 @@ _ENTRIES: tuple[Entry, ...] = (
     Entry(32019, "#32019", {
         "en_gb": "Refresh info",
         "it_it": "Aggiorna info",
+    }),
+    Entry(32020, "#32020", {
+        "en_gb": "No log",
+        "it_it": "Nessun log",
+    }),
+    Entry(32021, "#32021", {
+        "en_gb": "Errors only",
+        "it_it": "Solo errori",
+    }),
+    Entry(32022, "#32022", {
+        "en_gb": "Verbose",
+        "it_it": "Dettagliato",
     }),
 )
 

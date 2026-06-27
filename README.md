@@ -45,7 +45,6 @@ A single **Auto-update** setting (and the manual **Check for updates** action) c
    - Sync the RetroArch audio driver/device with Kodi.
    - Auto-update — covers both the add-on and the RetroArch package; checked when RetroArch is launched.
    - Reset RetroArch configuration. Restores `retroarch.cfg` to defaults and the add-on to first-run condition.
-   - Save a combined add-on + RetroArch log to file (max verbosity). Each session starts a fresh log; the previous one is rotated to `retroarch.log.old`.
 
 ## Upgrading from v1.x
 
