@@ -568,7 +568,7 @@ def create_appimage(appimage_dir: Path, output_path: Path,
     """Pack appimage_dir into an AppImage at output_path.
 
     Assembles the AppImage manually:
-      1. mksquashfs compresses the AppDir with xz — the only compression
+      1. mksquashfs compresses the AppDir with zstd — the only compression
          the AppImageKit fuse2 runtime (squashfuse 0.1.100) supports.
       2. The AppImage is cat(runtime, squashfs): the type-2 format is a
          plain concatenation of the runtime ELF and the squashfs image.
