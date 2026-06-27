@@ -480,7 +480,8 @@ def _detect_soname(lakka_build_dir: Path, pkg_prefix: str,
 
 def stage_appimage(addon_dir: Path, appimage_dir: Path,
                    output_dir: Path, addon_name: str,
-                   lakka_build_dir: Path | None = None) -> None:
+                   lakka_build_dir: Path | None = None,
+                   appimage_version: str = "") -> None:
     """Move retroarch + libs from addon_dir into the AppImage staging dir.
 
     After this step:
@@ -520,6 +521,43 @@ def stage_appimage(addon_dir: Path, appimage_dir: Path,
             shutil.move(str(src), str(dst))
             log.info("stage_appimage: moved %s -> appimage/%s/", subdir, subdir)
 
+    # Move RetroArch resources into the AppImage. They are read-only by
+    # nature and update with the AppImage stream; ra_sync merges them into
+    # the user RA config dir on each launch. The addon ZIP keeps only the
+    # Kodi-side resources (icon, fanart, language, settings.xml).
+    _RA_RESOURCES = (
+        "audio_filters", "video_filters", "system", "joypads",
+        "shaders", "database", "overlays", "assets",
+    )
+    appimage_resources = appimage_dir / "resources"
+    appimage_resources.mkdir(exist_ok=True)
+    for sub in _RA_RESOURCES:
+        src = addon_dir / "resources" / sub
+        if not src.is_dir():
+            continue
+        dst_res = appimage_resources / sub
+        if dst_res.exists():
+            shutil.rmtree(dst_res)
+        shutil.move(str(src), str(dst_res))
+        log.info("stage_appimage: moved resources/%s -> appimage/resources/%s",
+                 sub, sub)
+
+    # Ship the standalone ra_sync Python package inside the AppImage.
+    # AppRun invokes it on every launch to merge the resources above into
+    # the user RA config dir. Stdlib only, no ra.* imports.
+    appimage_lib = appimage_dir / "lib"
+    appimage_lib.mkdir(exist_ok=True)
+    src_sync = output_dir / "ra_sync"
+    dst_sync = appimage_lib / "ra_sync"
+    if src_sync.is_dir():
+        if dst_sync.exists():
+            shutil.rmtree(dst_sync)
+        shutil.copytree(src_sync, dst_sync)
+        log.info("stage_appimage: shipped ra_sync module into AppImage")
+    else:
+        log.warning("stage_appimage: %s missing, AppRun sync will no-op",
+                    src_sync)
+
     # Restore flattened .symlink placeholders in appimage lib/ at build time.
     # (At runtime the squashfs is read-only so this must happen here.)
     _restore_flattened_symlinks(appimage_dir / "lib")
@@ -539,6 +577,7 @@ def stage_appimage(addon_dir: Path, appimage_dir: Path,
             .replace("@ADDON_NAME@", addon_name)
             .replace("@LIBCEC_SONAME@",  libcec_soname)
             .replace("@LIBUDEV_SONAME@", libudev_soname)
+            .replace("@APPIMAGE_VERSION@", appimage_version or "0.0.0")
         )
         apprun_dst = appimage_dir / "AppRun"
         apprun_dst.write_text(rendered, encoding="utf-8")
@@ -672,7 +711,12 @@ def install_committed_source(output_dir: Path, addon_dir: Path,
         * Every other `.in` file is rendered with `@ADDON_NAME@` substitution
           and the rendered output replaces the template in the addon tree.
     """
+    # ra_sync ships INSIDE the AppImage only (stage_appimage copies it
+    # to $APPDIR/lib/ra_sync). Do not include it in the addon ZIP.
+    _ADDON_EXCLUDE = {"ra_sync"}
     for entry in output_dir.iterdir():
+        if entry.name in _ADDON_EXCLUDE:
+            continue
         dst = addon_dir / entry.name
         if entry.is_dir():
             shutil.copytree(entry, dst, dirs_exist_ok=True)
