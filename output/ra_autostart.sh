@@ -63,7 +63,7 @@ systemctl mask kodi 2>/dev/null
 shim_log "masked kodi; launching RA directly (skip kodi boot) uptime=$(cut -d' ' -f1 /proc/uptime 2>/dev/null)s"
 
 # Detached launcher so this script can return; RA owns the framebuffer.
-systemd-run -q -u ra-launcher /bin/sh -c "
+systemd-run -q --collect -u ra-launcher /bin/sh -c "
 	export HOME='$HOME'
 	export PYTHONPATH='$PYTHONPATH'
 	export ADDON_DIR='$ADDON_DIR'
