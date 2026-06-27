@@ -48,6 +48,14 @@ _tool_lib="$_compat:/usr/lib:/lib:$(_appimage_lib_path)"
 export LD_LIBRARY_PATH="$(_appimage_lib_path)${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 export PATH="$APPDIR/bin${PATH:+:$PATH}"
 
+# ----------------------------------------------------------- resource sync
+# Delegate AppImage->user-config sync to a self-contained Python module
+# shipped inside the AppImage ($APPDIR/lib/ra_sync). The module writes
+# to the unified retroarch.log directly (respects the ra_log setting),
+# so AppRun does NOT redirect stderr. Failure is non-fatal: retroarch
+# launches even if the sync partially failed; the user sees stale assets.
+python3 "$APPDIR/lib/ra_sync" "$APPDIR" "@APPIMAGE_VERSION@" || true
+
 # Start cec-mini-kb in background if requested.
 # The --poweroff command runs only on a CEC standby event (TV power button),
 # not on SIGTERM — SIGTERM causes a clean exit without triggering poweroff.
