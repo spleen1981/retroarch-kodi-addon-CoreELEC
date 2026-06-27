@@ -3,6 +3,7 @@ build
 retroarch_work/
 __pycache__/
 .idea/
+updates-v2-current.xml
 local.conf
 *.swp
 *~
