@@ -63,19 +63,16 @@ PKG_SUBDIRS: dict[str, str] = {
 # of retroarch or the tool packages, so they appear in install_pkg/ and are
 # picked up by collect_deps / collect_pkg_deps without explicit listing here.
 STATIC_PACKAGES: dict[str, tuple[str, ...]] = {
-    "LIBRETRO_BASE":  ("retroarch", "core_info", "retroarch_joypad_autoconfig"),
+    # LIBRETRO_BASE includes the RetroArch frontend, cores info, joypad
+    # autoconfig, and the data packages (assets/overlays/shaders/database).
+    # The latter were optional (--include-dlc) up to v2.0.0; they are now
+    # always bundled so the AppImage is self-sufficient out of the box.
+    "LIBRETRO_BASE":  ("retroarch", "core_info", "retroarch_joypad_autoconfig",
+                       "retroarch_assets", "retroarch_overlays",
+                       "libretro_database", "glsl_shaders", "slang_shaders"),
     "LAKKA_TOOLS":    ("joyutils", "sixpair", "empty",
                        "xbox360_controllers_shutdown", "cec-mini-kb"),
 }
-
-# Additional packages when DLC (assets / overlays / shaders / database) is on.
-DLC_PACKAGES: tuple[str, ...] = (
-    "retroarch_assets",
-    "retroarch_overlays",
-    "libretro_database",
-    "glsl_shaders",
-    "slang_shaders",
-)
 
 # Per-device customizations of the libretro core list. Cores listed in
 # `fallback` are removed from the Lakka build and shipped as pre-compiled .so
@@ -123,7 +120,6 @@ class BuildConfig:
     device: str
     addon_version: str
     provider: str = "Giovanni Cascione"
-    include_dlc: bool = False
     lakka_version: str = DEFAULT_LAKKA_VERSION
     lakka_dir: Path = field(default_factory=lambda: REPO_ROOT / "Lakka-LibreELEC")
     build_dir: Path = field(default_factory=lambda: REPO_ROOT / "build")
@@ -302,7 +298,7 @@ def build_appimage(cfg: BuildConfig) -> AppImageArtifact:
         # Everything lands in the per-device STAGING dir, never the universal
         # addon dir.
         _setup_staging_dir(cfg)
-        package.move_artifacts(tmp_target, cfg.staging_dir, with_dlc=cfg.include_dlc)
+        package.move_artifacts(tmp_target, cfg.staging_dir)
         package.clean_lib(cfg.staging_dir)
         package.collect_gpu_libs(cfg.staging_dir)
         package.collect_deps(
@@ -366,7 +362,7 @@ def assemble_addon(cfg: BuildConfig) -> tuple[Path, str]:
                            cfg.provider, "",  # universal: no platform suffix
                            changelog=REPO_ROOT / "CHANGELOG.md")
     package.emit_language_files(addon_dir, cfg.addon_version, "")
-    package.customize_retroarch_cfg(addon_dir, ADDON_ID, with_dlc=cfg.include_dlc)
+    package.customize_retroarch_cfg(addon_dir, ADDON_ID)
     package.create_archive(addon_dir, cfg.build_dir, cfg.archive_name)
 
     zip_path = cfg.build_dir / ADDON_ID / cfg.archive_name
@@ -433,11 +429,7 @@ def _resolve_package_list(cfg: BuildConfig) -> dict[str, tuple[str, ...]]:
     """Build the {family: (pkg, ...)} dict that drives Lakka invocations."""
     cores = _resolve_libretro_cores(cfg)
     out: dict[str, tuple[str, ...]] = {"LIBRETRO_CORES": cores}
-    for family, pkgs in STATIC_PACKAGES.items():
-        if family == "LIBRETRO_BASE" and cfg.include_dlc:
-            out[family] = pkgs + DLC_PACKAGES
-        else:
-            out[family] = pkgs
+    out.update(STATIC_PACKAGES)
     return out
 
 
@@ -609,9 +601,6 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--version", dest="addon_version", required=True,
                         help="Add-on version tag (e.g. v1.0.0).")
     parser.add_argument("--provider", default="Giovanni Cascione")
-    parser.add_argument("--include-dlc", action="store_true",
-                        help="Bundle assets / overlays / shaders / database "
-                             "into the addon (much larger zip).")
     parser.add_argument("--lakka-dir", default=str(REPO_ROOT / "Lakka-LibreELEC"),
                         help="Path to a cloned Lakka-LibreELEC tree.")
     parser.add_argument("--lakka-version", default=DEFAULT_LAKKA_VERSION,
@@ -647,7 +636,6 @@ def main(argv: Sequence[str] | None = None) -> int:
                 device=device,
                 addon_version=args.addon_version,
                 provider=args.provider,
-                include_dlc=args.include_dlc,
                 lakka_dir=Path(args.lakka_dir).resolve(),
                 lakka_version=args.lakka_version,
                 jobs=args.jobs,

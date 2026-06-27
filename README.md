@@ -12,7 +12,7 @@ Resulting builds have been tested on CoreELEC versions from 19 to 22 both for ar
    - Download the latest `script.retroarch.launcher-<version>.zip` from the [releases page](https://github.com/spleen1981/retroarch-kodi-addon-CoreELEC/releases) and install following [Kodi instructions](https://kodi.wiki/view/Add-on_manager#How_to_install_from_a_ZIP_file). The add-on includes an internal online updater and can be updated from within Kodi.
    - The add-on will be shown in the "Game" group. Customize the settings as needed and launch RetroArch.
    - **First launch downloads the RetroArch package (AppImage).** The add-on detects your platform (from `/etc/os-release` `COREELEC_ARCH`) and, if the matching RetroArch package is not already present, prompts to download it. A progress bar is shown; the file is verified (SHA-256) and stored in userdata. If you decline, you return to Kodi with a "package missing" notice and can download it later from the add-on.
-   - By default the package includes only RetroArch and cores to reduce size; use RetroArch's internal online updater to download resources (assets, overlays, …) as needed.
+   - The package includes RetroArch, cores, themes, overlays, shaders and the libretro database — everything needed for full RetroArch operation out of the box. No additional online downloads are required after installation.
    - If you are new to RetroArch refer to [their documentation](https://docs.libretro.com/start/understanding/) for all how-to-use and how-to-setup info.
 
 Core list included by default is the same as [Lakka](https://github.com/libretro/Lakka-LibreELEC/blob/a0f1b57bb36fa1feb50ff006ca7b46c1b7b7cb45/distributions/Lakka/options#L176-L296).
@@ -133,9 +133,6 @@ it like any other target.
 
 Useful flags:
 
-   - `--include-dlc` — bundle `retroarch_assets`, `retroarch_overlays`,
-     `libretro_database`, `glsl_shaders`, `slang_shaders` into the add-on
-     (much larger; otherwise the user pulls them via RetroArch's online updater).
    - `--lakka-dir PATH` — path to the Lakka-LibreELEC checkout
      (default: `./Lakka-LibreELEC`).
    - `--lakka-version COMMIT` — Lakka commit to check out before building

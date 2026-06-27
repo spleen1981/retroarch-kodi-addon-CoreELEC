@@ -45,7 +45,9 @@ _LATE_RENDERED_IN_FILES: frozenset[str] = frozenset({"addon.xml.in"})
 
 
 # Map (Lakka build sub-path) -> (addon-dir sub-path).
-_BASE_MOVES: tuple[tuple[str, str], ...] = (
+# v2: the DLC packages (shaders / database / assets / overlays) are always
+# bundled, so a single _MOVES table covers everything.
+_MOVES: tuple[tuple[str, str], ...] = (
     ("etc/retroarch.cfg",              "config/retroarch.cfg"),
     ("usr/bin",                        "bin"),
     ("usr/lib",                        "lib"),
@@ -53,8 +55,6 @@ _BASE_MOVES: tuple[tuple[str, str], ...] = (
     ("usr/share/video_filters",        "resources/video_filters"),
     ("usr/share/retroarch/system",     "resources/system"),
     ("etc/retroarch-joypad-autoconfig","resources/joypads"),
-)
-_DLC_MOVES: tuple[tuple[str, str], ...] = (
     ("usr/share/common-shaders",       "resources/shaders"),
     ("usr/share/libretro-database",    "resources/database"),
     ("usr/share/retroarch-assets",     "resources/assets"),
@@ -62,12 +62,9 @@ _DLC_MOVES: tuple[tuple[str, str], ...] = (
 )
 
 
-def move_artifacts(staging: Path, addon_dir: Path, *, with_dlc: bool) -> None:
+def move_artifacts(staging: Path, addon_dir: Path) -> None:
     """Move Lakka build output from `staging` into the addon layout."""
-    moves = list(_BASE_MOVES)
-    if with_dlc:
-        moves.extend(_DLC_MOVES)
-    for src_rel, dst_rel in moves:
+    for src_rel, dst_rel in _MOVES:
         src = staging / src_rel
         dst = addon_dir / dst_rel
         if not src.exists():
@@ -902,8 +899,10 @@ msgstr ""
 # built it with; we point it at addon-installed paths so RA looks at the
 # right place on first launch (before firstrun.py runs).
 _USER_CFG_DIRS = ("savefiles", "savestates", "remappings", "playlists", "thumbnails")
-_RES_DIRS_BASE = ("system", "assets", "audio_filters", "video_filters", "joypads")
-_RES_DIRS_DLC = ("shaders", "database", "overlays")
+_RES_DIRS = (
+    "system", "assets", "audio_filters", "video_filters", "joypads",
+    "shaders", "database", "overlays",
+)
 
 # Misc retroarch.cfg pinned values.
 _PINNED_VALUES: dict[str, str] = {
@@ -922,8 +921,7 @@ _PINNED_VALUES: dict[str, str] = {
 }
 
 
-def customize_retroarch_cfg(addon_dir: Path, addon_name: str, *,
-                            with_dlc: bool) -> None:
+def customize_retroarch_cfg(addon_dir: Path, addon_name: str) -> None:
     """Rewrite paths and pin a handful of settings inside the shipped cfg.
 
     Uses the same load/edit/save round-trip as the runtime — this avoids
@@ -949,11 +947,8 @@ def customize_retroarch_cfg(addon_dir: Path, addon_name: str, *,
     for sub in _USER_CFG_DIRS:
         cfg.redirect_path_suffix(sub, f"{user_cfg}/{sub}")
     # Read-only resources shipped inside the addon.
-    for sub in _RES_DIRS_BASE:
+    for sub in _RES_DIRS:
         cfg.redirect_path_suffix(sub, f"{res_base}/{sub}")
-    if with_dlc:
-        for sub in _RES_DIRS_DLC:
-            cfg.redirect_path_suffix(sub, f"{res_base}/{sub}")
     # `retroarch-assets` is the Lakka name; we land it as `assets`.
     cfg.redirect_path_suffix("retroarch-assets", f"{res_base}/assets")
     # Cores live under `lib/libretro/` inside the addon (no `/cores` suffix).
