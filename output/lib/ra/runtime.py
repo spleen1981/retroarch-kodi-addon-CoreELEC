@@ -13,7 +13,7 @@ from typing import Optional, Sequence
 
 from . import paths, system
 from .ra_config import RetroArchConfig
-from .settings import AddonSettings
+from .settings import AddonSettings, LOG_VERBOSE
 
 log = logging.getLogger(__name__)
 
@@ -132,8 +132,8 @@ class RetroArchRuntime:
         # cleans up the tools on exit. We communicate settings via RA_*
         # env vars so AppRun can configure the tools at launch time.
         args = [str(self._appimage), f"--config={paths.RA_CONFIG_FILE}"]
-        if self.settings.log_to_file:
-            args.insert(1, "--verbose")
+        if self.settings.log_level == LOG_VERBOSE:
+           args.insert(1, "--verbose")
         args.extend(self.extra_args)
         log.info("exec: %s", " ".join(args))
         env = os.environ.copy()
@@ -153,7 +153,7 @@ class RetroArchRuntime:
         # to switch the TV off (SIGUSR1 to cec-mini-kb) when the user picks
         # "shutdown" inside RetroArch.
         env["RA_SHUTDOWN_FLAG"] = str(paths.SHUTDOWN_FLAG)
-        if not self.settings.log_to_file:
+        if self.settings.log_level == LOG_VERBOSE:
             return subprocess.call(args, env=env)
         # Combine AppImage/RA stdout/stderr into the shared log file.
         for h in logging.getLogger().handlers:
@@ -230,39 +230,73 @@ def main(argv: Sequence[str] | None = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     settings = AddonSettings.load()
     _configure_root_logging(settings)
-    if settings.log_to_file:
-        _enable_file_logging()
+    _adopt_boot_log_or_clear(settings.log_level)
+    if settings.log_level != _LOG_OFF_LOCAL():
+        _enable_file_logging(settings.log_level)
     rc = RetroArchRuntime(settings, extra_args=argv).run()
     return rc
+
+
+def _LOG_OFF_LOCAL() -> int:
+    # Lazy import to keep this module light at import time.
+    from .settings import LOG_OFF
+    return LOG_OFF
+
+
+def _adopt_boot_log_or_clear(log_level: int) -> None:
+    """Reconcile the shim's retroarch_boot.log with the unified log file.
+
+    OFF     -> delete everything in logs/ (true off, no disk footprint).
+    ERROR / VERBOSE:
+        - if retroarch_boot.log exists (shim recorded an error this boot),
+          rotate retroarch.log -> .old and adopt boot log as retroarch.log
+          so the unified file leads with the shim's trace;
+        - otherwise standard rotation of retroarch.log -> .old.
+    """
+    from .settings import LOG_OFF
+    if log_level == LOG_OFF:
+        for f in (paths.BOOT_LOG_FILE, paths.LOG_FILE, paths.LOG_FILE_OLD):
+            f.unlink(missing_ok=True)
+        return
+    paths.LOG_DIR.mkdir(parents=True, exist_ok=True)
+    if paths.BOOT_LOG_FILE.exists():
+        paths.LOG_FILE_OLD.unlink(missing_ok=True)
+        if paths.LOG_FILE.exists():
+            paths.LOG_FILE.replace(paths.LOG_FILE_OLD)
+        paths.BOOT_LOG_FILE.replace(paths.LOG_FILE)
+    elif paths.LOG_FILE.exists():
+        paths.LOG_FILE.replace(paths.LOG_FILE_OLD)
 
 
 def _configure_root_logging(settings: AddonSettings) -> None:
     """Set root logger level from the addon setting.
 
-    When `ra_log` is off, default to WARNING so we don't spam the systemd
-    journal with INFO traces for every quiet launch. When on, INFO at the
-    console and DEBUG via the file handler set up by `_enable_file_logging`.
+    OFF/ERROR -> WARNING root (default Python verbosity for journal).
+    VERBOSE   -> INFO root (full pipeline trace).
+    The FileHandler attached by _enable_file_logging filters per its own level.
     """
-    level = logging.INFO if settings.log_to_file else logging.WARNING
+    from .settings import LOG_VERBOSE
+    level = logging.INFO if settings.log_level == LOG_VERBOSE else logging.WARNING
     logging.basicConfig(
         level=level,
         format="%(asctime)s %(name)s %(levelname)s %(message)s",
     )
 
 
-def _enable_file_logging() -> None:
-    """Attach a DEBUG FileHandler so Python and RetroArch share one log file.
+def _enable_file_logging(log_level: int) -> None:
+    """Attach a FileHandler so Python and RetroArch share one log file.
 
-    Rotates the previous session's log to `retroarch.log.old` so each run
-    starts from an empty file. Only one generation is kept.
+    The retroarch.log file has been prepared by _adopt_boot_log_or_clear
+    (either freshly empty after rotation, or seeded with the shim's trace
+    from retroarch_boot.log). Append mode preserves whichever was set up.
     """
-    paths.LOG_DIR.mkdir(parents=True, exist_ok=True)
-    if paths.LOG_FILE.exists():
-        paths.LOG_FILE.replace(paths.LOG_FILE_OLD)
+    from .settings import LOG_VERBOSE
+    handler_level = logging.DEBUG if log_level == LOG_VERBOSE else logging.WARNING
     root = logging.getLogger()
-    root.setLevel(logging.DEBUG)
-    handler = logging.FileHandler(paths.LOG_FILE, mode="w", encoding="utf-8")
-    handler.setLevel(logging.DEBUG)
+    if root.level == logging.NOTSET or root.level > handler_level:
+        root.setLevel(handler_level)
+    handler = logging.FileHandler(paths.LOG_FILE, mode="a", encoding="utf-8")
+    handler.setLevel(handler_level)
     handler.setFormatter(logging.Formatter(
         "%(asctime)s %(name)s %(levelname)s %(message)s"
     ))
