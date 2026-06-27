@@ -14,13 +14,6 @@ from .ra_config import RetroArchConfig
 
 log = logging.getLogger(__name__)
 
-# Subdirs whose cfg `<sub>_directory` we redirect to the user-writable cfg dir
-# and whose shipped content we copy. `system` is special: we never overwrite
-# files already in the user's system dir (those are typically copyrighted
-# BIOSes the user supplied themselves).
-_NO_CLOBBER_SUBDIRS = frozenset({"system"})
-
-
 def run() -> None:
     """Execute every first-run step, then drop the first-run flag."""
     log.info("firstrun: starting one-time setup")
@@ -41,8 +34,18 @@ def run() -> None:
 
 
 def clear_flag() -> None:
-    """Force the next launch to repeat first-run setup."""
+    """Force the next launch to repeat first-run setup AND the AppImage
+    resource sync.
+
+    Clearing the marker `.resources_from_appimage` makes ra_sync redo the
+    no-clobber/overwrite merge from the AppImage into the user RA config
+    dir on the next launch — useful when the user has manually deleted
+    resource subdirs and wants the shipped content re-materialized.
+    Hard-coded name (kept in sync with ra_sync._MARKER_NAME; the two
+    modules ship in different containers and cannot share constants).
+    """
     paths.FIRST_RUN_FLAG.unlink(missing_ok=True)
+    (paths.RA_CONFIG_DIR / ".resources_from_appimage").unlink(missing_ok=True)
 
 
 def migrate_legacy_flag() -> None:
@@ -110,66 +113,15 @@ def _seed_user_language(cfg: RetroArchConfig) -> None:
 
 
 def _override_subdirs(cfg: RetroArchConfig) -> None:
-    """For each shipped subdir, redirect the cfg key and copy content.
+    """Redirect every cfg `<sub>_directory` key to the user-writable RA config dir.
 
-    The cfg key naming convention is `<sub>_directory` for every entry in
-    RA_CONFIG_SUBDIRS that the addon overrides (a few — `savestates`,
-    `savefiles`, `playlists`, `thumbnails`, `remappings` — are also in
-    RA_CONFIG_SUBDIRS but have no shipped content; we still create the dir).
+    The subdirs are created empty by paths.ensure_runtime_dirs(); their
+    initial content (audio_filters, system, joypads, etc.) is materialized
+    by the ra_sync module inside the AppImage on each launch — no file
+    copy from the addon side here.
     """
     for sub in paths.RA_CONFIG_SUBDIRS:
         target = paths.RA_CONFIG_DIR / sub
         target.mkdir(parents=True, exist_ok=True)
         cfg.set(f"{sub}_directory", str(target))
 
-        source = paths.CONFIG_DIR / sub
-        if not source.is_dir():
-            continue
-        no_clobber = sub in _NO_CLOBBER_SUBDIRS
-        _merge_tree(source, target, no_clobber=no_clobber)
-
-
-def _merge_tree(src: Path, dst: Path, *, no_clobber: bool) -> None:
-    """Copy src into dst, optionally preserving any existing files in dst.
-
-    Replaces the legacy `cp -r` / `cp -rn` pair. We walk in Python so we
-    can keep behavior identical across the no-clobber and overwrite cases.
-    """
-    for root, dirs, files in os.walk(src):
-        rel = Path(root).relative_to(src)
-        dst_root = dst / rel
-        dst_root.mkdir(parents=True, exist_ok=True)
-        for name in files:
-            src_file = Path(root) / name
-            dst_file = dst_root / name
-            if no_clobber and dst_file.exists():
-                continue
-            shutil.copy2(src_file, dst_file)
-
-
-def _restore_flattened_symlinks(root: Path) -> None:
-    """Find `*.symlink` placeholder files and replace them with real symlinks.
-
-    The packaging script flattens dangling symlinks into a placeholder file
-    named `<original>.symlink` whose contents are the link target. This is
-    how we ship symlinks inside a zip archive without losing them; here we
-    restore them on disk.
-    """
-    if not root.is_dir():
-        return
-    for placeholder in root.rglob("*.symlink"):
-        try:
-            target = placeholder.read_text(encoding="utf-8").strip()
-        except OSError as exc:
-            log.warning("firstrun: cannot read %s: %s", placeholder, exc)
-            continue
-        if not target:
-            continue
-        link_path = placeholder.with_suffix("")  # drop `.symlink`
-        try:
-            link_path.unlink(missing_ok=True)
-            link_path.symlink_to(target)
-            placeholder.unlink(missing_ok=True)
-        except OSError as exc:
-            log.warning("firstrun: cannot create symlink %s -> %s: %s",
-                        link_path, target, exc)
