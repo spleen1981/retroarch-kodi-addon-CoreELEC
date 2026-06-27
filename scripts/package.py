@@ -55,10 +55,10 @@ _MOVES: tuple[tuple[str, str], ...] = (
     ("usr/share/video_filters",        "resources/video_filters"),
     ("usr/share/retroarch/system",     "resources/system"),
     ("etc/retroarch-joypad-autoconfig","resources/joypads"),
-    ("usr/share/common-shaders",       "resources/shaders"),
+    ("usr/share/retroarch/shaders",    "resources/shaders"),
     ("usr/share/libretro-database",    "resources/database"),
-    ("usr/share/retroarch-assets",     "resources/assets"),
-    ("usr/share/retroarch-overlays",   "resources/overlays"),
+    ("usr/share/retroarch/assets",     "resources/assets"),
+    ("usr/share/retroarch/overlays",   "resources/overlays"),
 )
 
 

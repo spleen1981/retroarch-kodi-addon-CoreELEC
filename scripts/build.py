@@ -69,7 +69,7 @@ STATIC_PACKAGES: dict[str, tuple[str, ...]] = {
     # always bundled so the AppImage is self-sufficient out of the box.
     "LIBRETRO_BASE":  ("retroarch", "core_info", "retroarch_joypad_autoconfig",
                        "retroarch_assets", "retroarch_overlays",
-                       "libretro_database", "glsl_shaders", "slang_shaders"),
+                       "libretro_database", "glsl_shaders"),
     "LAKKA_TOOLS":    ("joyutils", "sixpair", "empty",
                        "xbox360_controllers_shutdown", "cec-mini-kb"),
 }
