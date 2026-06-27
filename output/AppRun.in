@@ -23,6 +23,15 @@
 APPDIR="$(dirname "$(readlink -f "$0")")"
 export APPDIR
 
+# Short-circuit: --sync-only runs ra_sync and exits without launching RA.
+# Used by kodi_entry to do the heavy resource merge while Kodi UI is still
+# up (DialogProgressBG reads progress from /tmp/ra_sync_progress). On the
+# normal launch path ra_sync still runs as a backstop further down.
+if [ "${1:-}" = "--sync-only" ]; then
+    python3 "$APPDIR/lib/ra_sync" "$APPDIR" "@APPIMAGE_VERSION@"
+    exit $?
+fi
+
 _appimage_lib_path() {
     if [ ! -e /dev/dri/card0 ]; then
         echo "$APPDIR/lib:$APPDIR/lib-gpu"

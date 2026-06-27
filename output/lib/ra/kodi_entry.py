@@ -18,6 +18,8 @@ from __future__ import annotations
 import logging
 from typing import Sequence
 
+from pathlib import Path
+
 from . import paths
 from .settings import AddonSettings, BOOT_TO_KODI, BOOT_TO_RA
 
@@ -77,6 +79,8 @@ def main(argv: Sequence[str]) -> None:
         return
     if not ready:
         return
+
+    _maybe_presync_resources(addon, dialog)
 
     if addon.getSetting("ra_hints") == "true":
         _test_assets(dialog)
@@ -234,6 +238,98 @@ def _update_info_settings(addon) -> None:
     )
 
 
+def _maybe_presync_resources(addon, dialog) -> None:
+    """Run ra_sync via the installed AppImage while Kodi UI is still up.
+
+    Detects a stale or missing `.resources_from_appimage` marker against the
+    installed AppImage version; if mismatch, invokes the AppImage in
+    `--sync-only` mode and shows a background progress dialog driven by
+    `/tmp/ra_sync_progress` (single atomic line rewritten by ra_sync).
+
+    Skipped silently in steady state (marker matches → no toast, no I/O).
+    The boot path (ra_autostart.sh) cannot use this hook: no Kodi UI exists
+    yet. ra_sync still runs as a backstop in AppRun on every launch.
+    """
+    import subprocess
+    import time
+    import xbmcgui  # type: ignore[import-not-found]
+
+    marker = paths.RA_CONFIG_DIR / ".resources_from_appimage"
+    installed_ver = paths.installed_appimage_version()
+    if installed_ver is None:
+        return
+    try:
+        marker_val = marker.read_text(encoding="utf-8").strip()
+    except OSError:
+        marker_val = ""
+    if marker_val == installed_ver:
+        return
+
+    appimage = paths.installed_appimage()
+    if appimage is None:
+        return
+
+    log.info("kodi_entry: pre-sync needed (marker=%r, installed=%r)",
+             marker_val, installed_ver)
+
+    progress_file = Path("/tmp/ra_sync_progress")
+    pbar = xbmcgui.DialogProgressBG()
+    pbar.create(NOTIF_TITLE, _localized(addon, 32023))
+
+    proc = None
+    try:
+        proc = subprocess.Popen(
+            [str(appimage), "--sync-only"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        deadline = time.monotonic() + 180.0
+        while True:
+            _read_progress_and_update(progress_file, pbar)
+            rc = proc.poll()
+            if rc is not None:
+                # One last read to capture final state.
+                _read_progress_and_update(progress_file, pbar)
+                break
+            if time.monotonic() > deadline:
+                log.warning("kodi_entry: pre-sync timeout, killing")
+                proc.kill()
+                proc.wait()
+                break
+            time.sleep(0.25)
+    except OSError as exc:
+        log.warning("kodi_entry: pre-sync failed (%s); AppRun will retry", exc)
+    finally:
+        pbar.close()
+        progress_file.unlink(missing_ok=True)
+
+
+def _read_progress_and_update(progress_file, pbar) -> None:
+    """Read the atomic single-line progress file and forward to DialogProgressBG.
+
+    Lines: "<N> <relpath>" (0-99), "100 done" (success), "error <msg>" (failure).
+    The `error` and `done` lines naturally close the loop because the caller
+    breaks on proc.poll() != None; no extra signaling needed.
+    """
+    try:
+        line = progress_file.read_text(encoding="utf-8").strip()
+    except OSError:
+        return
+    if not line:
+        return
+    parts = line.split(maxsplit=1)
+    head = parts[0]
+    msg = parts[1] if len(parts) > 1 else ""
+    if head == "error":
+        log.warning("kodi_entry: pre-sync reported error: %s", msg)
+        return
+    try:
+        pct = int(head)
+    except ValueError:
+        return
+    pbar.update(pct, NOTIF_TITLE, msg)
+
+
 def _localized(addon, msg_id: int) -> str:
     """Look up a localized string. <32000 is Kodi-builtin; >=32000 is addon."""
     if msg_id < 32000:
@@ -276,6 +372,8 @@ def plugin_main(argv: Sequence[str]) -> None:
         if handle >= 0:
             xbmcplugin.endOfDirectory(handle, succeeded=True, cacheToDisc=False)
         return
+
+    _maybe_presync_resources(addon, dialog)
 
     if addon.getSetting("ra_hints") == "true":
         _test_assets(dialog)

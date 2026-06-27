@@ -58,6 +58,10 @@ _BLACKLIST_PATTERNS = ("*.cfg", "*.opt")
 
 _MARKER_NAME = ".resources_from_appimage"
 
+# Atomic single-line state file read by the Kodi pre-sync hook
+# (kodi_entry._maybe_presync_resources). Tmpfs on CoreELEC.
+_PROGRESS_FILE = Path("/tmp/ra_sync_progress")
+
 
 def main(argv: list[str]) -> int:
     if len(argv) != 2:
@@ -92,15 +96,22 @@ def main(argv: list[str]) -> int:
         logger.info("no resources/ in AppImage, nothing to sync")
         return 0
 
+    progress = _Progress()
     try:
+        all_subs = _NO_CLOBBER_SUBDIRS + _OVERWRITE_SUBDIRS
+        progress.set_total(_count_files(src_root, all_subs))
         ra_cfg.mkdir(parents=True, exist_ok=True)
         for sub in _NO_CLOBBER_SUBDIRS:
-            _merge(src_root / sub, ra_cfg / sub, overwrite=False)
+            _merge(src_root / sub, ra_cfg / sub, overwrite=False,
+                   progress=progress)
         for sub in _OVERWRITE_SUBDIRS:
-            _merge(src_root / sub, ra_cfg / sub, overwrite=True)
+            _merge(src_root / sub, ra_cfg / sub, overwrite=True,
+                   progress=progress)
         marker.write_text(version, encoding="utf-8")
+        progress.done()
         logger.info(f"synced resources from AppImage v{version}")
     except OSError as exc:
+        progress.error(str(exc))
         logger.error(f"sync failed: {exc}")
         return 1
     return 0
@@ -170,12 +181,15 @@ def _read_log_level(home: Path) -> int:
 # --------------------------------------------------------- sync core
 
 
-def _merge(src: Path, dst: Path, *, overwrite: bool) -> None:
+def _merge(src: Path, dst: Path, *, overwrite: bool,
+           progress: "_Progress", rel_prefix: str = "") -> None:
     """Recursive merge with blacklist filtering.
 
     overwrite=True   shipped wins on existing files.
     overwrite=False  user wins on existing files (no-clobber).
     Blacklisted files are skipped in BOTH modes — never created, never replaced.
+    `progress.tick()` is called for every iterated file (copied OR skipped) so
+    the counter advances linearly to 100% regardless of overwrite policy.
     """
     if not src.is_dir():
         return
@@ -184,17 +198,76 @@ def _merge(src: Path, dst: Path, *, overwrite: bool) -> None:
         if _blacklisted(entry.name):
             continue
         target = dst / entry.name
+        rel = f"{rel_prefix}{entry.name}"
         if entry.is_dir():
-            _merge(entry, target, overwrite=overwrite)
+            _merge(entry, target, overwrite=overwrite, progress=progress,
+                   rel_prefix=f"{rel}/")
             continue
         if overwrite or not target.exists():
             shutil.copy2(entry, target)
+        progress.tick(rel)
 
 
 def _blacklisted(name: str) -> bool:
     if name in _BLACKLIST_NAMES:
         return True
     return any(fnmatch.fnmatchcase(name, pat) for pat in _BLACKLIST_PATTERNS)
+
+
+def _count_files(src_root: Path, subdirs: tuple) -> int:
+    """Walk all sync sources counting non-blacklisted files for progress total."""
+    n = 0
+    for sub in subdirs:
+        d = src_root / sub
+        if not d.is_dir():
+            continue
+        for entry in d.rglob("*"):
+            if entry.is_file() and not _blacklisted(entry.name):
+                n += 1
+    return n
+
+
+class _Progress:
+    """Atomic single-line state file consumed by the Kodi pre-sync hook.
+
+    Protocol (one line, rewritten atomically via rename):
+        "<pct> <relpath>"   progress 0-99 with current file
+        "100 done"          successful completion
+        "error <message>"   fatal failure (Kodi logs and closes the toast)
+
+    Writes are best-effort: any OSError is swallowed so progress reporting
+    never breaks the sync itself. Residue from a previous run is removed
+    on construction.
+    """
+    def __init__(self) -> None:
+        self._total = 0
+        self._done = 0
+        _PROGRESS_FILE.unlink(missing_ok=True)
+
+    def set_total(self, n: int) -> None:
+        self._total = n
+
+    def tick(self, relpath: str) -> None:
+        self._done += 1
+        pct = int(self._done * 100 / self._total) if self._total else 0
+        # Cap at 99 during progress; 100 reserved for done().
+        if pct >= 100:
+            pct = 99
+        self._write(f"{pct} {relpath}")
+
+    def done(self) -> None:
+        self._write("100 done")
+
+    def error(self, message: str) -> None:
+        self._write(f"error {message}")
+
+    def _write(self, line: str) -> None:
+        try:
+            tmp = _PROGRESS_FILE.with_suffix(".tmp")
+            tmp.write_text(line, encoding="utf-8")
+            tmp.replace(_PROGRESS_FILE)
+        except OSError:
+            pass
 
 
 def _marker_matches(marker: Path, expected: str) -> bool:

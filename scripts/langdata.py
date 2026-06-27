@@ -266,6 +266,11 @@ _ENTRIES: tuple[Entry, ...] = (
         "en_gb": "Verbose",
         "it_it": "Dettagliato",
     }),
+    Entry(32023, "#32023", {
+        "en_gb": "Preparing RetroArch resources...",
+        "it_it": "Preparazione risorse RetroArch...",
+    }),
+
 )
 
 _BY_ID: dict[int, Entry] = {e.msg_id: e for e in _ENTRIES}
