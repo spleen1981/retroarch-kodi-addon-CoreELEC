@@ -111,18 +111,23 @@ def _launch_retroarch() -> None:
         4. Exec the Python entry point.
     """
     from .system import run_detached
-    # No loose binaries or libs in the thin addon — everything compiled is
-    # inside the AppImage. PYTHONPATH points at lib/ (the standard Kodi addon
-    # Python modules directory) so `python3 -m ra` finds the ra package.
     lib_dir = paths.ADDON_DIR / "lib"
+    boot_log = paths.BOOT_LOG_FILE
+    # Clear any leftover boot-log from a previous failed session so the
+    # runtime starts with a clean signal about THIS launch.
+    # FATAL messages here are appended to retroarch_boot.log only on error;
+    # runtime adopts it as retroarch.log when log_level is not OFF.
     shell_cmd = (
-        f". /etc/profile && "
-        f"oe_setup_addon {paths.ADDON_NAME} && "
+        f"mkdir -p {boot_log.parent} 2>/dev/null; "
+        f"rm -f {boot_log} 2>/dev/null; "
+        f". /etc/profile || "
+        f"{{ echo \"$(date '+%F %T') FATAL: /etc/profile failed\" >> {boot_log}; exit 1; }}; "
+        f"oe_setup_addon {paths.ADDON_NAME} || "
+        f"{{ echo \"$(date '+%F %T') FATAL: oe_setup_addon failed\" >> {boot_log}; exit 1; }}; "
         f'PYTHONPATH="{lib_dir}${{PYTHONPATH:+:$PYTHONPATH}}" '
         f"exec python3 -m ra start"
     )
     run_detached("ra-launcher", "/bin/sh", "-c", shell_cmd)
-
 
 def _reset_to_defaults(addon, dialog) -> None:
     if not dialog.yesno(

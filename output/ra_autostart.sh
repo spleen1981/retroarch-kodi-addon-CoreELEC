@@ -11,7 +11,9 @@ export PYTHONPATH
 
 # HARDENED: resolve paths in pure shell so recovery never depends on python.
 AUTOSTART="${HOME:-/storage}/.config/autostart.sh"
-SHIM_LOG="${ADDON_HOME:-${HOME:-/storage}/.kodi/userdata/addon_data/script.retroarch.launcher}/logs/boot_shim.log"
+SHIM_LOG="${ADDON_HOME:-${HOME:-/storage}/.kodi/userdata/addon_data/script.retroarch.launcher}/logs/retroarch_boot.log"
+
+rm -f "$SHIM_LOG" 2>/dev/null
 
 shim_log() {
 	mkdir -p "$(dirname "$SHIM_LOG")" 2>/dev/null
@@ -60,7 +62,6 @@ fi
 # Recovery: runtime unmasks+starts kodi when RA exits; the defensive unmask
 # above also clears it on the next boot, and bail_to_kodi/SSH always can too.
 systemctl mask kodi 2>/dev/null
-shim_log "masked kodi; launching RA directly (skip kodi boot) uptime=$(cut -d' ' -f1 /proc/uptime 2>/dev/null)s"
 
 # Detached launcher so this script can return; RA owns the framebuffer.
 systemd-run -q --collect -u ra-launcher /bin/sh -c "
@@ -69,9 +70,6 @@ systemd-run -q --collect -u ra-launcher /bin/sh -c "
 	export ADDON_DIR='$ADDON_DIR'
 	export ADDON_HOME='$ADDON_HOME'
 
-	LOGF=\"\$ADDON_HOME/logs/boot_shim.log\"
-	logf() { mkdir -p \"\$(dirname \"\$LOGF\")\" 2>/dev/null; echo \"\$(date '+%F %T') ra-launcher \$*\" >> \"\$LOGF\" 2>/dev/null; }
-
 	# Brief settle after the CoreELEC splash so the framebuffer is ready.
 	# TUNABLE: lower toward 0 to launch sooner, raise if RA shows a black screen.
 	# sleep 2
@@ -79,7 +77,6 @@ systemd-run -q --collect -u ra-launcher /bin/sh -c "
 	# Take the framebuffer from the splash service.
 	pgrep splash-image | xargs -r kill -SIGTERM 2>/dev/null
 
-	logf \"exec ra start (uptime \$(cut -d' ' -f1 /proc/uptime)s)\"
 	exec python3 -m ra start
 "
 exit 0
