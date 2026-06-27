@@ -61,35 +61,19 @@ Your games (`/storage/roms`) and RetroArch configuration (`/storage/.config/retr
 
 ### Resources
 
-The add-on uses an internal `resources` folder plus one external local folder, `/storage/.config/retroarch`. The internal folder is wiped on add-on removal/update; the AppImage and external config are not.
+The add-on ships only Kodi-side resources internally (`icon.png`, `fanart.jpg`, `language/`, `settings.xml`). They live in `<addon_dir>/resources/` and are wiped on add-on removal or self-update.
 
-`/storage/.config/retroarch` should include the `retroarch.cfg` main configuration file and the following subfolders. If absent, empty folders and a default `retroarch.cfg` are created automatically.
+RetroArch resources (`audio_filters`, `video_filters`, `system`, `joypads` + DLC `shaders`, `database`, `overlays`, `assets`) ship **inside the RetroArch AppImage** and are merged into `/storage/.config/retroarch/<sub>` on each launch by a Python module (`ra_sync`) bundled in the AppImage.
 
-   - `savestates`
-   - `savefiles` (e.g. memory card files)
-   - `remappings` to store remapped controls
-   - `playlists` to store RetroArch playlists - lists of games per emulated system
-   - `thumbnails` Boxarts / Screenshots / Title screens will be stored here
-   - `assets` wallpapers, themes, icons, fonts, etc. will be stored here
-   - `database` contains subfolders `cht` (cheats), `cursors` (saved searches) and `rdb` (games databases for scanning your files)
-   - `joypads` configuration files for autoconfiguration of attached joysticks and gamepads will be stored here
-   - `overlays` on screen overlays will be stored here
-   - `shaders` shaders to enhance the visuals of the emulated systems on current display devices will be stored here
-   - `system` cores additional system files (e.g. BIOS) will be stored here
+The merge policy mirrors the legacy script behavior:
 
-The internal `resources` folder includes:
-   - `audio_filters` various audio filters from relevant repositories
-   - `video_filters` various video filters from relevant repositories
-   - `system` includes contents from relevant repositories per build configured core list.
+   - **`system/`**: no-clobber — user-added BIOSes and core-written savegames are never overwritten.
+   - **Other subdirs**: shipped content overwrites any same-named file (assumes shipped data is canonical).
+   - **Blacklist** — files NEVER copied at any depth, in any subdir, even when missing on the user side:
+       - exact basenames: `scummvm.ini` (ScummVM rewrites this with user preferences)
+       - patterns: `*.cfg`, `*.opt` (core-written option files)
 
-Depending on build configuration (not by default) also the following may be included in the internal folder, with the content from relevant repositories:
-   - `assets`
-   - `database`
-   - `joypads`
-   - `overlays`
-   - `shaders`
-
-In case the same subfolder is present both in the external and internal resource folders, the external one is used and internal content is merged as needed.
+A marker file `/storage/.config/retroarch/.resources_from_appimage` records the last-synced AppImage version; steady-state launches pay no I/O. After an AppImage update the marker mismatches and the merge runs once more. Trigger the *Reset* action (or delete the marker manually) to force a fresh merge.
 
 ### Roms
 
