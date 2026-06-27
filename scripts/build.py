@@ -325,7 +325,8 @@ def build_appimage(cfg: BuildConfig) -> AppImageArtifact:
     # standalone release asset in build/. staging_dir keeps resources+config.
     package.stage_appimage(cfg.staging_dir, cfg.appimage_staging_dir,
                            output_dir=OUTPUT_DIR, addon_name=ADDON_ID,
-                           lakka_build_dir=cfg.lakka_build_dir)
+                           lakka_build_dir=cfg.lakka_build_dir,
+                           appimage_version=cfg.appimage_version)
     package.create_appimage(
         cfg.appimage_staging_dir,
         cfg.appimage_out,
