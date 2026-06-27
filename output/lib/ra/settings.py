@@ -35,7 +35,6 @@ class AddonSettings:
 
     boot_toggle: str = BOOT_TO_KODI
     hints: bool = True
-    sigkill_kodi: bool = False
     autoupdate: bool = True
     xbox360_shutdown: bool = True
     bt_shutdown: bool = False
@@ -56,7 +55,6 @@ class AddonSettings:
         "boot_toggle": "ra_boot_toggle",
         "hints": "ra_hints",
         "sigkill_kodi": "ra_sigkill_kodi",
-        "autoupdate": "ra_autoupdate",
         "xbox360_shutdown": "ra_xbox360_shutdown",
         "bt_shutdown": "ra_bt_shutdown",
         "cec_remote": "ra_cec_remote",
