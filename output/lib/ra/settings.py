@@ -28,6 +28,10 @@ log = logging.getLogger(__name__)
 BOOT_TO_RA = "RETROARCH"
 BOOT_TO_KODI = "KODI"
 
+LOG_OFF = 0
+LOG_ERROR = 1
+LOG_VERBOSE = 2
+
 
 @dataclass
 class AddonSettings:
@@ -48,7 +52,7 @@ class AddonSettings:
     roms_remote_user: str = ""
     roms_remote_password: str = ""
     roms_remote_vers: str = "Default"
-    log_to_file: bool = False
+    log_level: int = LOG_OFF
 
     # Mapping: dataclass field name -> settings.xml id.
     _XML_IDS = {
@@ -67,7 +71,7 @@ class AddonSettings:
         "roms_remote_user": "ra_roms_remote_user",
         "roms_remote_password": "ra_roms_remote_password",
         "roms_remote_vers": "ra_roms_remote_vers",
-        "log_to_file": "ra_log",
+        "log_level": "ra_log",
     }
 
     # ----------------------------------------------------------- factories

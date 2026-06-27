@@ -23,5 +23,5 @@
     <setting id="ra_roms_remote_user" value="" />
     <setting id="ra_roms_remote_password" value="" />
     <setting id="ra_roms_remote_vers" value="Default" />
-    <setting id="ra_log" value="false" />
+    <setting id="ra_log" value="0" />
 </settings>

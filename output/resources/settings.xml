@@ -43,7 +43,7 @@
     </category>
     <category label="14092"> <!-- Log -->
         <setting label="14092" type="lsep"/>
-        <setting id="ra_log" label="32008" type="bool" default="false" />
+        <setting id="ra_log" label="32008" type="enum" lvalues="32020|32021|32022" default="0" />
     </category>
     <category label="19033"> <!-- Information -->
         <setting label="19033" type="lsep"/>
