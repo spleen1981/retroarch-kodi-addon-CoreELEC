@@ -330,6 +330,7 @@ DISPLAY_MODE: Path = Path("/sys/class/display/mode")
 LOG_DIR: Path = ADDON_HOME / "logs"
 LOG_FILE: Path = LOG_DIR / "retroarch.log"
 LOG_FILE_OLD: Path = LOG_DIR / "retroarch.log.old"
+BOOT_LOG_FILE: Path = LOG_DIR / "retroarch_boot.log"
 
 # Derived, regenerable data (e.g. the `retroarch --features` driver cache).
 # Safe to delete: it is rebuilt on demand. Kept separate from settings/logs.
