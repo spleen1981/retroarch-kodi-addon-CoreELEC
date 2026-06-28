@@ -34,6 +34,8 @@ import contextlib
 import errno
 import logging
 import re
+import shutil
+import subprocess
 import time
 from typing import Iterator, Optional
 
@@ -57,6 +59,17 @@ _RATE_BY_INDEX = {0: 50, 1: 60}
 # Amlogic; three attempts at 300 ms is generous without delaying the UI.
 _WRITE_RETRIES = 3
 _WRITE_BACKOFF_S = 0.3
+
+# DRM modeset via modetest (libdrm) — used as a fallback when the sysfs
+# write to /sys/class/display/mode is silently ignored by the driver.
+# modetest is set-and-exit on this platform: it applies the mode,
+# returns, the modeset persists. The tool is part of libdrm-tests on
+# CoreELEC.
+_MODETEST_TIMEOUT_S = 5.0
+_MODETEST_DRIVER = "meson"
+_CONNECTOR_RE = re.compile(
+    r"^(\d+)\s+\d+\s+connected\s+HDMI-A-", re.MULTILINE
+)
 
 
 @contextlib.contextmanager
@@ -127,11 +140,81 @@ def _read_mode() -> Optional[str]:
         return None
 
 
+def _modetest_apply(mode_name: str) -> None:
+    """Force a DRM modeset commit on HDMI-A-1 via modetest.
+
+    No-op when modetest is absent or no connected HDMI connector is
+    found. Failures are logged at INFO level and swallowed: the sysfs
+    write that ran first remains the source of truth on platforms
+    where this path is irrelevant.
+    """
+    modetest = shutil.which("modetest")
+    if modetest is None:
+        return
+    connector_id = _find_hdmi_connector(modetest)
+    if connector_id is None:
+        log.info("video: no connected HDMI connector found via modetest")
+        return
+    try:
+        subprocess.run(
+            [modetest, "-M", _MODETEST_DRIVER, "-s",
+             f"{connector_id}:{mode_name}"],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            timeout=_MODETEST_TIMEOUT_S,
+            check=False,
+        )
+        log.info("video: modetest applied %s on connector %s",
+                 mode_name, connector_id)
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        log.info("video: modetest failed: %s", exc)
+
+
+def _find_hdmi_connector(modetest: str) -> Optional[str]:
+    """Parse `modetest -c` to find the connector id of HDMI-A-1 (connected)."""
+    try:
+        result = subprocess.run(
+            [modetest, "-M", _MODETEST_DRIVER, "-c"],
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            text=True,
+            timeout=_MODETEST_TIMEOUT_S,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        log.info("video: modetest -c failed: %s", exc)
+        return None
+    m = _CONNECTOR_RE.search(result.stdout)
+    if m is None:
+        return None
+    return m.group(1)
+
+
 def _write_mode(value: str) -> None:
-    """Write a mode string, retrying on transient EBUSY/EAGAIN."""
+    """Write the mode, verify it took effect, and fall back to a DRM commit.
+
+    Two driver families to support:
+
+    Legacy Amlogic (kernel 4.9, fbdev/amvideo): the write to
+        /sys/class/display/mode is the canonical modeset entry point.
+        Readback reflects the new value, the driver propagates to
+        HDMI, nothing more to do.
+
+    Modern Amlogic (kernel 5.x+, DRM/KMS): the sysfs write is accepted
+        silently but IGNORED — readback stays at the previous value.
+        The driver expects a proper DRM commit instead. We fall back
+        to modetest, which the driver honors.
+    """
     for attempt in range(_WRITE_RETRIES):
         try:
             paths.DISPLAY_MODE.write_text(value)
+            readback = _read_mode()
+            if readback != value.strip():
+                log.info("video: sysfs readback %r != written %r, "
+                         "falling back to DRM modeset via modetest",
+                         readback, value)
+                _modetest_apply(value)
             return
         except OSError as exc:
             transient = exc.errno in (errno.EBUSY, errno.EAGAIN)
