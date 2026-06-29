@@ -476,7 +476,7 @@ def _detect_soname(lakka_build_dir: Path, pkg_prefix: str,
 
 
 def stage_appimage(addon_dir: Path, appimage_dir: Path,
-                   output_dir: Path, addon_name: str,
+                   output_dir: Path,
                    lakka_build_dir: Path | None = None,
                    appimage_version: str = "") -> None:
     """Move retroarch + libs from addon_dir into the AppImage staging dir.
