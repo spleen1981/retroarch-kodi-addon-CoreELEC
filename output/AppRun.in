@@ -33,11 +33,51 @@ if [ "${1:-}" = "--sync-only" ]; then
 fi
 
 _appimage_lib_path() {
-    if [ ! -e /dev/dri/card0 ]; then
-        echo "$APPDIR/lib:$APPDIR/lib-gpu"
+    # Base libraries are always provided by the AppImage.
+    _path="$APPDIR/lib"
+
+    # Cache the GBM/system-GPU probing result next to the other addon-data
+    # runtime flags (same logical place as first_run_done).
+    #
+    # libgbm_ok: system provides libgbm.so.1, do not expose bundled lib-gpu.
+    # libgbm_ko: system lacks usable GBM or is non-DRM/fbdev; expose lib-gpu.
+    _addon_home="${ADDON_HOME:-${HOME:-/storage}/.kodi/userdata/addon_data/script.retroarch.launcher}"
+    _flag_ok="$_addon_home/libgbm_ok"
+    _flag_ko="$_addon_home/libgbm_ko"
+    _need_lib_gpu=0
+
+    if [ -f "$_flag_ko" ]; then
+        _need_lib_gpu=1
+    elif [ -f "$_flag_ok" ]; then
+        _need_lib_gpu=0
     else
-        echo "$APPDIR/lib"
+        mkdir -p "$_addon_home" 2>/dev/null || true
+
+        if [ ! -e /dev/dri/card0 ]; then
+            # Legacy/fbdev path: bundled GPU userspace is expected.
+            _need_lib_gpu=1
+            rm -f "$_flag_ok" 2>/dev/null || true
+            touch "$_flag_ko" 2>/dev/null || true
+        else
+            # DRM/KMS path: CE22 may expose /dev/dri/card0 but still not ship
+            # libgbm.so.1 in the rootfs. Probe once and cache the result.
+            if find /usr/lib /lib -name 'libgbm.so.1' -type f 2>/dev/null | grep -q .; then
+                _need_lib_gpu=0
+                rm -f "$_flag_ko" 2>/dev/null || true
+                touch "$_flag_ok" 2>/dev/null || true
+            else
+                _need_lib_gpu=1
+                rm -f "$_flag_ok" 2>/dev/null || true
+                touch "$_flag_ko" 2>/dev/null || true
+            fi
+        fi
     fi
+
+    if [ "$_need_lib_gpu" = "1" ] && [ -d "$APPDIR/lib-gpu" ]; then
+        _path="$_path:$APPDIR/lib-gpu"
+    fi
+
+    echo "$_path"
 }
 
 # compat dir: host libcec symlink so cec-mini-kb uses the platform-specific
