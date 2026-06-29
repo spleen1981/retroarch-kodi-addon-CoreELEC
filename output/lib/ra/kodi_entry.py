@@ -82,9 +82,6 @@ def main(argv: Sequence[str]) -> None:
 
     _maybe_presync_resources(addon, dialog)
 
-    if addon.getSetting("ra_hints") == "true":
-        _test_assets(dialog)
-
     dialog.notification(
         NOTIF_TITLE, _localized(addon, 20186), str(paths.ICON), LONG_NOTIFICATION_MS
     )
@@ -208,13 +205,6 @@ def _run_updater(addon, dialog, manual_update: bool):
         return _UPDATE_NONE
     return _UPDATE_INSTALLING
 
-
-def _test_assets(dialog) -> None:
-    from .hints import assets_empty
-    if assets_empty():
-        import xbmcaddon  # type: ignore[import-not-found]
-        addon = xbmcaddon.Addon(id=paths.ADDON_NAME)
-        dialog.ok(NOTIF_TITLE, _localized(addon, 32015))
 
 
 def _update_info_settings(addon) -> None:
@@ -374,9 +364,6 @@ def plugin_main(argv: Sequence[str]) -> None:
         return
 
     _maybe_presync_resources(addon, dialog)
-
-    if addon.getSetting("ra_hints") == "true":
-        _test_assets(dialog)
 
     dialog.notification(
         NOTIF_TITLE, _localized(addon, 20186), str(paths.ICON), LONG_NOTIFICATION_MS

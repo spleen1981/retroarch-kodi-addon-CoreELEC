@@ -38,7 +38,6 @@ class AddonSettings:
     """User settings as a typed bag. Mirrors `resources/settings.xml` ids."""
 
     boot_toggle: str = BOOT_TO_KODI
-    hints: bool = True
     autoupdate: bool = True
     xbox360_shutdown: bool = True
     bt_shutdown: bool = False
@@ -57,7 +56,6 @@ class AddonSettings:
     # Mapping: dataclass field name -> settings.xml id.
     _XML_IDS = {
         "boot_toggle": "ra_boot_toggle",
-        "hints": "ra_hints",
         "sigkill_kodi": "ra_sigkill_kodi",
         "xbox360_shutdown": "ra_xbox360_shutdown",
         "bt_shutdown": "ra_bt_shutdown",

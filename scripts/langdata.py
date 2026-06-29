@@ -223,21 +223,7 @@ _ENTRIES: tuple[Entry, ...] = (
         "de_de": "SMB Protokollversion",
     }),
     # 32014 has no cs_cz, sk_sk, zh_cn translation in the legacy source.
-    Entry(32014, "#32014", {
-        "en_gb": "Enable hints",
-        "es_es": "Habilitar sugerencias",
-        "it_it": "Attiva suggerimenti",
-        "pt_br": "Habilitar dicas",
-        "de_de": "Vorschläge aktivieren",
-    }),
     # 32015 has no cs_cz, sk_sk, zh_cn translation in the legacy source.
-    Entry(32015, "#32015", {
-        "en_gb": "RetroArch assets not found. Assets improves the GUI appearence and can be downloaded from within Retroarch selecting 'Online Updater > Update Assets' (or copied manually to the assets folder).",
-        "es_es": "Recursos de RetroArch no encontrados. Los recursos mejoran la apariencia de la interfaz gráfica y se pueden descargar desde RetroArch seleccionando 'Actualizador en línea > Actualizar recursos' (o copiados manualmente en la carpeta de recursos).",
-        "it_it": "Risorse di RetroArch non trovate. Le Risorse migliorano l'apparenza della GUI, e possono essere scaricate all'interno di RetroArch tramite 'Aggiornamenti Online > Aggiorna Risorse' (o copiate manualmente nella cartella assets).",
-        "pt_br": "Os recursos do RetroArch não foram encontrados. Os recursos melhoram a aparência da GUI (Interface Gráfica do Usuário) e podem ser baixados no Retroarch selecionando 'Atualizador on-line > Atualizar recursos' (ou copiar manualmente para a pasta assets).",
-        "de_de": "RetroArch-Assets nicht gefunden. Assets verbessern das Erscheinungsbild der GUI und können aus Retroarch heruntergeladen werden, indem Sie „Online Updater > Assets aktualisieren“ auswählen (oder manuell in den Assets-Ordner kopiert werden).",
-    }),
     Entry(32016, "#32016", {
         "en_gb": "Add-on version",
         "it_it": "Versione add-on",

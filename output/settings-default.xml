@@ -9,7 +9,6 @@
 -->
 <settings>
     <setting id="ra_boot_toggle" value="KODI"/>
-    <setting id="ra_hints" value="true" />
     <setting id="ra_autoupdate" value="true" />
     <setting id="ra_xbox360_shutdown" value="true" />
     <setting id="ra_bt_shutdown" value="false" />
