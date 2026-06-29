@@ -119,7 +119,6 @@ _DEVICES: dict[str, DeviceProfile] = {
 class BuildConfig:
     device: str
     addon_version: str
-    provider: str = "Giovanni Cascione"
     lakka_version: str = DEFAULT_LAKKA_VERSION
     lakka_dir: Path = field(default_factory=lambda: REPO_ROOT / "Lakka-LibreELEC")
     build_dir: Path = field(default_factory=lambda: REPO_ROOT / "build")
@@ -370,7 +369,7 @@ def build_appimage(cfg: BuildConfig) -> AppImageArtifact:
     # Move retroarch + libs out of staging into the AppImage and write it as a
     # standalone release asset in build/. staging_dir keeps resources+config.
     package.stage_appimage(cfg.staging_dir, cfg.appimage_staging_dir,
-                           output_dir=OUTPUT_DIR, addon_name=ADDON_ID,
+                           output_dir=OUTPUT_DIR,
                            lakka_build_dir=cfg.lakka_build_dir,
                            appimage_version=cfg.appimage_version)
     package.create_appimage(
@@ -407,12 +406,12 @@ def assemble_addon(cfg: BuildConfig) -> tuple[Path, str]:
         if s.is_dir():
             shutil.copytree(s, addon_dir / sub, symlinks=True)
 
-    package.install_committed_source(OUTPUT_DIR, addon_dir, ADDON_ID)
-    package.emit_addon_xml(addon_dir, ADDON_ID, cfg.addon_version,
-                           cfg.provider, "",  # universal: no platform suffix
+    package.install_committed_source(OUTPUT_DIR, addon_dir)
+    package.emit_addon_xml(addon_dir, cfg.addon_version,
+                           "",  # universal: no platform suffix
                            changelog=REPO_ROOT / "CHANGELOG.md")
     package.emit_language_files(addon_dir, cfg.addon_version, "")
-    package.customize_retroarch_cfg(addon_dir, ADDON_ID)
+    package.customize_retroarch_cfg(addon_dir)
     package.create_archive(addon_dir, cfg.build_dir, cfg.archive_name)
 
     zip_path = cfg.build_dir / ADDON_ID / cfg.archive_name
@@ -652,7 +651,6 @@ def main(argv: Sequence[str] | None = None) -> int:
                              "If omitted, builds every supported device.")
     parser.add_argument("--version", dest="addon_version", required=True,
                         help="Add-on version tag (e.g. v1.0.0).")
-    parser.add_argument("--provider", default="Giovanni Cascione")
     parser.add_argument("--lakka-dir", default=str(REPO_ROOT / "Lakka-LibreELEC"),
                         help="Path to a cloned Lakka-LibreELEC tree.")
     parser.add_argument("--lakka-version", default=DEFAULT_LAKKA_VERSION,
@@ -698,7 +696,6 @@ def main(argv: Sequence[str] | None = None) -> int:
             cfg = BuildConfig(
                 device=ref_device,
                 addon_version=args.addon_version,
-                provider=args.provider,
                 lakka_dir=Path(args.lakka_dir).resolve(),
                 lakka_version=args.lakka_version,
                 jobs=args.jobs,
@@ -728,7 +725,6 @@ def main(argv: Sequence[str] | None = None) -> int:
             cfg = BuildConfig(
                 device=device,
                 addon_version=args.addon_version,
-                provider=args.provider,
                 lakka_dir=Path(args.lakka_dir).resolve(),
                 lakka_version=args.lakka_version,
                 jobs=args.jobs,

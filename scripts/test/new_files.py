@@ -28,7 +28,6 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     parser.add_argument("--target", choices=sorted(_TARGETS.keys()), required=True)
     parser.add_argument("--version", dest="addon_version", default="test")
-    parser.add_argument("--provider", default="Giovanni Cascione")
     parser.add_argument("--include-dlc", action="store_true")
     parser.add_argument("--out", default=str(REPO_ROOT / "tmp_test_files"),
                         help="Output directory (wiped on each run).")
@@ -44,7 +43,6 @@ def main(argv: Sequence[str] | None = None) -> int:
     cfg = BuildConfig(
         target=args.target,
         addon_version=args.addon_version,
-        provider=args.provider,
         include_dlc=args.include_dlc,
         work_dir=out_dir,
     )
@@ -52,9 +50,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     # v2: the addon is universal (no per-target suffix). These text-only steps
     # don't need the Lakka staging — just create the dir and emit into it.
     cfg.addon_dir.mkdir(parents=True, exist_ok=True)
-    package.install_committed_source(OUTPUT_DIR, cfg.addon_dir, cfg.addon_name)
-    package.emit_addon_xml(cfg.addon_dir, cfg.addon_name, cfg.addon_version,
-                           cfg.provider, "",
+    package.install_committed_source(OUTPUT_DIR, cfg.addon_dir)
+    package.emit_addon_xml(cfg.addon_dir, cfg.addon_version,
+                           "",
                            changelog=REPO_ROOT / "CHANGELOG.md")
     package.emit_language_files(cfg.addon_dir, cfg.addon_version, "")
 

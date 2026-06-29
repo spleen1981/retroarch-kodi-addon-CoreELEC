@@ -3,13 +3,11 @@
     Kodi addon manifest TEMPLATE.
 
     Placeholders substituted by scripts/build.py at packaging time:
-        @ADDON_NAME@      e.g. script.retroarch.launcher.Amlogic-ng.arm
         @ADDON_VERSION@   from build args (e.g. v1.0.0)
-        @PROVIDER@        from build args
         @LANG_METADATA@   <summary/>/<description/>/<disclaimer/> lines, one set per language
         @CHANGELOG@       XML-escaped contents of CHANGELOG.md
 -->
-<addon id="@ADDON_NAME@" name="RetroArch" version="@ADDON_VERSION@" provider-name="@PROVIDER@">
+<addon id="script.retroarch.launcher" name="RetroArch" version="@ADDON_VERSION@" provider-name="Giovanni Cascione">
     <requires>
         <import addon="xbmc.python" version="3.0.0"/>
     </requires>

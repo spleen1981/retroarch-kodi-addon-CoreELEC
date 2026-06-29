@@ -1,5 +1,5 @@
 #!/bin/sh
-# AppImage entry point — runtime for @ADDON_NAME@.
+# AppImage entry point — runtime for script.retroarch.launcher.
 #
 # All execution happens within a single FUSE squashfs mount (this one).
 # cec-mini-kb and xbox360-controllers-shutdown are started/stopped here
@@ -42,7 +42,7 @@ _appimage_lib_path() {
 
 # compat dir: host libcec symlink so cec-mini-kb uses the platform-specific
 # CEC adapter (e.g. Amlogic AOCEC) instead of the Lakka-built version.
-_compat="/tmp/.appimage_syslibs_@ADDON_NAME@"
+_compat="/tmp/.appimage_syslibs_script.retroarch.launcher"
 mkdir -p "$_compat"
 _sys_libcec=$(find /usr/lib /lib -name "libcec.so.*" 2>/dev/null \
     | grep -E "libcec\.so\.[0-9]" | sort -V | tail -1)

@@ -571,7 +571,6 @@ def stage_appimage(addon_dir: Path, appimage_dir: Path,
     if apprun_template.exists():
         rendered = (
             apprun_template.read_text(encoding="utf-8")
-            .replace("@ADDON_NAME@", addon_name)
             .replace("@LIBCEC_SONAME@",  libcec_soname)
             .replace("@LIBUDEV_SONAME@", libudev_soname)
             .replace("@APPIMAGE_VERSION@", appimage_version or "0.0.0")
@@ -694,8 +693,7 @@ def _maybe_clone_core_info(libretro_dir: Path, core: str) -> None:
 # ===================================================== install_committed_src
 
 
-def install_committed_source(output_dir: Path, addon_dir: Path,
-                             addon_name: str) -> None:
+def install_committed_source(output_dir: Path, addon_dir: Path) -> None:
     """Copy `output/` into the addon dir, then render `.in` files.
 
     `output/` is the part of the tree that lives in version control: the
@@ -705,7 +703,7 @@ def install_committed_source(output_dir: Path, addon_dir: Path,
     Any file whose name ends in `.in` is treated as a template:
         * `addon.xml.in` is left as-is — `emit_addon_xml` renders it later
           once metadata (version, provider, lang block, changelog) is known.
-        * Every other `.in` file is rendered with `@ADDON_NAME@` substitution
+        * Every other `.in` file is rendered with `script.retroarch.launcher` substitution
           and the rendered output replaces the template in the addon tree.
     """
     # ra_sync ships INSIDE the AppImage only (stage_appimage copies it
@@ -720,7 +718,7 @@ def install_committed_source(output_dir: Path, addon_dir: Path,
         else:
             shutil.copy2(entry, dst)
 
-    _render_in_files(addon_dir, addon_name)
+    _render_in_files(addon_dir)
     _chmod_executables(addon_dir)
     # AppRun belongs inside the AppImage only — remove it from the thin addon
     # if install_committed_source copied it from output/AppRun.in.
@@ -728,13 +726,13 @@ def install_committed_source(output_dir: Path, addon_dir: Path,
     (addon_dir / "AppRun.in").unlink(missing_ok=True)
 
 
-def _render_in_files(addon_dir: Path, addon_name: str) -> None:
+def _render_in_files(addon_dir: Path) -> None:
     """Render every eager `.in` file under `addon_dir` (recursive).
 
     Templates owned by the late stage (see `_LATE_RENDERED_IN_FILES`) are
     skipped here. For every other template:
 
-        foo/bar.ext.in  ->  foo/bar.ext   (with `@ADDON_NAME@` substituted)
+        foo/bar.ext.in  ->  foo/bar.ext   (with `@PLACEHOLDER@` substituted)
 
     The `.in` source is removed after rendering so it doesn't end up in
     the shipped zip.
@@ -744,9 +742,7 @@ def _render_in_files(addon_dir: Path, addon_name: str) -> None:
             continue
         if src.name in _LATE_RENDERED_IN_FILES:
             continue
-        rendered = src.read_text(encoding="utf-8").replace(
-            "@ADDON_NAME@", addon_name
-        )
+        rendered = src.read_text(encoding="utf-8")
         dst = src.with_suffix("")  # strip the trailing `.in`
         dst.write_text(rendered, encoding="utf-8")
         src.unlink()
@@ -770,8 +766,8 @@ def _chmod_executables(addon_dir: Path) -> None:
 # ========================================================= emit_addon_xml ==
 
 
-def emit_addon_xml(addon_dir: Path, addon_name: str, addon_version: str,
-                   provider: str, ra_name_suffix: str, *,
+def emit_addon_xml(addon_dir: Path, addon_version: str,
+                   ra_name_suffix: str, *,
                    changelog: Path) -> None:
     """Fill in addon.xml.in placeholders and write addon.xml into the addon dir.
 
@@ -786,9 +782,7 @@ def emit_addon_xml(addon_dir: Path, addon_name: str, addon_version: str,
     changelog_text = _read_changelog(changelog)
 
     text = (text
-            .replace("@ADDON_NAME@", addon_name)
             .replace("@ADDON_VERSION@", addon_version)
-            .replace("@PROVIDER@", provider)
             .replace("@LANG_METADATA@", lang_meta)
             .replace("@CHANGELOG@", changelog_text))
 
@@ -892,6 +886,8 @@ msgstr ""
 '''
 
 
+_ADDON_ID = "script.retroarch.launcher"
+
 # =================================================== customize_retroarch_cfg
 
 
@@ -921,7 +917,7 @@ _PINNED_VALUES: dict[str, str] = {
 }
 
 
-def customize_retroarch_cfg(addon_dir: Path, addon_name: str) -> None:
+def customize_retroarch_cfg(addon_dir: Path) -> None:
     """Rewrite paths and pin a handful of settings inside the shipped cfg.
 
     Uses the same load/edit/save round-trip as the runtime — this avoids
@@ -940,8 +936,8 @@ def customize_retroarch_cfg(addon_dir: Path, addon_name: str) -> None:
     cfg = RetroArchConfig.load(cfg_path)
 
     user_cfg = "/storage/.config/retroarch"
-    res_base = f"/storage/.kodi/addons/{addon_name}/resources"
-    cores = f"/storage/.kodi/addons/{addon_name}/lib/libretro"
+    res_base = f"/storage/.kodi/addons/{_ADDON_ID}/resources"
+    cores = f"/storage/.kodi/addons/{_ADDON_ID}/lib/libretro"
 
     # User-writable subdirs (live under ~/.config/retroarch).
     for sub in _USER_CFG_DIRS:
@@ -983,7 +979,7 @@ def create_archive(addon_dir: Path, build_dir: Path, archive_name: str) -> None:
     )
     shutil.move(str(addon_dir.parent / archive_name), str(archive_path))
 
-    latest = out_dir / f"{addon_name}-LATEST.zip"
+    latest = out_dir / f"{_ADDON_ID}-LATEST.zip"
     latest.unlink(missing_ok=True)
     os.symlink(archive_name, latest)
     log.info("package: archive at %s", archive_path)
