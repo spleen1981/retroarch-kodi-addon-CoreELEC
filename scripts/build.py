@@ -260,6 +260,56 @@ class AppImageArtifact:
     sha256: str
 
 
+def build_retroarch_seed_config(cfg: BuildConfig) -> None:
+    """Build only the Lakka `retroarch` package and extract retroarch.cfg.
+
+    This is the --addon-only development path: we need the default
+    retroarch.cfg exactly as produced by the Lakka RetroArch package, but we
+    do NOT need cores, tools, DLC packages or final AppImage creation.
+
+    Result:
+        cfg.staging_dir/config/retroarch.cfg
+
+    Then assemble_addon(cfg) builds the universal thin addon ZIP from that
+    staging config plus committed output/ sources.
+    """
+    log.info("=== addon-only: building retroarch seed cfg for %s ===", cfg.device)
+    if not cfg.lakka_dir.is_dir():
+        raise FileNotFoundError(f"Lakka source dir not found: {cfg.lakka_dir}")
+
+    package_list = {"LIBRETRO_BASE": ("retroarch",)}
+
+    cfg.work_dir.mkdir(parents=True, exist_ok=True)
+    cfg.build_dir.mkdir(parents=True, exist_ok=True)
+
+    with lakka.patched(cfg.lakka_dir, REPO_ROOT, cfg.device, cfg.profile.project,
+                       cfg.profile.arch, cfg.lakka_version):
+        lakka.build_packages(cfg.lakka_dir, package_list,
+                             distro="Lakka",
+                             project=cfg.profile.project,
+                             device_lakka=cfg.profile.device_lakka,
+                             arch=cfg.profile.arch,
+                             jobs=cfg.jobs)
+        tmp_target = lakka.copy_built_packages(
+            cfg.lakka_dir, package_list,
+            distro="Lakka", project=cfg.profile.project,
+            device_lakka=cfg.profile.device_lakka, arch=cfg.profile.arch,
+            subdirs=PKG_SUBDIRS, work_dir=cfg.work_dir,
+        )
+
+    if cfg.staging_dir.exists():
+        shutil.rmtree(cfg.staging_dir)
+    dst_cfg = cfg.staging_dir / "config" / "retroarch.cfg"
+    dst_cfg.parent.mkdir(parents=True, exist_ok=True)
+
+    src_cfg = tmp_target / "etc" / "retroarch.cfg"
+    if not src_cfg.is_file():
+        raise FileNotFoundError(f"retroarch.cfg not found in built package: {src_cfg}")
+
+    shutil.copy2(src_cfg, dst_cfg)
+    log.info("addon-only: copied %s -> %s", src_cfg, dst_cfg)
+
+
 def build_appimage(cfg: BuildConfig) -> AppImageArtifact:
     """Phase 1 (per device): build the per-platform RetroArch AppImage.
 
@@ -369,6 +419,8 @@ def assemble_addon(cfg: BuildConfig) -> tuple[Path, str]:
     sha = package.sha256_file(zip_path) if zip_path.is_file() else ""
     log.info("addon ZIP -> %s (sha256=%s)", zip_path.name, sha)
     return zip_path, sha
+
+
 
 
 def _ensure_appimage_tools(cfg: BuildConfig) -> None:
@@ -614,6 +666,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--keep-work", action="store_true",
                         help="Keep the retroarch_work/ staging dir after a "
                              "successful build (default: remove it).")
+    parser.add_argument("--addon-only", action="store_true",
+                        help="Build only the Lakka retroarch package to "
+                             "refresh the default retroarch.cfg, then assemble "
+                             "the universal add-on ZIP. Skips cores, tools, "
+                             "DLC packages and AppImage creation. Intended "
+                             "for fast addon ZIP testing when a compatible "
+                             "AppImage is already installed on the target box.")
     parser.add_argument("--appimage-target", default="",
                         help="Override the AppImage target token (filename + "
                              "manifest platform). Default: the family-wide "
@@ -627,6 +686,40 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     last_work_dir: Path | None = None
     try:
+        if args.addon_only:
+            # Build only the RetroArch package for one reference device so
+            # config/retroarch.cfg is generated exactly by Lakka's package
+            # build, then assemble the universal thin addon ZIP. No cores,
+            # tools, DLC packages and no AppImage asset are built.
+            # If multiple --device values are passed, use the first one only:
+            # the addon ZIP is universal, and the device is needed only to
+            # build the reference RetroArch cfg.
+            ref_device = (args.device or sorted(_DEVICES.keys()))[0]
+            cfg = BuildConfig(
+                device=ref_device,
+                addon_version=args.addon_version,
+                provider=args.provider,
+                lakka_dir=Path(args.lakka_dir).resolve(),
+                lakka_version=args.lakka_version,
+                jobs=args.jobs,
+                appimage_target_override=args.appimage_target,
+            )
+            last_work_dir = cfg.work_dir
+            try:
+                build_retroarch_seed_config(cfg)
+                assemble_addon(cfg)
+            except subprocess.CalledProcessError as exc:
+                log.error("addon-only retroarch build failed: %s", exc)
+                return 1
+            except (FileNotFoundError, RuntimeError) as exc:
+                log.error("addon-only build failed: %s", exc)
+                return 1
+
+            if not args.keep_work and cfg.work_dir.exists():
+                log.info("cleaning up %s", cfg.work_dir)
+                shutil.rmtree(cfg.work_dir, ignore_errors=True)
+            return 0
+
         devices = args.device or sorted(_DEVICES.keys())
         artifacts: list[AppImageArtifact] = []
         ref_cfg: BuildConfig | None = None
