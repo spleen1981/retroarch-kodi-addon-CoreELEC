@@ -693,6 +693,14 @@ def _maybe_clone_core_info(libretro_dir: Path, core: str) -> None:
 # ===================================================== install_committed_src
 
 
+def _ignore_python_cache(_dir: str, names: list[str]) -> set[str]:
+    """Ignore Python bytecode/cache artifacts when copying addon sources."""
+    return {
+        n for n in names
+        if n == "__pycache__" or n.endswith((".pyc", ".pyo"))
+    }
+
+
 def install_committed_source(output_dir: Path, addon_dir: Path) -> None:
     """Copy `output/` into the addon dir, then render `.in` files.
 
@@ -714,7 +722,8 @@ def install_committed_source(output_dir: Path, addon_dir: Path) -> None:
             continue
         dst = addon_dir / entry.name
         if entry.is_dir():
-            shutil.copytree(entry, dst, dirs_exist_ok=True)
+            shutil.copytree(entry, dst, dirs_exist_ok=True,
+                            ignore=_ignore_python_cache)
         else:
             shutil.copy2(entry, dst)
 
