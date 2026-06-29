@@ -101,7 +101,7 @@ def platform_token() -> str | None:
     64-bit (aarch64) while the userland is 32-bit (arm), so uname can report
     the wrong architecture. The distro-provided token is authoritative.
     """
-    osr = _os_release()
+    osr = _read_os_release()
     return (
         os.environ.get("RA_PLATFORM")
         or osr.get("COREELEC_ARCH")
@@ -110,18 +110,26 @@ def platform_token() -> str | None:
         or None
     )
 
-def arch_token() -> str | None:
-    """Architecture part of the platform token (e.g. 'arm', 'aarch64').
+def arch_token(platform: str | None = None) -> str | None:
+    """Return the architecture suffix from a platform token.
 
-    COREELEC_ARCH is '<device>.<arch>' (e.g. 'Amlogic-ng.arm'); the arch is the
-    segment after the last dot.
+    Example:
+        Amlogic-no.aarch64 -> aarch64
+        Amlogic-ng.arm     -> arm
+
+    Do not read the global PLATFORM here: ARCH is initialized at module
+    import time, so PLATFORM must be passed explicitly.
     """
-    if PLATFORM is None:
+    token = platform if platform is not None else platform_token()
+    if token is None:
         return None
-    return PLATFORM.rsplit(".", 1)[-1]
+    if "." not in token:
+        return None
+    arch = token.rsplit(".", 1)[-1]
+    return arch or None
 
-
-ARCH: str | None = arch_token()
+PLATFORM: str | None = platform_token()
+ARCH: str | None = arch_token(PLATFORM)
 
 
 def generic_target() -> str | None:
