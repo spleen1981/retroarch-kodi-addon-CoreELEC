@@ -1,12 +1,15 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <!--
-    Kodi addon manifest TEMPLATE.
+    Kodi addon manifest template.
 
-    Placeholders substituted by scripts/build.py at packaging time:
-        script.retroarch.launcher      e.g. script.retroarch.launcher.Amlogic-ng.arm
-        @ADDON_VERSION@   from build args (e.g. v1.0.0)
-        @LANG_METADATA@   <summary/>/<description/>/<disclaimer/> lines, one set per language
-        @CHANGELOG@       XML-escaped contents of CHANGELOG.md
+    Dynamic fields still rendered at packaging time:
+        - addon version
+        - localized summary / description / disclaimer metadata
+        - changelog / news text
+
+    Static in v2:
+        - addon id: script.retroarch.launcher
+        - provider name
 -->
 <addon id="script.retroarch.launcher" name="RetroArch" version="@ADDON_VERSION@" provider-name="Giovanni Cascione">
     <requires>
