@@ -87,24 +87,28 @@ def _read_os_release() -> dict[str, str]:
 
 
 def platform_token() -> str | None:
-    """Return the CoreELEC/LibreELEC platform token (e.g. 'Amlogic-ng.arm').
+    """Return the CoreELEC/LibreELEC platform token, e.g. 'Amlogic-ng.arm'.
 
-    Read from /etc/os-release COREELEC_ARCH, falling back to LIBREELEC_ARCH.
-    An RA_PLATFORM env override is honored first (desktop test rig / shim).
+    CoreELEC exposes the target token under different /etc/os-release keys
+    depending on release vintage:
+        - COREELEC_ARCH / LIBREELEC_ARCH on older builds
+        - DISTRO_ARCH on CE22+ (e.g. 'Amlogic-no.aarch64')
 
-    Deliberately does NOT use `uname -m`: on Amlogic-ng the kernel is 64-bit
-    (aarch64) while the userland is 32-bit (arm), so uname reports the wrong
-    architecture. COREELEC_ARCH is the authoritative source.
+    RA_PLATFORM is honored first as a manual override for SSH diagnostics,
+    recovery and desktop test rigs.
+
+    Deliberately does NOT use `uname -m`: on Amlogic-ng the kernel may be
+    64-bit (aarch64) while the userland is 32-bit (arm), so uname can report
+    the wrong architecture. The distro-provided token is authoritative.
     """
-    override = os.environ.get("RA_PLATFORM")
-    if override:
-        return override
-    osr = _read_os_release()
-    return osr.get("COREELEC_ARCH") or osr.get("LIBREELEC_ARCH") or None
-
-
-PLATFORM: str | None = platform_token()
-
+    osr = _os_release()
+    return (
+        os.environ.get("RA_PLATFORM")
+        or osr.get("COREELEC_ARCH")
+        or osr.get("LIBREELEC_ARCH")
+        or osr.get("DISTRO_ARCH")
+        or None
+    )
 
 def arch_token() -> str | None:
     """Architecture part of the platform token (e.g. 'arm', 'aarch64').
