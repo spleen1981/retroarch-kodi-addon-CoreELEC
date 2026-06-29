@@ -79,6 +79,7 @@ STATIC_PACKAGES: dict[str, tuple[str, ...]] = {
 # files instead (see `fallback-precompiled-cores/` in the repo root).
 @dataclass(frozen=True)
 class DeviceProfile:
+    source_device: str
     project: str
     device_lakka: str
     arch: str
@@ -94,7 +95,8 @@ class DeviceProfile:
 
 
 _DEVICES: dict[str, DeviceProfile] = {
-    "Amlogic-ng": DeviceProfile(
+    "Amlogic-any.arm": DeviceProfile(
+        source_device="Amlogic-ng",
         project="Amlogic",
         device_lakka="AMLGX",
         arch="arm",
@@ -103,7 +105,8 @@ _DEVICES: dict[str, DeviceProfile] = {
         cores_fallback=("flycast_xtreme",),
         fallback_subdir="arm7hf",
     ),
-    "Amlogic-no": DeviceProfile(
+    "Amlogic-any.aarch64": DeviceProfile(
+        source_device="Amlogic-no",
         project="Amlogic",
         device_lakka="AMLGX",
         arch="aarch64",
@@ -126,8 +129,6 @@ class BuildConfig:
     # Parallel `make` job count for Lakka. None -> let Lakka pick its default.
     jobs: int | None = None
     # AppImage target override (CLI). Empty -> profile.appimage_target -> arch.
-    appimage_target_override: str = ""
-
     @property
     def profile(self) -> DeviceProfile:
         return _DEVICES[self.device]
@@ -139,21 +140,13 @@ class BuildConfig:
 
     @property
     def appimage_target(self) -> str:
-        """Target token baked into the AppImage filename / manifest platform.
+        """Return the AppImage release/manifest target.
 
-        Defaults to the family-wide '<family>-any.<arch>' (e.g. 'Amlogic-any.arm'):
-        any device of that family+arch matches it opportunistically at runtime,
-        so a single build serves Amlogic-ng, -ne, -no, … Precedence: the
-        `--appimage-target` CLI override wins, then the profile's
-        `appimage_target`, then the derived '<family>-any.<arch>'. The generic
-        target is always SoC-family scoped (never just the architecture).
+        In v2, BuildConfig.device is already the family-wide AppImage target:
+            Amlogic-any.arm      -> Lakka Amlogic-ng / arm profile
+            Amlogic-any.aarch64  -> Lakka Amlogic-no / aarch64 profile
         """
-        if self.appimage_target_override:
-            return self.appimage_target_override
-        if self.profile.appimage_target:
-            return self.profile.appimage_target
-        family = self.device.rsplit("-", 1)[0] if "-" in self.device else self.device
-        return f"{family}-any.{self.profile.arch}"
+        return self.device
 
     @property
     def addon_dir(self) -> Path:
@@ -281,7 +274,7 @@ def build_retroarch_seed_config(cfg: BuildConfig) -> None:
     cfg.work_dir.mkdir(parents=True, exist_ok=True)
     cfg.build_dir.mkdir(parents=True, exist_ok=True)
 
-    with lakka.patched(cfg.lakka_dir, REPO_ROOT, cfg.device, cfg.profile.project,
+    with lakka.patched(cfg.lakka_dir, REPO_ROOT, cfg.profile.source_device, cfg.profile.project,
                        cfg.profile.arch, cfg.lakka_version):
         lakka.build_packages(cfg.lakka_dir, package_list,
                              distro="Lakka",
@@ -327,7 +320,7 @@ def build_appimage(cfg: BuildConfig) -> AppImageArtifact:
     cfg.work_dir.mkdir(parents=True, exist_ok=True)
     cfg.build_dir.mkdir(parents=True, exist_ok=True)
 
-    with lakka.patched(cfg.lakka_dir, REPO_ROOT, cfg.device, cfg.profile.project,
+    with lakka.patched(cfg.lakka_dir, REPO_ROOT, cfg.profile.source_device, cfg.profile.project,
                        cfg.profile.arch, cfg.lakka_version):
         lakka.build_packages(cfg.lakka_dir, package_list,
                              distro="Lakka",
@@ -671,13 +664,6 @@ def main(argv: Sequence[str] | None = None) -> int:
                              "DLC packages and AppImage creation. Intended "
                              "for fast addon ZIP testing when a compatible "
                              "AppImage is already installed on the target box.")
-    parser.add_argument("--appimage-target", default="",
-                        help="Override the AppImage target token (filename + "
-                             "manifest platform). Default: the family-wide "
-                             "'<family>-any.<arch>' (e.g. 'Amlogic-any.arm'). "
-                             "Set e.g. 'Amlogic-ng.arm' for a device-specific "
-                             "build. Use with a single --device so it applies "
-                             "to the intended profile.")
     args = parser.parse_args(argv)
 
     log_file = _configure_output(verbose=args.verbose)
@@ -699,7 +685,6 @@ def main(argv: Sequence[str] | None = None) -> int:
                 lakka_dir=Path(args.lakka_dir).resolve(),
                 lakka_version=args.lakka_version,
                 jobs=args.jobs,
-                appimage_target_override=args.appimage_target,
             )
             last_work_dir = cfg.work_dir
             try:
@@ -728,7 +713,6 @@ def main(argv: Sequence[str] | None = None) -> int:
                 lakka_dir=Path(args.lakka_dir).resolve(),
                 lakka_version=args.lakka_version,
                 jobs=args.jobs,
-                appimage_target_override=args.appimage_target,
             )
             last_work_dir = cfg.work_dir
             try:
