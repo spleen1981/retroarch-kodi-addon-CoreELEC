@@ -454,14 +454,14 @@ def _ensure_appimage_tools(cfg: BuildConfig) -> None:
 def _setup_staging_dir(cfg: BuildConfig) -> None:
     """Wipe and re-create the per-device staging directories.
 
-    Staging holds the extracted Lakka artifacts. bin/lib/lib-gpu are temporary
+    Staging holds the extracted Lakka artifacts. bin/lib are temporary
     (moved into the AppImage by stage_appimage); resources/config remain and
     feed the universal addon assembly.
     """
     for d in (cfg.staging_dir, cfg.appimage_staging_dir):
         if d.exists():
             shutil.rmtree(d)
-    for sub in ("", "config", "resources", "bin", "lib", "lib-gpu"):
+    for sub in ("", "config", "resources", "bin", "lib"):
         (cfg.staging_dir / sub).mkdir(parents=True, exist_ok=True)
 
 
