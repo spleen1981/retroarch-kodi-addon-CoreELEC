@@ -342,7 +342,6 @@ def build_appimage(cfg: BuildConfig) -> AppImageArtifact:
         _setup_staging_dir(cfg)
         package.move_artifacts(tmp_target, cfg.staging_dir)
         package.clean_lib(cfg.staging_dir)
-        package.collect_gpu_libs(cfg.staging_dir)
         package.collect_deps(
             cfg.staging_dir,
             lakka_build_dir=cfg.lakka_build_dir,

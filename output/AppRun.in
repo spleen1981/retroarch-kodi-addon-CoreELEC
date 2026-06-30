@@ -67,20 +67,37 @@ sys.exit(0)
 PYEOF
 }
 
+_bundled_libgbm_soname() {
+    # Prefer the bundled SONAME actually shipped with the AppImage, e.g.
+    # libgbm.so.1. Use it as the ABI name for the runtime alias.
+    for _lib in "$APPDIR"/lib/libgbm.so.[0-9]* "$APPDIR"/lib/libgbm.so; do
+        [ -e "$_lib" ] || continue
+        basename "$_lib"
+        return 0
+    done
+    return 1
+}
+
 _setup_libgbm_alias() {
     _alias_dir="$_compat"
+    _libgbm_soname="$(_bundled_libgbm_soname 2>/dev/null || true)"
+
+    [ -n "$_libgbm_soname" ] || return 1
 
     _host_egl="$(_resolve_host_egl_provider)"
     if [ -n "$_host_egl" ] && _library_exports_gbm_create_device "$_host_egl"; then
-        ln -sf "$_host_egl" "$_alias_dir/libgbm.so.1"
+        # Host EGL provider also exports GBM symbols. Use it to satisfy the
+        # exact libgbm SONAME bundled with the AppImage.
+        ln -sf "$_host_egl" "$_alias_dir/$_libgbm_soname"
         ln -sf "$_host_egl" "$_alias_dir/libgbm.so"
         echo "$_alias_dir"
         return 0
     fi
 
-    if [ -f "$APPDIR/lib/libgbm.so.1" ]; then
-        ln -sf "$APPDIR/lib/libgbm.so.1" "$_alias_dir/libgbm.so.1"
-        ln -sf "$APPDIR/lib/libgbm.so.1" "$_alias_dir/libgbm.so"
+    if [ -f "$APPDIR/lib/$_libgbm_soname" ]; then
+        # Fallback to bundled libgbm using the same SONAME.
+        ln -sf "$APPDIR/lib/$_libgbm_soname" "$_alias_dir/$_libgbm_soname"
+        ln -sf "$APPDIR/lib/$_libgbm_soname" "$_alias_dir/libgbm.so"
         echo "$_alias_dir"
         return 0
     fi
