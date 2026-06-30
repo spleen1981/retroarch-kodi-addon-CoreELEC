@@ -16,9 +16,7 @@
 #
 # Library loading:
 #   lib/       Userspace shared libs bundled from the Lakka build.
-#   lib-gpu/   libgbm — needed on framebuffer-only platforms where the system
-#              has no libgbm. Skipped on DRM platforms (/dev/dri/card0 present)
-#              so the system Mali libgbm (kernel-matched) takes precedence.
+#   compat     Runtime ABI symlinks for libcec/libgbm
 
 APPDIR="$(dirname "$(readlink -f "$0")")"
 export APPDIR
@@ -32,58 +30,80 @@ if [ "${1:-}" = "--sync-only" ]; then
     exit $?
 fi
 
-_appimage_lib_path() {
-    # Base libraries are always provided by the AppImage.
-    _path="$APPDIR/lib"
 
-    # Cache the GBM/system-GPU probing result next to the other addon-data
-    # runtime flags (same logical place as first_run_done).
-    #
-    # libgbm_ok: system provides libgbm.so.1, do not expose bundled lib-gpu.
-    # libgbm_ko: system lacks usable GBM or is non-DRM/fbdev; expose lib-gpu.
-    _addon_home="${ADDON_HOME:-${HOME:-/storage}/.kodi/userdata/addon_data/script.retroarch.launcher}"
-    _flag_ok="$_addon_home/libgbm_ok"
-    _flag_ko="$_addon_home/libgbm_ko"
-    _need_lib_gpu=0
-
-    if [ -f "$_flag_ko" ]; then
-        _need_lib_gpu=1
-    elif [ -f "$_flag_ok" ]; then
-        _need_lib_gpu=0
-    else
-        mkdir -p "$_addon_home" 2>/dev/null || true
-
-        if [ ! -e /dev/dri/card0 ]; then
-            # Legacy/fbdev path: bundled GPU userspace is expected.
-            _need_lib_gpu=1
-            rm -f "$_flag_ok" 2>/dev/null || true
-            touch "$_flag_ko" 2>/dev/null || true
-        else
-            # DRM/KMS path: CE22 may expose /dev/dri/card0 but still not ship
-            # libgbm.so.1 in the rootfs. Probe once and cache the result.
-            if find /usr/lib /lib -name 'libgbm.so.1' -type f 2>/dev/null | grep -q .; then
-                _need_lib_gpu=0
-                rm -f "$_flag_ko" 2>/dev/null || true
-                touch "$_flag_ok" 2>/dev/null || true
-            else
-                _need_lib_gpu=1
-                rm -f "$_flag_ok" 2>/dev/null || true
-                touch "$_flag_ko" 2>/dev/null || true
-            fi
-        fi
-    fi
-
-    if [ "$_need_lib_gpu" = "1" ] && [ -d "$APPDIR/lib-gpu" ]; then
-        _path="$_path:$APPDIR/lib-gpu"
-    fi
-
-    echo "$_path"
-}
-
-# compat dir: host libcec symlink so cec-mini-kb uses the platform-specific
-# CEC adapter (e.g. Amlogic AOCEC) instead of the Lakka-built version.
+# compat dir: host library aliases so bundled tools/binaries use the
+# platform-specific ABI-compatible libraries when needed.
 _compat="/tmp/.appimage_syslibs_script.retroarch.launcher"
 mkdir -p "$_compat"
+
+_resolve_host_egl_provider() {
+    _egl="$(readlink -f /usr/lib/libEGL.so 2>/dev/null || true)"
+    if [ -z "$_egl" ]; then
+        _egl="$(readlink -f /usr/lib/libEGL.so.1 2>/dev/null || true)"
+    fi
+    [ -n "$_egl" ] && echo "$_egl"
+}
+
+_library_exports_gbm_create_device() {
+    _lib="$1"
+    [ -f "$_lib" ] || return 1
+
+    HOST_EGL="$_lib" python3 - <<'PYEOF' >/dev/null 2>&1
+import os
+import ctypes
+import sys
+
+lib = os.environ.get("HOST_EGL", "")
+if not lib:
+    sys.exit(1)
+
+try:
+    handle = ctypes.CDLL(lib)
+    getattr(handle, "gbm_create_device")
+except Exception:
+    sys.exit(1)
+
+sys.exit(0)
+PYEOF
+}
+
+_setup_libgbm_alias() {
+    _alias_dir="$_compat"
+
+    _host_egl="$(_resolve_host_egl_provider)"
+    if [ -n "$_host_egl" ] && _library_exports_gbm_create_device "$_host_egl"; then
+        ln -sf "$_host_egl" "$_alias_dir/libgbm.so.1"
+        ln -sf "$_host_egl" "$_alias_dir/libgbm.so"
+        echo "$_alias_dir"
+        return 0
+    fi
+
+    if [ -f "$APPDIR/lib/libgbm.so.1" ]; then
+        ln -sf "$APPDIR/lib/libgbm.so.1" "$_alias_dir/libgbm.so.1"
+        ln -sf "$APPDIR/lib/libgbm.so.1" "$_alias_dir/libgbm.so"
+        echo "$_alias_dir"
+        return 0
+    fi
+
+    return 1
+}
+
+_appimage_lib_path() {
+    _alias_dir="$(_setup_libgbm_alias 2>/dev/null || true)"
+
+    unset GBM_BACKENDS_PATH
+    unset GBM_BACKEND
+    unset MESA_LOADER_DRIVER_OVERRIDE
+
+    if [ -n "$_alias_dir" ]; then
+        echo "$_alias_dir:/usr/lib:$APPDIR/lib"
+    else
+        echo "/usr/lib:$APPDIR/lib"
+    fi
+}
+
+# host libcec symlink so cec-mini-kb uses the platform-specific
+# CEC adapter (e.g. Amlogic AOCEC) instead of the Lakka-built version.
 _sys_libcec=$(find /usr/lib /lib -name "libcec.so.*" 2>/dev/null \
     | grep -E "libcec\.so\.[0-9]" | sort -V | tail -1)
 if [ -n "$_sys_libcec" ]; then

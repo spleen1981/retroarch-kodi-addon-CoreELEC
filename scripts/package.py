@@ -87,10 +87,6 @@ def move_artifacts(staging: Path, addon_dir: Path) -> None:
 _LIB_ALLOWED_SUBDIRS: frozenset[str] = frozenset({"libretro"})
 
 
-# libs whose SONAME stem matches these prefixes must go to lib-gpu/
-# instead of lib/. They are loaded conditionally by AppRun only on
-# framebuffer-only platforms (no /dev/dri/card0).
-_GPU_LIB_PREFIXES: tuple[str, ...] = ("libgbm",)
 
 # Libs that must never be bundled — they are either kernel-tied (GPU
 # userspace driver) or always present on the host (glibc family).
@@ -108,7 +104,7 @@ _HOST_ONLY_LIBS: frozenset[str] = frozenset({
     "libGLESv2", "libGLESv1_CM",
     "libGLdispatch", "libOpenGL",
     "libGLX",
-    # libdrm — kept on system for DRM platforms; FB-only gets it via lib-gpu
+    # libdrm — kernel/userspace-tied, keep host-provided.
     "libdrm",
 })
 
@@ -142,37 +138,6 @@ def clean_lib(addon_dir: Path) -> None:
     log.info("package: lib/ cleaned")
 
 
-# ============================================================ collect_gpu_libs
-
-
-def collect_gpu_libs(addon_dir: Path) -> None:
-    """Move GPU-fallback libs from lib/ to lib-gpu/.
-
-    lib-gpu/ is added to LD_LIBRARY_PATH by AppRun only on framebuffer-only
-    platforms (no /dev/dri/card0). This lets DRM platforms use their system
-    libgbm (which matches the running Mali kernel driver) while still
-    satisfying the link-time dependency on FB-only systems where the lib is
-    absent.
-    """
-    lib_dir = addon_dir / "lib"
-    lib_gpu_dir = addon_dir / "lib-gpu"
-
-    candidates = [
-        e for e in lib_dir.iterdir()
-        if (e.is_file() or e.is_symlink())
-        and any(e.name.startswith(pfx) for pfx in _GPU_LIB_PREFIXES)
-    ]
-    if not candidates:
-        log.info("package: no GPU-fallback libs found in lib/")
-        return
-
-    lib_gpu_dir.mkdir(exist_ok=True)
-    for entry in candidates:
-        dst = lib_gpu_dir / entry.name
-        shutil.move(str(entry), str(dst))
-        log.info("package: %s -> lib-gpu/", entry.name)
-
-
 # ============================================================== collect_deps ==
 
 
@@ -182,8 +147,7 @@ def collect_deps(addon_dir: Path, lakka_build_dir: Path,
 
     Uses `readelf -d` (cross-aware: pass the full toolchain readelf path via
     `readelf`) to read DT_NEEDED entries. Walks transitively. Skips libs
-    already present in lib/ or lib-gpu/, host-only libs, and GPU libs
-    (those belong to the system on DRM platforms).
+    already present in lib/ and host-only libs.
 
     `lakka_build_dir` is the per-device Lakka build root, e.g.
     `Lakka-LibreELEC/build.Lakka-AMLGX.aarch64`. Libraries are resolved from
@@ -197,15 +161,12 @@ def collect_deps(addon_dir: Path, lakka_build_dir: Path,
             Per-package install trees produced by the Lakka build.
     """
     lib_dir = addon_dir / "lib"
-    lib_gpu_dir = addon_dir / "lib-gpu"
-
     # Build a quick lookup of what is already bundled.
     def _bundled() -> set[str]:
         bundled: set[str] = set()
-        for d in (lib_dir, lib_gpu_dir):
-            if d.is_dir():
-                bundled.update(e.name for e in d.iterdir()
-                               if e.is_file() or e.is_symlink())
+        if lib_dir.is_dir():
+            bundled.update(e.name for e in lib_dir.iterdir()
+                           if e.is_file() or e.is_symlink())
         return bundled
 
     # 1) toolchain/lib/ — base target sysroot libs.
@@ -272,7 +233,7 @@ def collect_deps(addon_dir: Path, lakka_build_dir: Path,
     # Seed the queue with all ELF files under bin/ and lib/ (including cores).
     queue: list[Path] = []
     for search_root in (addon_dir / "bin", lib_dir,
-                        lib_dir / "libretro", lib_gpu_dir):
+                        lib_dir / "libretro"):
         if search_root.is_dir():
             queue.extend(
                 e for e in search_root.rglob("*")
@@ -299,13 +260,10 @@ def collect_deps(addon_dir: Path, lakka_build_dir: Path,
                 log.warning("collect_deps: %s not found in Lakka build", soname)
                 continue
 
-            # GPU-fallback libs go to lib-gpu/, everything else to lib/.
-            dst_dir = (lib_gpu_dir if any(soname.startswith(pfx)
-                                          for pfx in _GPU_LIB_PREFIXES)
-                       else lib_dir)
+            dst_dir = lib_dir
             dst_dir.mkdir(exist_ok=True)
             shutil.copy2(src, dst_dir / soname)
-            log.info("collect_deps: added %s -> %s/", soname, dst_dir.name)
+            log.info("collect_deps: added %s -> lib/", soname)
             queue.append(dst_dir / soname)  # walk transitivo
 
 
@@ -484,14 +442,13 @@ def stage_appimage(addon_dir: Path, appimage_dir: Path,
     After this step:
       appimage_dir/bin/retroarch    the main binary
       appimage_dir/lib/             all shared libs
-      appimage_dir/lib-gpu/         GPU-fallback libs (libgbm)
       appimage_dir/AppRun           rendered entry point (from output/AppRun.in)
 
     addon_dir/bin/ retains only the standalone tools (cec-mini-kb, etc.).
-    addon_dir/lib/ and addon_dir/lib-gpu/ are removed (moved to AppImage).
+    addon_dir/lib/ is removed (moved to AppImage).
     """
     appimage_dir.mkdir(parents=True, exist_ok=True)
-    for sub in ("bin", "lib", "lib-gpu"):
+    for sub in ("bin", "lib"):
         (appimage_dir / sub).mkdir(exist_ok=True)
 
     # Move entire bin/ into AppImage — all compiled binaries (retroarch,
@@ -508,8 +465,8 @@ def stage_appimage(addon_dir: Path, appimage_dir: Path,
     else:
         log.warning("stage_appimage: bin/ not found in addon_dir")
 
-    # Move entire lib/ and lib-gpu/ into AppImage.
-    for subdir in ("lib", "lib-gpu"):
+    # Move entire lib/ into AppImage.
+    for subdir in ("lib",):
         src = addon_dir / subdir
         dst = appimage_dir / subdir
         if src.is_dir():
