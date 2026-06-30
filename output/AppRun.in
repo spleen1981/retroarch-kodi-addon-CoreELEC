@@ -21,6 +21,12 @@
 APPDIR="$(dirname "$(readlink -f "$0")")"
 export APPDIR
 
+if [ -z "${XDG_RUNTIME_DIR:-}" ]; then
+    export XDG_RUNTIME_DIR="/tmp/runtime-root"
+    mkdir -p "$XDG_RUNTIME_DIR" 2>/dev/null || true
+    chmod 700 "$XDG_RUNTIME_DIR" 2>/dev/null || true
+fi
+
 # Short-circuit: --sync-only runs ra_sync and exits without launching RA.
 # Used by kodi_entry to do the heavy resource merge while Kodi UI is still
 # up (DialogProgressBG reads progress from /tmp/ra_sync_progress). On the
