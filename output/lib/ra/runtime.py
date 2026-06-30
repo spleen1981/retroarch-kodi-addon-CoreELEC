@@ -13,7 +13,7 @@ from typing import Optional, Sequence
 
 from . import paths, system
 from .ra_config import RetroArchConfig
-from .settings import AddonSettings, LOG_VERBOSE
+from .settings import AddonSettings, LOG_ERROR, LOG_OFF, LOG_VERBOSE
 
 log = logging.getLogger(__name__)
 
@@ -133,10 +133,13 @@ class RetroArchRuntime:
         # env vars so AppRun can configure the tools at launch time.
         args = [str(self._appimage), f"--config={paths.RA_CONFIG_FILE}"]
         if self.settings.log_level == LOG_VERBOSE:
-           args.insert(1, "--verbose")
+            args.insert(1, "--verbose")
         args.extend(self.extra_args)
+
         log.info("exec: %s", " ".join(args))
+
         env = os.environ.copy()
+
         # FUSERMOUNT: needed for mount AND unmount of the AppImage squashfs.
         # Without it, the runtime can't find fusermount on exit → FUSE cleanup
         # hangs → system freezes after retroarch exits.
@@ -144,22 +147,82 @@ class RetroArchRuntime:
             fm = system.resolve_fusermount()
             if fm:
                 env["FUSERMOUNT"] = fm
+
         # CEC and xbox360 settings: read by AppRun to start/stop tools.
         from . import cec
         env.update(cec.appimage_env(self.settings))
         if self.settings.xbox360_shutdown:
             env["RA_XBOX360_SHUTDOWN"] = "1"
+
         # Single source of truth for the shutdown-flag path: AppRun checks it
         # to switch the TV off (SIGUSR1 to cec-mini-kb) when the user picks
         # "shutdown" inside RetroArch.
         env["RA_SHUTDOWN_FLAG"] = str(paths.SHUTDOWN_FLAG)
+
+        return self._run_appimage_process(args, env)
+
+    def _run_appimage_process(self, args: Sequence[str], env: dict[str, str]) -> int:
+        """Run AppImage/RetroArch while applying the addon log policy.
+
+        stdout/stderr are always forwarded to this process stdout so systemd's
+        journal keeps the full live trace.
+
+        The persistent retroarch.log follows the addon setting:
+          OFF     -> do not write RetroArch process output to file
+          ERROR   -> write warning/error/fatal/traceback lines only
+          VERBOSE -> write the full RetroArch process output
+        """
+        for handler in logging.getLogger().handlers:
+            handler.flush()
+
+        log_fp = None
+        if self.settings.log_level != LOG_OFF:
+            paths.LOG_DIR.mkdir(parents=True, exist_ok=True)
+            log_fp = paths.LOG_FILE.open("a", encoding="utf-8")
+
+        try:
+            proc = subprocess.Popen(
+                args,
+                env=env,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                bufsize=1,
+                errors="replace",
+            )
+
+            assert proc.stdout is not None
+            for line in proc.stdout:
+                # Keep journalctl complete.
+                sys.stdout.write(line)
+                sys.stdout.flush()
+
+                if log_fp is not None and self._should_log_process_line(line):
+                    log_fp.write(line)
+                    log_fp.flush()
+
+            return proc.wait()
+        finally:
+            if log_fp is not None:
+                log_fp.close()
+
+    def _should_log_process_line(self, line: str) -> bool:
+        """Return whether an AppImage/RetroArch output line goes to file."""
         if self.settings.log_level == LOG_VERBOSE:
-            return subprocess.call(args, env=env)
-        # Combine AppImage/RA stdout/stderr into the shared log file.
-        for h in logging.getLogger().handlers:
-            h.flush()
-        with open(paths.LOG_FILE, "a", encoding="utf-8") as fp:
-            return subprocess.call(args, env=env, stdout=fp, stderr=subprocess.STDOUT)
+            return True
+        if self.settings.log_level != LOG_ERROR:
+            return False
+
+        text = line.lower()
+        return (
+            "[error]" in text
+            or "[fatal]" in text
+            or "[warn]" in text
+            or "error:" in text
+            or "warning" in text
+            or "traceback" in text
+            or "exception" in text
+        )
 
     # ----------------------------------------------------- filesystem prep
 
@@ -284,11 +347,12 @@ def _configure_root_logging(settings: AddonSettings) -> None:
 
 
 def _enable_file_logging(log_level: int) -> None:
-    """Attach a FileHandler so Python and RetroArch share one log file.
+    """Attach a FileHandler for Python-side runtime logs.
 
     The retroarch.log file has been prepared by _adopt_boot_log_or_clear
     (either freshly empty after rotation, or seeded with the shim's trace
-    from retroarch_boot.log). Append mode preserves whichever was set up.
+    from retroarch_boot.log). RetroArch/AppImage stdout/stderr is appended
+    separately by _run_appimage_process() according to the same log policy.
     """
     from .settings import LOG_VERBOSE
     handler_level = logging.DEBUG if log_level == LOG_VERBOSE else logging.WARNING
