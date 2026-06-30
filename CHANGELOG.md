@@ -1,22 +1,24 @@
 v2.0.0
  - Major: new platform-independent add-on, single universal ZIP (updates breaking change, manual update needed)
+ - Build pipeline fully rewritten in Python
  - RetroArch + bin tools + resources now ships as a separated per-platform AppImage, downloaded on first launch and stored in userdata, so it survives add-on self-updates
+ - Manual AppImage update by dropping the file in /storage/downloads or /storage/.update
  - Supporting libs bundled into AppImage to avoid conflicts
+ - Added support for new GBM mali blobs
+ - Legacy support for old framebuffer mali blobs
  - All DLC packages are now bundled by default
+ - Migrated to Lakka v6.1 build system
  - Independent auto-update flow covers both the add-on ZIP and the AppImage
- - Manual AppImage update by dropping the file in /storage/downloads
  - Boot-to-RetroArch redesigned
  - New unified three-level logging (Off / Errors only / Verbose)
  - CEC + controller shutdown lifecycle moved into AppRun
  - Audio driver sync now supports PipeWire
+ - Update RetroArch and cores to latest
  - CIFS roms mount uses a credentials file with mode 0600 instead of passing credentials on argv
  - Refresh-rate override: no-op when the display is already at the requested rate (avoids spurious HDMI renegotiation on Amlogic TVs)
  - Settings UI: Information category displays add-on version, detected platform and active RetroArch package with size; manual refresh action
- - Build pipeline fully rewritten in Python
  - Addon source fully migrated to Python
  - i18n source-of-truth migrated to scripts/langdata.py
- - Migrated to Lakka v6.1 build system
- - Update RetroArch and cores to latest
 
 v1.7.5
  - Update Retroarch to 1.21.0
