@@ -688,7 +688,20 @@ def main(argv: Sequence[str] | None = None) -> int:
             last_work_dir = cfg.work_dir
             try:
                 build_retroarch_seed_config(cfg)
-                assemble_addon(cfg)
+                zip_path, zip_sha = assemble_addon(cfg)
+
+                # addon-only builds produce only the universal addon ZIP.
+                # Still emit updates-v2-current.xml with the addon hash and
+                # no AppImage artifacts, so maintainers can refresh addon
+                # metadata without running a full per-platform AppImage build.
+                package.emit_updates_current(
+                    REPO_ROOT / "updates-v2-current.xml",
+                    addon_id=ADDON_ID,
+                    addon_version=args.addon_version,
+                    addon_zip=zip_path,
+                    addon_sha256=zip_sha,
+                    artifacts=[],
+                )
             except subprocess.CalledProcessError as exc:
                 log.error("addon-only retroarch build failed: %s", exc)
                 return 1
