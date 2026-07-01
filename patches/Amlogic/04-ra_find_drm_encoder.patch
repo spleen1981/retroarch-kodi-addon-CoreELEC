@@ -1,0 +1,109 @@
+diff --git a/packages/lakka/retroarch_base/retroarch/patches/retroarch-1006-fix_drm_missing_encoder.patch b/packages/lakka/retroarch_base/retroarch/patches/retroarch-1006-fix_drm_missing_encoder.patch
+new file mode 100644
+index 0000000000..21a3411f22
+--- /dev/null
++++ b/packages/lakka/retroarch_base/retroarch/patches/retroarch-1006-fix_drm_missing_encoder.patch
+@@ -0,0 +1,103 @@
++diff --git a/gfx/common/drm_common.c b/gfx/common/drm_common.c
++index 10fb38835f..1c85bda97a 100644
++--- a/gfx/common/drm_common.c
+++++ b/gfx/common/drm_common.c
++@@ -142,18 +142,42 @@ bool drm_get_encoder(int fd)
++ {
++    unsigned i;
++ 
++-   for (i = 0; (int)i < g_drm_resources->count_encoders; i++)
+++   if (g_drm_connector->encoder_id)
++    {
++-      g_drm_encoder = drmModeGetEncoder(fd, g_drm_resources->encoders[i]);
+++      for (i = 0; (int)i < g_drm_resources->count_encoders; i++)
+++      {
+++         g_drm_encoder = drmModeGetEncoder(fd, g_drm_resources->encoders[i]);
++ 
++-      if (!g_drm_encoder)
++-         continue;
+++         if (!g_drm_encoder)
+++            continue;
++ 
++-      if (g_drm_encoder->encoder_id == g_drm_connector->encoder_id)
++-         break;
+++         if (g_drm_encoder->encoder_id == g_drm_connector->encoder_id)
+++            break;
++ 
++-      drmModeFreeEncoder(g_drm_encoder);
++-      g_drm_encoder = NULL;
+++         drmModeFreeEncoder(g_drm_encoder);
+++         g_drm_encoder = NULL;
+++      }
+++   }
+++
+++   /* Some Amlogic/CoreELEC boot paths expose a connected HDMI connector
+++    * with connector.encoder_id == 0 while connector.encoders[] contains
+++    * valid possible encoders. Fall back to the connector's possible encoder
+++    * list instead of failing immediately.
+++    */
+++   if (!g_drm_encoder)
+++   {
+++      for (i = 0; (int)i < g_drm_connector->count_encoders; i++)
+++      {
+++         g_drm_encoder = drmModeGetEncoder(fd, g_drm_connector->encoders[i]);
+++
+++         if (!g_drm_encoder)
+++            continue;
+++
+++         RARCH_LOG("[DRM] Using possible encoder %u for connector %u.\n",
+++               g_drm_encoder->encoder_id,
+++               g_drm_connector->connector_id);
+++         break;
+++      }
++    }
++ 
++    if (!g_drm_encoder)
++@@ -175,13 +199,43 @@ bool drm_get_encoder(int fd)
++    return true;
++ }
++ 
+++static uint32_t drm_pick_crtc_for_encoder(void)
+++{
+++   unsigned i;
+++
+++   if (!g_drm_encoder || !g_drm_resources)
+++      return 0;
+++
+++   if (g_drm_encoder->crtc_id)
+++      return g_drm_encoder->crtc_id;
+++
+++   for (i = 0; (int)i < g_drm_resources->count_crtcs; i++)
+++   {
+++      if (g_drm_encoder->possible_crtcs & (1u << i))
+++      {
+++         RARCH_LOG("[DRM] Encoder %u has no active CRTC, using possible CRTC %u.\n",
+++               g_drm_encoder->encoder_id,
+++               g_drm_resources->crtcs[i]);
+++         return g_drm_resources->crtcs[i];
+++      }
+++   }
+++
+++   return 0;
+++}
+++
++ void drm_setup(int fd)
++ {
++-   g_crtc_id        = g_drm_encoder->crtc_id;
+++   g_crtc_id        = drm_pick_crtc_for_encoder();
++    g_connector_id   = g_drm_connector->connector_id;
++-   g_orig_crtc      = drmModeGetCrtc(fd, g_crtc_id);
++-   if (!g_orig_crtc)
++-      RARCH_WARN("[DRM] Cannot find original CRTC.\n");
+++
+++   if (!g_crtc_id)
+++      RARCH_WARN("[DRM] Cannot find suitable CRTC.\n");
+++   else
+++   {
+++      g_orig_crtc   = drmModeGetCrtc(fd, g_crtc_id);
+++      if (!g_orig_crtc)
+++         RARCH_WARN("[DRM] Cannot find original CRTC.\n");
+++   }
++ }
++ 
++ float drm_get_refresh_rate(void *data)
