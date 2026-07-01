@@ -26,6 +26,7 @@ class RetroArchRuntime:
         self.extra_args = list(extra_args)
         self._stack = contextlib.ExitStack()
         self._appimage: Optional[Path] = None  # resolved in run()
+        self._boot_path = False
 
     # ------------------------------------------------------------------ run
 
@@ -45,6 +46,7 @@ class RetroArchRuntime:
                 self._prepare_filesystem()
                 self._maybe_first_run()
                 cfg = RetroArchConfig.load(paths.RA_CONFIG_FILE)
+                self._boot_path = not system.kodi_active()
                 self._enter_subsystems(cfg)
                 cfg.save()
                 self._prepare_display_for_retroarch()
@@ -128,30 +130,48 @@ class RetroArchRuntime:
         return result.returncode
 
     def _prepare_display_for_retroarch(self) -> None:
-        """Release boot display state before launching RetroArch."""
+        """Release boot display state before launching RetroArch.
+
+        On CoreELEC CE22 boot-to-RetroArch, the HDMI connector can be
+        connected while connector.encoder_id is still 0. Running a short
+        modeset with the current display mode binds the encoder before
+        RetroArch/KMS initializes.
+
+        This is intentionally limited to the boot path. Normal Kodi -> RA
+        launches already get a clean display handoff from Kodi shutdown.
+
+        This is a no-op on framebuffer-only systems: modetest and/or
+        /dev/dri/card0 are absent there.
+        """
+        if not self._boot_path:
+            log.debug("display prep: regular Kodi launch path, skipping premodeset")
+            return
+
         log.info("preparing display for RetroArch")
 
-        # Stop possible CoreELEC boot splash owner.
+        # Stop possible CoreELEC boot splash owner. No sleep here: if
+        # splash-image already exited, this is instant; if it did not, KILL
+        # follows immediately and the final short settle covers DRM cleanup.
         self._display_prep_cmd(
             "splash-stop",
             "systemctl stop splash-image 2>/dev/null || true; "
             "pgrep splash-image | xargs -r kill -TERM 2>/dev/null || true; "
-            "sleep 1; "
             "pgrep splash-image | xargs -r kill -KILL 2>/dev/null || true"
         )
 
         # Amlogic/CE22 KMS bootstrap:
         # - current mode comes from CoreELEC display sysfs
-        # - connected connector id comes from modetest
+        # - connected connector id comes from compact modetest parsing
         # If any part is unavailable, skip without failing the launch.
         self._display_prep_cmd(
             "premodeset",
             "if command -v modetest >/dev/null 2>&1 && [ -e /dev/dri/card0 ]; then "
             "mode=$(cat /sys/class/display/mode 2>/dev/null); "
-            "conn=$(modetest -M meson -c 2>/dev/null | awk '$3 == \"connected\" {print $1; exit}'); "
+            "conn=$(modetest -M meson -c 2>/dev/null | "
+            "awk '$3 == \"connected\" {print $1; exit}'); "
             "if [ -n \"$mode\" ] && [ -n \"$conn\" ]; then "
             "echo \"connector=$conn mode=$mode\"; "
-            "modetest -M meson -s \"$conn:$mode\" < /dev/null; "
+            "modetest -M meson -s \"$conn:$mode\" < /dev/null >/dev/null 2>&1; "
             "echo rc=$?; "
             "else "
             "echo \"skip: connector=$conn mode=$mode\"; "
@@ -162,7 +182,7 @@ class RetroArchRuntime:
         )
 
         import time
-        time.sleep(1.0)
+        time.sleep(0.1)
 
 
     # ----------------------------------------------------------- retroarch
