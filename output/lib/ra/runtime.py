@@ -129,29 +129,36 @@ class RetroArchRuntime:
             log.debug("display prep %s: rc=%s", label, result.returncode)
         return result.returncode
 
+    def _force_premodeset_enabled(self) -> bool:
+        """Return true when the target-side premodeset fallback is enabled.
+
+        This is intentionally a runtime flag so the workaround can be enabled
+        on affected targets without rebuilding the add-on.
+        """
+        flag = getattr(paths, "ADDON_HOME", None)
+        if flag is None:
+            flag = Path("/storage/.kodi/userdata/addon_data/script.retroarch.launcher")
+        return (flag / "force_premodeset").exists()
+
     def _prepare_display_for_retroarch(self) -> None:
         """Release boot display state before launching RetroArch.
 
-        On CoreELEC CE22 boot-to-RetroArch, the HDMI connector can be
-        connected while connector.encoder_id is still 0. Running a short
-        modeset with the current display mode binds the encoder before
-        RetroArch/KMS initializes.
+        Older CoreELEC/LibreELEC variants may have used a userspace
+        splash-image helper. CE22 does not ship it, so these commands are
+        normally no-ops there, but keeping them preserves compatibility.
 
-        This is intentionally limited to the boot path. Normal Kodi -> RA
-        launches already get a clean display handoff from Kodi shutdown.
-
-        This is a no-op on framebuffer-only systems: modetest and/or
-        /dev/dri/card0 are absent there.
+        The former CE22 boot workaround, a modetest premodeset, is now only a
+        fallback. RetroArch handles connectors with encoder_id == 0 directly
+        through the DRM possible-encoder fallback patch.
         """
         if not self._boot_path:
-            log.debug("display prep: regular Kodi launch path, skipping premodeset")
+            log.debug("display prep: regular Kodi launch path, skipping")
             return
 
         log.info("preparing display for RetroArch")
 
-        # Stop possible CoreELEC boot splash owner. No sleep here: if
-        # splash-image already exited, this is instant; if it did not, KILL
-        # follows immediately and the final short settle covers DRM cleanup.
+        # Compatibility with older CoreELEC/LibreELEC variants that may have
+        # used a userspace splash-image helper. CE22 has no such binary/service.
         self._display_prep_cmd(
             "splash-stop",
             "systemctl stop splash-image 2>/dev/null || true; "
@@ -159,12 +166,18 @@ class RetroArchRuntime:
             "pgrep splash-image | xargs -r kill -KILL 2>/dev/null || true"
         )
 
-        # Amlogic/CE22 KMS bootstrap:
-        # - current mode comes from CoreELEC display sysfs
-        # - connected connector id comes from compact modetest parsing
-        # If any part is unavailable, skip without failing the launch.
+        if not self._force_premodeset_enabled():
+            log.debug("display prep: premodeset fallback disabled")
+            return
+
+        # Fallback only:
+        # If a target still fails to bind a DRM encoder before RetroArch starts,
+        # create addon_data/script.retroarch.launcher/force_premodeset.
+        #
+        # No hardcoded connector id: current mode comes from CoreELEC sysfs,
+        # connected connector id comes from compact modetest parsing.
         self._display_prep_cmd(
-            "premodeset",
+            "premodeset-fallback",
             "if command -v modetest >/dev/null 2>&1 && [ -e /dev/dri/card0 ]; then "
             "mode=$(cat /sys/class/display/mode 2>/dev/null); "
             "conn=$(modetest -M meson -c 2>/dev/null | "
