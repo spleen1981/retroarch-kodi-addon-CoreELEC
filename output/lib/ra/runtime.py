@@ -47,6 +47,7 @@ class RetroArchRuntime:
                 cfg = RetroArchConfig.load(paths.RA_CONFIG_FILE)
                 self._enter_subsystems(cfg)
                 cfg.save()
+                self._prepare_display_for_retroarch()
                 rc = self._exec_retroarch()
         finally:
             self._handle_power_action()
@@ -105,6 +106,64 @@ class RetroArchRuntime:
 
         if self.settings.bt_shutdown:
             self._stack.callback(self._cycle_bluetooth)
+
+    # ----------------------------------------------------------- display prep
+
+    def _display_prep_cmd(self, label: str, cmd: str) -> int:
+        """Run a small display-prep shell command and log compact output."""
+        result = subprocess.run(
+            cmd,
+            shell=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            errors="replace",
+        )
+        out = (result.stdout or "").strip()
+        if out:
+            for line in out.splitlines():
+                log.info("display prep %s: %s", label, line)
+        else:
+            log.debug("display prep %s: rc=%s", label, result.returncode)
+        return result.returncode
+
+    def _prepare_display_for_retroarch(self) -> None:
+        """Release boot display state before launching RetroArch."""
+        log.info("preparing display for RetroArch")
+
+        # Stop possible CoreELEC boot splash owner.
+        self._display_prep_cmd(
+            "splash-stop",
+            "systemctl stop splash-image 2>/dev/null || true; "
+            "pgrep splash-image | xargs -r kill -TERM 2>/dev/null || true; "
+            "sleep 1; "
+            "pgrep splash-image | xargs -r kill -KILL 2>/dev/null || true"
+        )
+
+        # Amlogic/CE22 KMS bootstrap:
+        # - current mode comes from CoreELEC display sysfs
+        # - connected connector id comes from modetest
+        # If any part is unavailable, skip without failing the launch.
+        self._display_prep_cmd(
+            "premodeset",
+            "if command -v modetest >/dev/null 2>&1 && [ -e /dev/dri/card0 ]; then "
+            "mode=$(cat /sys/class/display/mode 2>/dev/null); "
+            "conn=$(modetest -M meson -c 2>/dev/null | awk '$3 == \"connected\" {print $1; exit}'); "
+            "if [ -n \"$mode\" ] && [ -n \"$conn\" ]; then "
+            "echo \"connector=$conn mode=$mode\"; "
+            "modetest -M meson -s \"$conn:$mode\" < /dev/null; "
+            "echo rc=$?; "
+            "else "
+            "echo \"skip: connector=$conn mode=$mode\"; "
+            "fi; "
+            "else "
+            "echo \"skip: modetest or /dev/dri/card0 unavailable\"; "
+            "fi"
+        )
+
+        import time
+        time.sleep(1.0)
+
 
     # ----------------------------------------------------------- retroarch
 
