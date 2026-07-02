@@ -93,14 +93,15 @@ _ENTRIES: tuple[Entry, ...] = (
         "de_de": "RetroArch Addon für Kodi (${RA_NAME_SUFFIX}). RetroArch ist ein Frontend für Emulatoren, Game-Engines und Mediaplayer.",
     }),
     Entry(1, "Addon Description", {
-        "en_gb": "The add-on provides binary, cores and basic settings to launch RetroArch from Kodi UI, plus additional features to improve user experience. It is built from Lakka sources.",
-        "es_es": "El complemento proporciona binarios, núcleos y configuraciones básicas para lanzar RetroArch desde la interfaz de Kodi, además de características adicionales para mejorar la experiencia del usuario. Está construido a partir de las fuentes de Lakka.",
-        "cs_cz": "Doplněk poskytuje jádra a základní nastavení pro spuštění RetroArch z uživatelského rozhraní Kodi a navíc další funkce pro zlepšení uživatelského zážitku. Je postaven ze zdrojů Lakka.",
-        "it_it": "Questa add-on include i binari, i core e i settaggi di base per eseguire RetroArch dalla UI di Kodi, più funzionalità aggiuntive per migliorare l'esperienza utente. È costruito dai sorgenti di Lakka.",
-        "sk_sk": "Doplnok poskytuje jadrá a základné nastavenia pre spustenie RetroArch z rozhrania Kodi a dodatočné funkcie pre zlepšenie používateľského zážitku. Je postavený na zdrojoch Lakka.",
-        "zh_cn": "此附加组件从 Lakka 源码直接构建，同时提供了二进制，内核，从 Kodi UI 启动 RetroArch 的基本设置，以及改善用户体验的附加功能。",
-        "pt_br": "O add-on fornece binário, núcleos e configurações básicas para inicializar o RetroArch a partir da UI (Interface do Usuário) do Kodi, além de recursos adicionais para melhorar a experiência do usuário. Ele é construído a partir das fontes do Lakka.",
-        "de_de": "Das Addon bietet Binärdateien, Kerne und Grundeinstellungen zum Starten von RetroArch über die Kodi-Benutzeroberfläche sowie zusätzliche Funktionen zur Verbesserung der Benutzerfreundlichkeit. Es basiert auf Lakka.",
+        "en_gb": "Integrates RetroArch with Kodi on CoreELEC. Automatically downloads and updates the appropriate RetroArch runtime, supports boot-to-RetroArch, and provides additional tools and configuration features for a seamless user experience.",
+        "de_de": "Integriert RetroArch in Kodi auf CoreELEC. Lädt automatisch die passende RetroArch-Laufzeitumgebung herunter, hält sie aktuell, unterstützt Boot-to-RetroArch und bietet zusätzliche Werkzeuge sowie Konfigurationsfunktionen für eine nahtlose Benutzererfahrung.",
+        "es_es": "Integra RetroArch con Kodi en CoreELEC. Descarga y actualiza automáticamente el entorno de ejecución adecuado de RetroArch, admite el arranque directo en RetroArch y proporciona herramientas y opciones de configuración adicionales para una experiencia de usuario fluida.",
+        "fr_fr": "Intègre RetroArch à Kodi sur CoreELEC. Télécharge et met automatiquement à jour l’environnement d’exécution RetroArch approprié, prend en charge le démarrage direct vers RetroArch et fournit des outils et options de configuration supplémentaires pour une expérience utilisateur fluide.",
+        "it_it": "Integra RetroArch con Kodi su CoreELEC. Scarica e aggiorna automaticamente il runtime RetroArch appropriato, supporta l’avvio diretto in RetroArch e offre strumenti e funzionalità di configurazione aggiuntivi per un’esperienza utente senza interruzioni.",
+        "pl_pl": "Integruje RetroArch z Kodi w systemie CoreELEC. Automatycznie pobiera i aktualizuje odpowiednie środowisko uruchomieniowe RetroArch, obsługuje uruchamianie bezpośrednio do RetroArch oraz udostępnia dodatkowe narzędzia i opcje konfiguracji zapewniające płynną obsługę.",
+        "pt_br": "Integra o RetroArch ao Kodi no CoreELEC. Faz o download e atualiza automaticamente o ambiente de execução apropriado do RetroArch, oferece suporte ao boot direto para o RetroArch e fornece ferramentas e recursos de configuração adicionais para uma experiência de uso integrada.",
+        "ru_ru": "Интегрирует RetroArch с Kodi в CoreELEC. Автоматически загружает и обновляет подходящую среду выполнения RetroArch, поддерживает прямую загрузку в RetroArch и предоставляет дополнительные инструменты и возможности настройки для удобной работы.",
+        "zh_cn": "将 RetroArch 与 CoreELEC 上的 Kodi 集成。自动下载并更新合适的 RetroArch 运行环境，支持直接启动到 RetroArch，并提供额外的工具和配置功能，以获得更流畅的使用体验。"
     }),
     Entry(2, "Addon Disclaimer", {
         "en_gb": "This is an unofficial add-on. Use github.com/spleen1981/retroarch-kodi-addon-CoreELEC to submit issues.",
