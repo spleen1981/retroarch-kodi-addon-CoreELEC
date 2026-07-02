@@ -902,19 +902,52 @@ def customize_retroarch_cfg(addon_dir: Path) -> None:
     cfg = RetroArchConfig.load(cfg_path)
 
     user_cfg = "/storage/.config/retroarch"
-    res_base = f"/storage/.kodi/addons/{_ADDON_ID}/resources"
-    cores = f"/storage/.kodi/addons/{_ADDON_ID}/lib/libretro"
 
-    # User-writable subdirs (live under ~/.config/retroarch).
+    # V2 runtime model:
+    #   - the thin Kodi addon contains only Kodi-side files;
+    #   - RetroArch resources are shipped inside the AppImage;
+    #   - ra_sync copies/merges those resources into ~/.config/retroarch before
+    #     launching RetroArch.
+    #
+    # Therefore the generated default retroarch.cfg must point to the runtime
+    # resource tree under /storage/.config/retroarch, not to the addon install
+    # directory and not to Lakka's temporary /tmp paths.
+    res_base = user_cfg
+
+    # User-writable subdirs.
     for sub in _USER_CFG_DIRS:
         cfg.redirect_path_suffix(sub, f"{user_cfg}/{sub}")
-    # Read-only resources shipped inside the addon.
+
+    # Runtime resource subdirs populated by ra_sync.
     for sub in _RES_DIRS:
         cfg.redirect_path_suffix(sub, f"{res_base}/{sub}")
-    # `retroarch-assets` is the Lakka name; we land it as `assets`.
+
+    # `retroarch-assets` is the Lakka source name; V2 runtime path is assets/.
     cfg.redirect_path_suffix("retroarch-assets", f"{res_base}/assets")
-    # Cores live under `lib/libretro/` inside the addon (no `/cores` suffix).
-    cfg.redirect_path_suffix("cores", cores)
+
+    # Explicit path fixes for Lakka-generated absolute paths that do not match
+    # the suffix-based redirects above.
+    explicit_paths = {
+        "assets_directory":        f"{res_base}/assets",
+        "audio_filter_dir":        f"{res_base}/audio_filters",
+        "video_filter_dir":        f"{res_base}/video_filters",
+        "joypad_autoconfig_dir":   f"{res_base}/joypads",
+        "system_directory":        f"{res_base}/system",
+        "overlay_directory":       f"{res_base}/overlays",
+        "video_shader_dir":        f"{res_base}/shaders",
+        "content_database_path":   f"{res_base}/database/rdb",
+        "cheat_database_path":     f"{res_base}/database/chts",
+        "video_font_path":         f"{res_base}/assets/xmb/monochrome/font.ttf",
+        "osk_overlay_directory":   f"{res_base}/overlays/keyboards",
+    }
+    for key, value in explicit_paths.items():
+        cfg.set(key, value)
+
+    # Cores are inside the AppImage. AppRun also enforces these paths at
+    # runtime to the mounted AppImage lib/libretro directory, but keep the
+    # default cfg deterministic and not addon-dir based.
+    cfg.set("libretro_directory", f"{user_cfg}/cores")
+    cfg.set("libretro_info_path", f"{user_cfg}/cores")
 
     for key, value in _PINNED_VALUES.items():
         cfg.set(key, value)
