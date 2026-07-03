@@ -53,7 +53,7 @@ The v2 add-on has a new, platform-independent id, so Kodi treats it as a new +ad
 
    1. Download the v2 ZIP from the [releases page](https://github.com/spleen1981/retroarch-kodi-addon-CoreELEC/releases).
    2. In Kodi: *Add-ons → Install from zip file* → pick the v2 ZIP.
-   3. On first launch, accept the RetroArch package download or or upload the package manually.
+   3. On first launch, accept the RetroArch package download or upload the package manually.
 
 Your games (`/storage/roms`) and RetroArch configuration (`/storage/.config/retroarch`) are preserved — they are not tied to the add-on id. Only the add-on's own options need to be set again.
 
