@@ -169,7 +169,19 @@ elif [ "${RA_CEC:-0}" = "1" ]; then
 fi
 
 # Run retroarch (not via exec so this shell stays alive for cleanup).
-"$APPDIR/bin/retroarch" "$@"
+# Development override: if a test RetroArch binary is present in addon_data,
+# use it instead of the embedded AppImage binary. This allows rapid RA testing
+# without rebuilding the AppImage.
+_addon_home="${ADDON_HOME:-${HOME:-/storage}/.kodi/userdata/addon_data/script.retroarch.launcher}"
+_debug_retroarch="$_addon_home/test/retroarch"
+_retroarch_bin="$APPDIR/bin/retroarch"
+
+if [ -x "$_debug_retroarch" ]; then
+    echo "AppImage: using debug RetroArch binary: $_debug_retroarch"
+    _retroarch_bin="$_debug_retroarch"
+fi
+
+"$_retroarch_bin" "$@"
 _rc=$?
 
 # Stop cec-mini-kb. SIGTERM is sufficient: it causes a clean exit without

@@ -5,7 +5,7 @@ package-level patch into Lakka, builds only the `retroarch` package, and
 scp's the resulting binary onto a test device. This is the loop you want
 when debugging a one-line RA change without rebuilding the whole addon.
 
-    python -m scripts.test.ra_debug --target Amlogic-any.arm
+    python -m scripts.test.ra_debug --device Amlogic-any.arm
 
 Credentials and the RetroArch source path come from `scripts/test/local.py`
 (see `local.py.example`).
@@ -23,7 +23,7 @@ from typing import Sequence
 
 from .. import lakka
 from ..build import (DEFAULT_LAKKA_VERSION, PKG_SUBDIRS, REPO_ROOT,
-                     BuildConfig, _TARGETS)
+                     BuildConfig, _DEVICES)
 
 log = logging.getLogger(__name__)
 
@@ -91,7 +91,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Iterative RetroArch build+deploy loop.",
     )
-    parser.add_argument("--target", choices=sorted(_TARGETS.keys()), required=True)
+    parser.add_argument("--device", choices=sorted(_DEVICES.keys()), required=True)
     parser.add_argument("--lakka-dir", default=str(REPO_ROOT / "Lakka-LibreELEC"))
     parser.add_argument("--lakka-version", default=DEFAULT_LAKKA_VERSION)
     parser.add_argument("--ra-src",
@@ -106,7 +106,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     sshpass = _check_sshpass()
 
     cfg = BuildConfig(
-        target=args.target,
+        device=args.device,
         addon_version="debug",
         lakka_dir=Path(args.lakka_dir).resolve(),
         lakka_version=args.lakka_version,
@@ -131,7 +131,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     cfg.build_dir.mkdir(parents=True, exist_ok=True)
 
     try:
-        with lakka.patched(cfg.lakka_dir, REPO_ROOT, cfg.target, profile.project,
+        with lakka.patched(cfg.lakka_dir, REPO_ROOT, profile.source_device, profile.project,
                            profile.arch, cfg.lakka_version):
             _export_debug_patch(ra_src, debug_patch)
             try:
@@ -155,7 +155,24 @@ def main(argv: Sequence[str] | None = None) -> int:
             log.error("built retroarch binary not found at %s", retroarch_bin)
             return 1
 
-        remote_path = (f"/storage/.kodi/addons/{cfg.addon_name}/bin/")
+        remote_dir = (
+            "/storage/.kodi/userdata/"
+            "addon_data/script.retroarch.launcher/"
+            "test"
+        )
+        remote_path = f"{remote_dir}/retroarch"
+
+        mkdir_cmd = [
+            sshpass, "-p", local.REMOTE_PASSWORD,  # type: ignore[attr-defined]
+            "ssh",
+            "-o", "StrictHostKeyChecking=no",
+            "-o", "UserKnownHostsFile=/dev/null",
+            "-q",
+            f"{local.REMOTE_USER}@{local.REMOTE_IP}",  # type: ignore[attr-defined]
+            f"mkdir -p {remote_dir}",
+        ]
+        subprocess.run(mkdir_cmd, check=True)
+
         log.info("scp %s -> %s@%s:%s", retroarch_bin.name,
                  local.REMOTE_USER, local.REMOTE_IP, remote_path)  # type: ignore[attr-defined]
         try:
@@ -166,7 +183,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         except subprocess.CalledProcessError:
             fallback = Path.cwd() / "retroarch"
             shutil.copy2(retroarch_bin, fallback)
-            log.warning("scp failed -- copied to %s for manual upload", fallback)
+            log.warning("scp failed -- copied to %s for manual upload to addon_data/test/retroarch", fallback)
             return 1
 
         log.info("done")

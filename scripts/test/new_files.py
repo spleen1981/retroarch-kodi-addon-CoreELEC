@@ -4,7 +4,7 @@ Equivalent of the legacy `scripts/test/new_files_test.sh`. Skips the heavy
 Lakka build entirely; produces a `tmp_test_files/<addon_name>/` tree you
 can inspect.
 
-    python -m scripts.test.new_files --target Amlogic-any.arm
+    python -m scripts.test.new_files --device Amlogic-any.arm
 """
 
 from __future__ import annotations
@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Sequence
 
 from .. import package
-from ..build import BuildConfig, OUTPUT_DIR, REPO_ROOT, _TARGETS
+from ..build import BuildConfig, OUTPUT_DIR, REPO_ROOT, _DEVICES
 
 log = logging.getLogger(__name__)
 
@@ -26,9 +26,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Generate the addon's text files into a tmp dir for inspection.",
     )
-    parser.add_argument("--target", choices=sorted(_TARGETS.keys()), required=True)
+    parser.add_argument("--device", choices=sorted(_DEVICES.keys()), required=True)
     parser.add_argument("--version", dest="addon_version", default="test")
-    parser.add_argument("--include-dlc", action="store_true")
     parser.add_argument("--out", default=str(REPO_ROOT / "tmp_test_files"),
                         help="Output directory (wiped on each run).")
     args = parser.parse_args(argv)
@@ -41,13 +40,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     out_dir.mkdir(parents=True)
 
     cfg = BuildConfig(
-        target=args.target,
+        device=args.device,
         addon_version=args.addon_version,
-        include_dlc=args.include_dlc,
         work_dir=out_dir,
     )
 
-    # v2: the addon is universal (no per-target suffix). These text-only steps
+    # v2: the addon is universal (no per-device suffix). These text-only steps
     # don't need the Lakka staging — just create the dir and emit into it.
     cfg.addon_dir.mkdir(parents=True, exist_ok=True)
     package.install_committed_source(OUTPUT_DIR, cfg.addon_dir)

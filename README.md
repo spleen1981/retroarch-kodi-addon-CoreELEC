@@ -28,6 +28,7 @@ The platform-specific RetroArch binary, cores and shared libraries ship as a sel
    - **Compatibility:** the add-on declares a minimum AppImage version it can run. If the installed package is too old, the add-on offers to delete it and download the matching one. AppImages whose target is not one of the host's candidates are ignored. The add-on keeps a single active build per box (older/duplicate ones are pruned after a download or import).
    - **Online Updater:** RetroArch's built-in Online Updater is intentionally disabled. Cores, assets, overlays, shaders, databases and system files are distributed through the AppImage package and add-on update mechanism instead, ensuring a consistent and reproducible installation.
    - **Runtime:** the AppImage uses the fuse2 runtime and needs `libfuse.so.2` on the host (present on CoreELEC). It mounts via the kernel FUSE module; CEC and controller-shutdown helpers run from inside the same mount.
+   - **Debug override:** if `/storage/.kodi/userdata/addon_data/script.retroarch.launcher/test/retroarch` exists and is executable, the AppImage launches that binary instead of the embedded RetroArch executable. This is intended for development and testing only.
 
 ## Updates
 
@@ -179,6 +180,20 @@ For a one-line RA change you don't want to rebuild the whole add-on for, the `sc
 ```bash
 cp scripts/test/local.py.example scripts/test/local.py    # fill in REMOTE_IP / USER / PASSWORD
 python3 -m scripts.test.ra_debug --device Amlogic-any.arm
+```
+
+The helper copies the rebuilt RetroArch binary to:
+
+```text
+/storage/.kodi/userdata/addon_data/script.retroarch.launcher/test/retroarch
+```
+
+When this file is present and executable, the AppImage automatically uses it instead of the embedded RetroArch executable. This allows rapid testing of RetroArch changes without rebuilding the AppImage.
+
+To return to the bundled RetroArch version:
+
+```bash
+rm /storage/.kodi/userdata/addon_data/script.retroarch.launcher/test/retroarch
 ```
 
 Requires `sshpass` on `$PATH`. The RetroArch source dir defaults to `../RetroArch` relative to the repo root, override with `--ra-src` or by setting `RETROARCH_SRC_DIR` in `local.py`.
