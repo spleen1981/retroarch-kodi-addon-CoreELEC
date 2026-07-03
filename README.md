@@ -12,10 +12,10 @@ Resulting builds have been tested on CoreELEC versions from 19 to 22 both for ar
    - Download the latest `script.retroarch.launcher-<version>.zip` from the [releases page](https://github.com/spleen1981/retroarch-kodi-addon-CoreELEC/releases) and install following [Kodi instructions](https://kodi.wiki/view/Add-on_manager#How_to_install_from_a_ZIP_file). The add-on includes an internal online updater and can be updated from within Kodi.
    - The add-on will be shown in the "Game" group. Customize the settings as needed and launch RetroArch.
    - **First launch downloads the RetroArch package (AppImage).** The add-on detects your platform (from `/etc/os-release` `COREELEC_ARCH`) and, if the matching RetroArch package is not already present, prompts to download it. A progress bar is shown; the file is verified (SHA-256) and stored in userdata. If you decline, you return to Kodi with a "package missing" notice and can download it later from the add-on.
-   - The package includes RetroArch, cores, themes, overlays, shaders and the libretro database — everything needed for full RetroArch operation out of the box. No additional online downloads are required after installation.
+   - The package includes RetroArch, cores, assets, themes, overlays, shaders, databases and default system files required for normal operation — everything needed for full RetroArch operation out of the box. No additional online downloads are required after installation.
    - If you are new to RetroArch refer to [their documentation](https://docs.libretro.com/start/understanding/) for all how-to-use and how-to-setup info.
 
-Core list included by default is the same as [Lakka](https://github.com/libretro/Lakka-LibreELEC/blob/a0f1b57bb36fa1feb50ff006ca7b46c1b7b7cb45/distributions/Lakka/options#L176-L296).
+The default core set is based on [Lakka](https://github.com/libretro/Lakka-LibreELEC/blob/a0f1b57bb36fa1feb50ff006ca7b46c1b7b7cb45/distributions/Lakka/options#L176-L296), with a small number of project-specific additions, removals and fallback cores defined in `scripts/build.py`.
 
 ## The RetroArch package (AppImage)
 
@@ -26,14 +26,21 @@ The platform-specific RetroArch binary, cores and shared libraries ship as a sel
    - **Matching is device-opportunistic with a family-wide fallback.** From `COREELEC_ARCH` (`Amlogic-ng.arm`) the host builds its candidate list `[Amlogic-ng.arm, Amlogic-any.arm]` — it prefers an AppImage tagged with its exact `<device>.<arch>`, otherwise falls back to `Amlogic-any.<arch>`. So an `Amlogic-ne` box (candidates `[Amlogic-ne.arm, Amlogic-any.arm]`) runs the `Amlogic-any.arm` build fine even though no `Amlogic-ne`-specific build exists. The generic is family-scoped (never a bare arch), so it can't be picked up by a different SoC.
    - **Manual install (easy):** download the AppImage asset for your family/arch from the releases page and copy it — over Samba is fine — into **`/storage/.update`** (the *Update* network share) or **`/storage/downloads`**. On the next launch the add-on imports it automatically: a host-matching build is moved into the AppImage folder and a toast confirms how many were imported; any `retroarch-*.AppImage` for a different family/arch sitting there is removed, with a second toast counting the rejected ones. You don't need to find the deep userdata path. (You can also drop the file straight into the AppImage folder above if you prefer.) Only `retroarch-*.AppImage` files are touched — OS update tarballs in `/storage/.update` are left alone.
    - **Compatibility:** the add-on declares a minimum AppImage version it can run. If the installed package is too old, the add-on offers to delete it and download the matching one. AppImages whose target is not one of the host's candidates are ignored. The add-on keeps a single active build per box (older/duplicate ones are pruned after a download or import).
+   - **Online Updater:** RetroArch's built-in Online Updater is intentionally disabled. Cores, assets, overlays, shaders, databases and system files are distributed through the AppImage package and add-on update mechanism instead, ensuring a consistent and reproducible installation.
    - **Runtime:** the AppImage uses the fuse2 runtime and needs `libfuse.so.2` on the host (present on CoreELEC). It mounts via the kernel FUSE module; CEC and controller-shutdown helpers run from inside the same mount.
 
 ## Updates
 
-A single **Auto-update** setting (and the manual **Check for updates** action) covers both streams, because each release ships the add-on ZIP and the AppImage together:
+A single **Auto-update** setting (and the manual **Check for updates** action) covers both update streams. Add-on ZIP and RetroArch AppImage releases may be published together or independently; the updater handles each stream separately:
 
    1. The add-on ZIP is checked first. If newer, it is installed and Kodi restarts; the freshly-installed add-on then continues.
    2. The RetroArch package (AppImage) is checked next: a missing or too-old one is always handled, and when checking, a newer compatible one is offered. Download shows a progress bar and ends with a "package updated" notification.
+
+## Versioning
+
+Add-on and AppImage versions are tracked independently.
+
+A newer add-on release may continue using an older compatible AppImage release, and a newer AppImage release may require only a minimum compatible add-on version. Compatibility is enforced through the update manifest (`updates.xml`) using the `requires_appimage` and `requires_addon` version checks.
 
 ## Settings/features
    - Boot the system to RetroArch instead of Kodi.
@@ -106,19 +113,23 @@ The build produces, into `build/`:
    - **one AppImage per build target** — `retroarch-<target>-<version>.AppImage`, where `<target>` is the target token (e.g. `Amlogic-any.arm`, `Amlogic-any.aarch64`) (release assets, downloaded by the add-on at runtime);
    - **`updates-v2-current.xml`** in the repo root — a build artifact with the real SHA-256 hashes of everything produced and **empty policy placeholders** (`min_ver=""`, `requires_* min=""`). Copy the fresh hashes from here into the committed, hand-curated `updates.xml`. **Add `updates-v2-current.xml` to `.gitignore`** — it is regenerated every build and is not source.
 
-Without `--target`, every target's AppImage is built, then the single universal
-ZIP is assembled once (its arch-neutral `resources/` come from the first target
-built). Pass `--target` (repeatable) to restrict the build:
+Without `--device`, every supported device profile is built, then the single universal
+ZIP is assembled once (its arch-neutral `resources/` come from the first device
+built). Pass `--device` (repeatable) to restrict the build:
 
 ```bash
-python3 -m scripts.build --version v2.0.0 --target Amlogic-any.arm
-python3 -m scripts.build --version v2.0.0 --target Amlogic-any.arm --target Amlogic-any.aarch64
+python3 -m scripts.build --version v2.0.0 --device Amlogic-any.arm
+
+python3 -m scripts.build \
+  --version v2.0.0 \
+  --device Amlogic-any.arm \
+  --device Amlogic-any.aarch64
 ```
 
-Supported targets (the `_TARGETS` keys in `scripts/build.py`). The key is the
-token baked into the AppImage filename / manifest `platform` attribute:
+Supported devices (the `_DEVICES` keys in `scripts/build.py`). The key is the
+token baked into the AppImage filename and manifest `platform` attribute:
 
-| target (`--target`)   | Lakka project | arch    |
+| device (`--device`)   | Lakka project | arch    |
 |-----------------------|---------------|---------|
 | `Amlogic-any.arm`     | Amlogic       | arm     |
 | `Amlogic-any.aarch64` | Amlogic       | aarch64 |
@@ -128,8 +139,8 @@ a host (e.g. `Amlogic-ne.arm`) prefers an AppImage tagged with its exact
 `<device>.<arch>`, else falls back to the family-wide `Amlogic-any.<arch>` —
 see [The RetroArch package](#the-retroarch-package-appimage). To publish a
 device-specific build (preferred only by that exact device), add a new
-`_TARGETS` entry keyed `'<device>.<arch>'` (e.g. `'Amlogic-ng.arm'`) and build
-it like any other target.
+`_DEVICES` entry keyed `'<device>.<arch>'` (e.g. `'Amlogic-ng.arm'`) and build
+it like any other device profile.
 
 Useful flags:
 
@@ -143,7 +154,7 @@ Useful flags:
    - `--keep-work` — keep the `retroarch_work/` staging dir after a
      successful build (default: removed).
 
-Default cores per target, plus the add/remove modifiers, are declared per-target in `_TARGETS` (fields `cores_add`, `cores_remove`, `cores_fallback`) in `scripts/build.py`. Edit that mapping to customize the core list.
+Default cores per device profile, plus the add/remove modifiers, are declared in `_DEVICES` (fields `cores_add`, `cores_remove`, `cores_fallback`) in `scripts/build.py`. Edit that mapping to customize the core list.
 
 The AppImage uses the fuse2 AppImageKit runtime (release 13), downloaded automatically by the build; it needs `libfuse.so.2` at runtime on the target, which CoreELEC provides. The fuse3 `type2-runtime` is intentionally **not** used: it requires `fusermount3`, which CoreELEC does not ship, causing the AppImage to fail to unmount cleanly.
 
@@ -167,16 +178,16 @@ For a one-line RA change you don't want to rebuild the whole add-on for, the `sc
 
 ```bash
 cp scripts/test/local.py.example scripts/test/local.py    # fill in REMOTE_IP / USER / PASSWORD
-python3 -m scripts.test.ra_debug --target Amlogic-any.arm
+python3 -m scripts.test.ra_debug --device Amlogic-any.arm
 ```
 
 Requires `sshpass` on `$PATH`. The RetroArch source dir defaults to `../RetroArch` relative to the repo root, override with `--ra-src` or by setting `RETROARCH_SRC_DIR` in `local.py`.
 
 Two other helpers under `scripts/test/`:
-   - `python3 -m scripts.test.new_files --target Amlogic-any.arm` — generates the
+   - `python3 -m scripts.test.new_files --device Amlogic-any.arm` — generates the
      add-on's text files (manifest, source tree, language PO files, settings)
      into `tmp_test_files/` for inspection. Skips the Lakka build entirely.
-   - `python3 -m scripts.test.apply_patches --target Amlogic-any.arm [--revert]` —
+   - `python3 -m scripts.test.apply_patches --device Amlogic-any.arm [--revert]` —
      applies (or reverts) the project's Lakka patches without building.
 
 ## Adding new translations
