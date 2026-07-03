@@ -231,11 +231,3 @@ Entry(32001, "#32001", {
 ```
 
 Missing translations fall back to `en_gb` at render time, so a partial language is fine to merge.
-
-AppImage build targets are selected directly via `--device`:
-
-- `--device Amlogic-any.arm` builds the ARM AppImage using the Lakka `Amlogic-ng` patch/profile and the Lakka `AMLGX` device.
-- `--device Amlogic-any.aarch64` builds the AArch64 AppImage using the Lakka `Amlogic-no` patch/profile and the Lakka `AMLGX` device.
-
-When `--device` is omitted, both targets are built. There is no manual AppImage target override.
-
