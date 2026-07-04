@@ -33,6 +33,10 @@ REQUIRED_VALUES: dict[str, str] = {
     # it can trigger broken driver/core reinit paths. Keep the video driver
     # single-threaded.
     "video_threaded": "false",
+
+    "midi_driver": "null",
+    "core_info_cache_enable": "false",
+    "gamemode_enable": "false",
 }
 
 
