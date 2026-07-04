@@ -867,12 +867,6 @@ _RES_DIRS = (
 )
 
 # Misc retroarch.cfg pinned values.
-#
-# Keep one source of truth with the runtime policy used by the add-on.
-# DEFAULT_VALUES are written to the generated cfg only; REQUIRED_VALUES are
-# also enforced again before every RetroArch launch.
-from ra.runtime import REQUIRED_VALUES as _REQUIRED_VALUES  # type: ignore[import-not-found]
-
 _PINNED_VALUES: dict[str, str] = {
     "all_users_control_menu":         "true",
     "content_show_images":            "false",
@@ -886,7 +880,6 @@ _PINNED_VALUES: dict[str, str] = {
     "xmb_alpha_factor":               "100",
     "video_driver":                   "glcore",
     "audio_driver":                   "openal",
-    **_REQUIRED_VALUES,
 }
 
 
