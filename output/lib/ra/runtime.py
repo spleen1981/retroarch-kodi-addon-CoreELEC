@@ -5,6 +5,7 @@ from __future__ import annotations
 import contextlib
 import logging
 import os
+import re
 import signal
 import subprocess
 import sys
@@ -129,6 +130,51 @@ class RetroArchRuntime:
 
     # ---------------------------------------------------- runtime policy
 
+    def _current_display_mode(self) -> str:
+        """Return the current CoreELEC display mode from sysfs, if available."""
+        try:
+            return Path("/sys/class/display/mode").read_text(
+                encoding="utf-8",
+                errors="replace",
+            ).strip()
+        except OSError:
+            return ""
+
+    @staticmethod
+    def _display_mode_exceeds_1080p(mode: str) -> bool:
+        """Return true when a CoreELEC display mode is above 1080p.
+
+        Handles common CoreELEC mode names:
+          2160p60hz           -> true
+          3840x2160p60hz      -> true
+          4096x2160p60hz      -> true
+          1440p60hz           -> true
+          2560x1440p60hz      -> true
+          smpte60hz           -> true, 4096x2160 class
+          1080p60hz           -> false
+          1920x1080p120hz     -> false
+          720p60hz            -> false
+        """
+        lower = mode.strip().lower()
+        if not lower:
+            return False
+
+        # CoreELEC uses smpte* for 4096x2160 modes.
+        if lower.startswith("smpte"):
+            return True
+
+        # Match both "2160p60hz" and "3840x2160p60hz".
+        match = re.search(r"(?:(\d+)x)?(\d+)p", lower)
+        if not match:
+            return False
+
+        try:
+            height = int(match.group(2))
+        except ValueError:
+            return False
+
+        return height > 1080
+
     def _enforce_runtime_config(self, cfg: RetroArchConfig) -> None:
         """Enforce runtime-critical RetroArch options before every launch.
 
@@ -146,6 +192,27 @@ class RetroArchRuntime:
                     current,
                 )
                 cfg.set(key, value)
+
+        # Workaround for KMS/Mali devices where 4K framebuffer recreation can
+        # fail with a 0x0 FB and crash RetroArch. Only apply when the current
+        # CoreELEC display mode is above 1080p.
+        mode = self._current_display_mode()
+        if self._display_mode_exceeds_1080p(mode):
+            for key, value in {
+                "video_fullscreen_x": "1920",
+                "video_fullscreen_y": "1080",
+            }.items():
+                current = cfg.get(key)
+                if current != value:
+                    log.info(
+                        "runtime config: limiting fullscreen to 1920x1080 "
+                        "because display mode is %s; enforcing %s=%s (was %s)",
+                        mode,
+                        key,
+                        value,
+                        current,
+                    )
+                    cfg.set(key, value)
 
     # ----------------------------------------------------------- display prep
 
