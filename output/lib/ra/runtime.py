@@ -27,6 +27,11 @@ REQUIRED_VALUES: dict[str, str] = {
     # CoreELEC CE22 does not provide connmanctl; RetroArch falls back to nmcli,
     # which may also be absent. Avoid noisy startup errors.
     "wifi_driver": "null",
+
+    # KMS/GL on CoreELEC is not stable with RetroArch's threaded video wrapper:
+    # it can trigger broken driver/core reinit paths. Keep the video driver
+    # single-threaded.
+    "video_threaded": "false",
 }
 
 
