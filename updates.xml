@@ -11,9 +11,9 @@
   </latest>
   <!-- v2 addon stream: platform-independent addon ZIP. -->
   <addon id="script.retroarch.launcher" distro="coreelec">
-    <version>v2.0.0</version>
-    <download_url>https://github.com/spleen1981/retroarch-kodi-addon-CoreELEC/releases/download/v2.0.0/script.retroarch.launcher-v2.0.0.zip</download_url>
-    <sha256>c1cd3877964d9719f36dff62b312969210b9a3ff813c42de23b95461eae6c040</sha256>
+    <version>v2.0.1</version>
+    <download_url>https://github.com/spleen1981/retroarch-kodi-addon-CoreELEC/releases/download/v2.0.1/script.retroarch.launcher-v2.0.1.zip</download_url>
+    <sha256>b63a953d0c6476a79d0e26929c4e5f4bedf2505161e0afe313d4efb990b2ec75</sha256>
     <requires_appimage min="2.0.0"/>
   </addon>
   <appimage platform="Amlogic-any.aarch64" distro="coreelec" min_ver="">
