@@ -1,3 +1,10 @@
+v2.0.1
+ [add-on only]
+ - fix crash for resolutions higher than 1080p
+ - fix sound init error resulting in mute
+ - disable video_threading option causing retroarch boot loop
+ - disable unneeded ra settings to reduce log noise
+
 v2.0.0
  - Major: new platform-independent add-on, single universal ZIP (updates breaking change, manual update needed)
  - Build pipeline fully rewritten in Python
