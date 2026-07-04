@@ -18,6 +18,18 @@ from .settings import AddonSettings, LOG_ERROR, LOG_OFF, LOG_VERBOSE
 log = logging.getLogger(__name__)
 
 
+REQUIRED_VALUES: dict[str, str] = {
+    # CoreELEC/KMS refresh switching can trigger a second audio initialization
+    # on content load and leave ALSA busy. Keep disabled unless the RA-side
+    # reinit path is fixed.
+    "video_autoswitch_refresh_rate": "3",
+
+    # CoreELEC CE22 does not provide connmanctl; RetroArch falls back to nmcli,
+    # which may also be absent. Avoid noisy startup errors.
+    "wifi_driver": "null",
+}
+
+
 class RetroArchRuntime:
     """Owns the lifecycle of a single retroarch process invocation."""
 
@@ -48,6 +60,7 @@ class RetroArchRuntime:
                 cfg = RetroArchConfig.load(paths.RA_CONFIG_FILE)
                 self._boot_path = not system.kodi_active()
                 self._enter_subsystems(cfg)
+                self._enforce_runtime_config(cfg)
                 cfg.save()
                 self._prepare_display_for_retroarch()
                 rc = self._exec_retroarch()
@@ -108,6 +121,26 @@ class RetroArchRuntime:
 
         if self.settings.bt_shutdown:
             self._stack.callback(self._cycle_bluetooth)
+
+    # ---------------------------------------------------- runtime policy
+
+    def _enforce_runtime_config(self, cfg: RetroArchConfig) -> None:
+        """Enforce runtime-critical RetroArch options before every launch.
+
+        These values are not just defaults. They protect the CoreELEC runtime
+        environment from known-bad settings, so they are restored on each
+        launch even if changed from RetroArch UI.
+        """
+        for key, value in REQUIRED_VALUES.items():
+            current = cfg.get(key)
+            if current != value:
+                log.info(
+                    "runtime config: enforcing %s=%s (was %s)",
+                    key,
+                    value,
+                    current,
+                )
+                cfg.set(key, value)
 
     # ----------------------------------------------------------- display prep
 
