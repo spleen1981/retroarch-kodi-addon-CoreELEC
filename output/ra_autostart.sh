@@ -9,7 +9,7 @@ oe_setup_addon "script.retroarch.launcher"
 PYTHONPATH="$ADDON_DIR/lib${PYTHONPATH:+:$PYTHONPATH}"
 export PYTHONPATH
 
-# HARDENED: resolve paths in pure shell so recovery never depends on python.
+# resolve paths in pure shell so recovery never depends on python.
 AUTOSTART="${HOME:-/storage}/.config/autostart.sh"
 SHIM_LOG="${ADDON_HOME:-${HOME:-/storage}/.kodi/userdata/addon_data/script.retroarch.launcher}/logs/retroarch_boot.log"
 
@@ -20,7 +20,7 @@ shim_log() {
 	echo "$(date '+%F %T') $*" >> "$SHIM_LOG" 2>/dev/null
 }
 
-# HARDENED: remove our boot line WITHOUT python. Deletes the file if only
+# remove our boot line WITHOUT python. Deletes the file if only
 # comments/blank lines remain. This is the loop-proof escape hatch.
 disable_autostart() {
 	[ -f "$AUTOSTART" ] || return 0
@@ -30,7 +30,7 @@ disable_autostart() {
 	fi
 }
 
-# HARDENED: fail-safe — disable our line and boot to Kodi. Never reboots.
+# fail-safe — disable our line and boot to Kodi. Never reboots.
 bail_to_kodi() {
 	shim_log "self-heal: $* -> disabling boot line, booting to kodi"
 	disable_autostart
@@ -61,7 +61,7 @@ fi
 # Skip kodi: mask it so kodi.service won't start when this script exits.
 # Recovery: runtime unmasks+starts kodi when RA exits; the defensive unmask
 # above also clears it on the next boot, and bail_to_kodi/SSH always can too.
-systemctl mask kodi 2>/dev/null
+systemctl mask --runtime kodi 2>/dev/null
 
 # Detached launcher so this script can return; RA owns the framebuffer.
 systemd-run -q --collect -u ra-launcher /bin/sh -c "

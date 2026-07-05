@@ -38,21 +38,14 @@ def systemctl(*args: str, check: bool = False) -> int:
 
 
 def is_masked(unit: str) -> bool:
-    """Check if a systemd unit is currently masked."""
-    rc = subprocess.call(
-        ["systemctl", "is-enabled", "--quiet", unit],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-    )
-    # is-enabled returns 1 for masked; verify by parsing the human output.
-    if rc == 0:
-        return False
+    """Check if a systemd unit is currently masked, including runtime masks."""
     result = subprocess.run(
         ["systemctl", "is-enabled", unit],
         capture_output=True,
         text=True,
     )
-    return "masked" in result.stdout.strip().lower()
+    out = f"{result.stdout}\n{result.stderr}".strip().lower()
+    return "masked" in out
 
 
 def kodi_active() -> bool:
@@ -77,8 +70,12 @@ def _wait_for_kodi_exit(timeout_s: float) -> bool:
 
 def _stop_kodi_via_restartapp() -> None:
     """Stop Kodi without triggering a CEC standby broadcast to the TV."""
-    log.info("masking kodi.service to prevent auto-restart")
-    systemctl("mask", "kodi")
+    log.info("masking kodi.service for this boot to prevent auto-restart")
+    rc = systemctl("mask", "--runtime", "kodi")
+    if rc != 0:
+        log.warning(
+            "runtime mask of kodi.service failed; continuing without persistent mask"
+        )
 
     log.info("asking kodi to exit via RestartApp (suppresses CEC standby)")
     rc = subprocess.call(["kodi-send", "--action=RestartApp"])
