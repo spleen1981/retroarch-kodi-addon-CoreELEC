@@ -5,7 +5,7 @@ asset, NOT bundled in the addon ZIP. It lives in userdata (paths.APPIMAGE_DIR)
 so it survives an addon self-update, and the user can drop it there manually.
 
 This module runs in three contexts:
-  - Kodi UI:    dialogs + DialogProgress available (interactive download).
+  - Kodi UI:    dialogs + DialogProgressBG available (background download).
   - Headless:   boot path / `python3 -m ra appimage_ready` — no dialogs, no
                 network; only the offline readiness check.
   - Build host: never imports this module.
@@ -451,18 +451,16 @@ def _notify(dialog, message: str) -> None:
 
 
 class _kodi_progress:
-    """Thin wrapper over xbmcgui.DialogProgress exposing an update_cb."""
+    """Thin wrapper over xbmcgui.DialogProgressBG exposing an update_cb."""
 
     def __init__(self, addon) -> None:
         import xbmcgui  # type: ignore[import-not-found]
-        self._dlg = xbmcgui.DialogProgress()
+        self._dlg = xbmcgui.DialogProgressBG()
         self._dlg.create("RetroArch", "Downloading RetroArch package…")
 
     def update_cb(self, pct: int, msg: str) -> bool:
-        # DialogProgress.iscanceled() returns True once the user cancels.
-        if self._dlg.iscanceled():
-            return False
-        self._dlg.update(pct, msg)
+        # DialogProgressBG is non-modal and has no cancellation API.
+        self._dlg.update(pct, "RetroArch", msg)
         return True
 
     def close(self) -> None:

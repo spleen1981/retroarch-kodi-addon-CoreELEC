@@ -186,16 +186,50 @@ def _run_updater(addon, dialog, manual_update: bool):
         )
         return _UPDATE_NONE
 
+    previous_version = None
+    if manual_update:
+        from . import netutil
+        previous_version = netutil.installed_addon_version()
+        paths.UPDATE_PROGRESS_FILE.unlink(missing_ok=True)
+        paths.UPDATE_PROGRESS_FILE.with_name(
+            paths.UPDATE_PROGRESS_FILE.name + ".tmp"
+        ).unlink(missing_ok=True)
+
+    messages = {
+        "downloading": _localized(addon, 24078),
+        "installing": _localized(addon, 24086),
+        "failed": _localized(addon, 113),
+        "succeeded": _localized(addon, 24065),
+    }
+
+    progress_bar = None
+    progress_cb = None
+
+    if manual_update:
+        # The background progress is the UI for manual updates. Suppress all
+        # stage toasts here; _run_updater() already reports the final failure
+        # with the return code when install_update() fails.
+        messages = {}
+
+        import xbmcgui  # type: ignore[import-not-found]
+        progress_bar = xbmcgui.DialogProgressBG()
+        progress_bar.create(NOTIF_TITLE, _localized(addon, 24078))
+
+        def progress_cb(pct: int, msg: str) -> bool:
+            # Download occupies the first half of the unified progress. The
+            # installer progress is mapped by _refresh_kodi_addon_metadata().
+            mapped = max(0, min(45, int(pct * 0.45)))
+            progress_bar.update(mapped, NOTIF_TITLE, msg)
+            return True
+
     rc = install_update(
         restart=not manual_update,
-        messages={
-            "downloading": _localized(addon, 24078),
-            "installing": _localized(addon, 24086),
-            "failed": _localized(addon, 113),
-            "succeeded": _localized(addon, 24065),
-        },
+        messages=messages,
+        progress=progress_cb,
     )
     if rc != 0:
+        if progress_bar is not None:
+            progress_bar.close()
         dialog.notification(
             NOTIF_TITLE,
             f"{_localized(addon, 113)} ({rc})",
@@ -203,9 +237,129 @@ def _run_updater(addon, dialog, manual_update: bool):
             SHORT_NOTIFICATION_MS,
         )
         return _UPDATE_NONE
+
+    if manual_update:
+        if not _refresh_kodi_addon_metadata(addon, dialog, previous_version, progress_bar):
+            return _UPDATE_NONE
+
     return _UPDATE_INSTALLING
 
 
+
+def _refresh_kodi_addon_metadata(
+    addon,
+    dialog,
+    previous_version: str | None = None,
+    pbar=None,
+) -> bool:
+    """Wait for manual self-update completion and refresh Kodi metadata.
+
+    The installer is detached via systemd-run and publishes a single-line state
+    file at /tmp/ra_update_progress. We follow that state with a background
+    progress dialog and conclude only on a final success/error state.
+    """
+    import time
+    import xbmc  # type: ignore[import-not-found]
+    import xbmcaddon  # type: ignore[import-not-found]
+    import xbmcgui  # type: ignore[import-not-found]
+    from . import netutil
+
+    progress_file = paths.UPDATE_PROGRESS_FILE
+    monitor = xbmc.Monitor()
+    own_pbar = pbar is None
+    if pbar is None:
+        pbar = xbmcgui.DialogProgressBG()
+        pbar.create(NOTIF_TITLE, _localized(addon, 24086))
+    else:
+        pbar.update(45, NOTIF_TITLE, _localized(addon, 24086))
+
+    final_state = ""
+    final_message = ""
+
+    try:
+        deadline = time.monotonic() + 120.0
+        last_line = ""
+
+        while time.monotonic() < deadline and not monitor.abortRequested():
+            try:
+                line = progress_file.read_text(encoding="utf-8").strip()
+            except OSError:
+                line = ""
+
+            if line and line != last_line:
+                last_line = line
+                parts = line.split(maxsplit=1)
+                head = parts[0]
+                msg = parts[1] if len(parts) > 1 else ""
+
+                if head == "error":
+                    final_state = "error"
+                    final_message = msg or _localized(addon, 113)
+                    pbar.update(100, NOTIF_TITLE, final_message)
+                    break
+
+                try:
+                    pct = int(head)
+                except ValueError:
+                    pct = 0
+
+                pct = max(0, min(100, pct))
+                mapped_pct = 45 + int(pct * 0.55)
+                mapped_pct = max(45, min(100, mapped_pct))
+                pbar.update(mapped_pct, NOTIF_TITLE, msg)
+
+                if pct >= 100:
+                    final_state = "success"
+                    final_message = msg
+                    break
+
+            monitor.waitForAbort(0.25)
+
+        if not final_state:
+            final_state = "error"
+            final_message = "Timed out waiting for installer"
+            pbar.update(100, NOTIF_TITLE, final_message)
+    finally:
+        if own_pbar:
+            pbar.close()
+        progress_file.unlink(missing_ok=True)
+        progress_file.with_name(progress_file.name + ".tmp").unlink(missing_ok=True)
+
+    if final_state != "success":
+        if not own_pbar:
+            pbar.close()
+        log.warning("manual update failed or timed out: %s", final_message)
+        dialog.notification(
+            NOTIF_TITLE,
+            f"{_localized(addon, 113)}: {final_message}",
+            str(paths.ICON),
+            SHORT_NOTIFICATION_MS,
+        )
+        return False
+
+    # Optional sanity check: addon.xml should now differ from the old version.
+    if previous_version:
+        current = netutil.installed_addon_version()
+        if current == previous_version:
+            log.warning(
+                "manual update reported success but addon.xml version is still %s",
+                previous_version,
+            )
+
+    if not own_pbar:
+        pbar.close()
+
+    # Update our own Info settings from filesystem state.
+    fresh_addon = xbmcaddon.Addon(id=paths.ADDON_NAME)
+    _update_info_settings(fresh_addon)
+
+    # Ask Kodi to rescan installed addon.xml metadata and refresh visible UI.
+    xbmc.executebuiltin("UpdateLocalAddons")
+    xbmc.executebuiltin("Container.Refresh")
+
+    # Give Kodi's addon manager a short chance to process the async refresh.
+    monitor.waitForAbort(1.0)
+    return True
 
 def _update_info_settings(addon) -> None:
     """Populate the read-only Info settings (shown inline in that category).
@@ -213,8 +367,8 @@ def _update_info_settings(addon) -> None:
     Written whenever the add-on runs, so opening Settings shows the state as of
     the last invocation; the Refresh action repopulates them on demand.
     """
-    from . import appimage
-    addon.setSetting("ra_info_version", addon.getAddonInfo("version"))
+    from . import appimage, netutil
+    addon.setSetting("ra_info_version", netutil.installed_addon_version())
     addon.setSetting("ra_info_platform", paths.PLATFORM or "unknown")
     rows = appimage.installed_summary()
     if not rows:
@@ -262,7 +416,7 @@ def _maybe_presync_resources(addon, dialog) -> None:
     log.info("kodi_entry: pre-sync needed (marker=%r, installed=%r)",
              marker_val, installed_ver)
 
-    progress_file = Path("/tmp/ra_sync_progress")
+    progress_file = paths.SYNC_PROGRESS_FILE
     pbar = xbmcgui.DialogProgressBG()
     pbar.create(NOTIF_TITLE, _localized(addon, 32023))
 
@@ -292,6 +446,7 @@ def _maybe_presync_resources(addon, dialog) -> None:
     finally:
         pbar.close()
         progress_file.unlink(missing_ok=True)
+        progress_file.with_name(progress_file.name + ".tmp").unlink(missing_ok=True)
 
 
 def _read_progress_and_update(progress_file, pbar) -> None:
@@ -338,9 +493,8 @@ def plugin_main(argv: Sequence[str]) -> None:
 
     Order matters: do the work *before* endOfDirectory, because Kodi 22
     can reap the plugin invoker shortly after the directory is closed.
-    Skip the autoupdate flow entirely in plugin mode: it can block on
-    a `yesno` dialog which would freeze the Games window. Manual update
-    checks remain available via RunScript(..., check_updates).
+    Plugin mode is also the normal launch path from Kodi's Games/Programs UI,
+    so it honors the same auto-update setting as script mode.
     """
     import xbmcaddon   # type: ignore[import-not-found]
     import xbmcgui     # type: ignore[import-not-found]
@@ -349,19 +503,38 @@ def plugin_main(argv: Sequence[str]) -> None:
     addon = xbmcaddon.Addon(id=paths.ADDON_NAME)
     dialog = xbmcgui.Dialog()
 
-    # A missing/incompatible RetroArch AppImage is a hard stop, so the yesno +
-    # progress dialog is justified here even though the *autoupdate* flow is
-    # deliberately skipped in plugin mode. If not ready, close the directory so
-    # the Games window doesn't hang, then return without launching.
-    from . import appimage
-    if not appimage.ensure_ready_interactive(addon, dialog, allow_update=False):
-        try:
-            handle = int(argv[1])
-        except (IndexError, ValueError):
-            handle = -1
+    try:
+        handle = int(argv[1])
+    except (IndexError, ValueError):
+        handle = -1
+
+    def close_directory() -> None:
         if handle >= 0:
             xbmcplugin.endOfDirectory(handle, succeeded=True, cacheToDisc=False)
+
+    # Keep Info settings fresh also when launched from Games/Programs.
+    _update_info_settings(addon)
+
+    # Plugin mode is the normal launch path from Kodi's Games/Programs UI, so it
+    # must honor the same auto-update setting as script mode. If an add-on ZIP
+    # update is installed, the installer restarts Kodi and this invocation stops.
+    want_update = addon.getSetting("ra_autoupdate") == "true"
+    if want_update:
+        result = _run_updater(addon, dialog, manual_update=False)
+        if result is _UPDATE_INSTALLING:
+            close_directory()
+            return
+
+    # A missing/incompatible RetroArch AppImage is a hard stop, so the yesno +
+    # progress dialog is justified here. If not ready, close the directory so
+    # the Games window doesn't hang, then return without launching.
+    from . import appimage
+    if not appimage.ensure_ready_interactive(addon, dialog, allow_update=want_update):
+        close_directory()
         return
+
+    # Reflect post-import/-download AppImage state in Info settings.
+    _update_info_settings(addon)
 
     _maybe_presync_resources(addon, dialog)
 
@@ -370,12 +543,7 @@ def plugin_main(argv: Sequence[str]) -> None:
     )
     _launch_retroarch()
 
-    try:
-        handle = int(argv[1])
-    except (IndexError, ValueError):
-        handle = -1
-    if handle >= 0:
-        xbmcplugin.endOfDirectory(handle, succeeded=True, cacheToDisc=False)
+    close_directory()
 
 
 # Re-export so default.py can still import it if a caller prefers AddonSettings.

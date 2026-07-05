@@ -9,11 +9,10 @@ from __future__ import annotations
 
 import hashlib
 import logging
-import shutil
 import urllib.request
 import xml.etree.ElementTree as ET
 from pathlib import Path
-from typing import Optional
+from typing import Callable, Optional
 
 from . import paths
 
@@ -74,17 +73,69 @@ def installed_addon_version() -> str:
     return root.attrib.get("version", "0.0.0")
 
 
-def download_file(url: str, dst: Path, timeout: float = HTTP_TIMEOUT) -> bool:
-    """Stream `url` to `dst`. Returns True on success, False on any OS error."""
+ProgressCb = Callable[[int, str], bool]
+
+
+def download_file(
+    url: str,
+    dst: Path,
+    timeout: float = HTTP_TIMEOUT,
+    progress: ProgressCb | None = None,
+) -> bool:
+    """Stream `url` to `dst`.
+
+    Returns True on success, False on any OS error or user cancellation. The
+    download is written to a .part sidecar first and atomically renamed on
+    success, so partial ZIPs are not left behind as final files.
+    """
     log.info("netutil: downloading %s", url)
+    part = dst.with_name(dst.name + ".part")
+    part.unlink(missing_ok=True)
+
+    def report(done: int, total: int) -> bool:
+        if progress is None:
+            return True
+        if total > 0:
+            pct = min(100, int(done * 100 / total))
+            msg = f"{done / (1 << 20):.0f} / {total / (1 << 20):.0f} MB"
+        else:
+            pct = 0
+            msg = f"{done / (1 << 20):.0f} MB"
+        return progress(pct, msg)
+
     try:
         with urllib.request.urlopen(url, timeout=timeout) as resp, \
-                dst.open("wb") as fh:
-            shutil.copyfileobj(resp, fh)
+                part.open("wb") as fh:
+            total = int(resp.headers.get("Content-Length") or 0)
+            done = 0
+            block = 1 << 16
+
+            if not report(done, total):
+                log.info("netutil: download cancelled before first byte")
+                part.unlink(missing_ok=True)
+                return False
+
+            while True:
+                chunk = resp.read(block)
+                if not chunk:
+                    break
+                fh.write(chunk)
+                done += len(chunk)
+                if not report(done, total):
+                    log.info("netutil: download cancelled")
+                    part.unlink(missing_ok=True)
+                    return False
+
+        if progress is not None:
+            progress(100, "Download complete")
+
+        part.replace(dst)
     except OSError as exc:
         log.warning("netutil: download failed: %s", exc)
+        part.unlink(missing_ok=True)
         dst.unlink(missing_ok=True)
         return False
+
     return True
 
 

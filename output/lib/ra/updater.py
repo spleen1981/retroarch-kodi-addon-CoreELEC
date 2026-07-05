@@ -30,7 +30,7 @@ import urllib.request
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
+from typing import Callable, Optional
 
 from . import netutil, paths
 from .system import run_detached
@@ -41,6 +41,8 @@ REPO_INFO_URL = netutil.REPO_INFO_URL
 _HTTP_TIMEOUT = netutil.HTTP_TIMEOUT
 
 _INSTALLER_UNIT = "ra-update-installer"
+
+ProgressCb = Callable[[int, str], bool]
 
 
 @dataclass
@@ -76,6 +78,7 @@ def check_for_update() -> bool:
 def install_update(
     restart: bool = True,
     messages: dict[str, str] | None = None,
+    progress: ProgressCb | None = None,
 ) -> int:
     """Download the latest release and hand off to the detached installer."""
     notify = _make_notifier(messages)
@@ -88,7 +91,7 @@ def install_update(
 
     notify("downloading")
     zip_path = paths.UPDATE_DOWNLOAD_DIR / "ra_update.zip"
-    if not netutil.download_file(release.url, zip_path):
+    if not netutil.download_file(release.url, zip_path, progress=progress):
         notify("failed")
         return 2
 

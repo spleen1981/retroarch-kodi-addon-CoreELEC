@@ -352,6 +352,8 @@ SHUTDOWN_FLAG: Path = Path("/tmp/ra_exit_shutdown")
 REBOOT_FLAG: Path = Path("/tmp/ra_exit_reboot")
 UPDATER_TMP: Path = Path("/tmp/ra_updater.start")
 UPDATE_DOWNLOAD_DIR: Path = Path("/tmp")
+UPDATE_PROGRESS_FILE: Path = Path("/tmp/ra_update_progress")
+SYNC_PROGRESS_FILE: Path = Path("/tmp/ra_sync_progress")
 
 
 def ensure_runtime_dirs() -> None:

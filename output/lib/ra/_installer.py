@@ -33,8 +33,32 @@ _PARENT_WAIT_SECONDS = 3.0
 # from $HOME (or /storage as a fallback) and the addon dir basename.
 _MARKER_BASENAME = "update_pending"
 
+# Single-line progress file consumed by Kodi UI during manual updates.
+# Format:
+#   10 extracting
+#   60 installing
+#   100 success
+#   error <message>
+_PROGRESS_FILE = Path("/tmp/ra_update_progress")
+_PROGRESS_ENABLED = False
+
+
+def _write_progress(head, message: str = "") -> None:
+    """Atomically publish installer progress for Kodi UI consumers."""
+    if not _PROGRESS_ENABLED:
+        return
+    line = f"{head} {message}".strip()
+    tmp = _PROGRESS_FILE.with_name(_PROGRESS_FILE.name + ".tmp")
+    try:
+        tmp.write_text(line + "\n", encoding="utf-8")
+        os.replace(tmp, _PROGRESS_FILE)
+    except OSError as exc:
+        log.warning("installer: cannot write progress: %s", exc)
+
 
 def main(argv: list[str]) -> int:
+    global _PROGRESS_ENABLED
+
     restart = True
     positional: list[str] = []
     for arg in argv:
@@ -42,6 +66,13 @@ def main(argv: list[str]) -> int:
             restart = False
         else:
             positional.append(arg)
+
+    # Only manual updates use Kodi-side progress consumption. Auto updates
+    # restart Kodi and must not leave a stale /tmp progress file behind.
+    _PROGRESS_ENABLED = not restart
+    if not _PROGRESS_ENABLED:
+        _PROGRESS_FILE.unlink(missing_ok=True)
+        _PROGRESS_FILE.with_name(_PROGRESS_FILE.name + ".tmp").unlink(missing_ok=True)
     if len(positional) != 2:
         log.error("usage: %s <update.zip> <addon-dir> [--no-restart]", sys.argv[0])
         return 2
@@ -50,31 +81,36 @@ def main(argv: list[str]) -> int:
     addon_dir = Path(positional[1])
     if not zip_path.is_file():
         log.error("installer: %s not found", zip_path)
+        _write_progress("error", f"{zip_path} not found")
         return 3
 
-    backup = addon_dir.with_name(addon_dir.name + ".old")
+    # Use only a temporary .tmp_old during the swap, then remove it.
+    backup = addon_dir.with_name(addon_dir.name + ".tmp_old")
     if backup.exists():
-        # A previous update left a backup behind. Refuse to start: we don't
-        # know if it's a successful rollback the user wants to keep, or a
-        # failed install we'd be papering over.
-        log.error(
-            "installer: stale backup at %s; clean it up before re-running",
-            backup,
-        )
-        return 6
+        log.info("installer: removing stale temporary backup %s", backup)
+        shutil.rmtree(backup, ignore_errors=True)
 
+    _write_progress(1, "preparing")
     time.sleep(_PARENT_WAIT_SECONDS)
 
+    _write_progress(5, "staging")
     staging = Path(tempfile.mkdtemp(prefix="ra_update_", dir=str(addon_dir.parent)))
     try:
+        _write_progress(10, "extracting")
         _extract(zip_path, staging)
+
+        _write_progress(35, "validating")
         new_dir = _locate_extracted_root(staging, addon_dir.name)
         if new_dir is None:
             log.error("installer: extracted zip does not contain %s", addon_dir.name)
+            _write_progress("error", f"extracted zip does not contain {addon_dir.name}")
             return 4
+
+        _write_progress(60, "installing")
         _swap(new_dir, addon_dir, backup)
     except Exception as exc:  # noqa: BLE001
         log.exception("installer: failed: %s", exc)
+        _write_progress("error", str(exc))
         shutil.rmtree(staging, ignore_errors=True)
         return 5
     finally:
@@ -85,10 +121,14 @@ def main(argv: list[str]) -> int:
 
     # Drop the marker AFTER the swap so a SIGTERM mid-extract doesn't leave
     # a marker pointing at a half-installed addon.
+    _write_progress(90, "finalizing")
     _write_pending_marker(addon_dir)
 
     if restart:
+        _write_progress(95, "restarting")
         _restart_kodi()
+
+    _write_progress(100, "success")
     return 0
 
 
@@ -115,21 +155,41 @@ def _locate_extracted_root(staging: Path, addon_name: str) -> Path | None:
 
 
 def _swap(new_dir: Path, addon_dir: Path, backup: Path) -> None:
-    """Replace addon_dir with new_dir, leaving the old version at `backup`.
+    """Replace addon_dir with new_dir using a temporary rollback directory.
 
-    The backup is NOT removed here — it survives until the new addon
-    confirms a successful start.
+    `backup` is a transient .tmp_old directory used only during the swap window.
+    If moving the new tree into place fails after the
+    old tree was moved aside, the old tree is restored before re-raising.
     """
+    backup_restored = False
+
+    if backup.exists():
+        shutil.rmtree(backup, ignore_errors=True)
+
     try:
         if addon_dir.exists():
             os.rename(addon_dir, backup)
-        os.rename(new_dir, addon_dir)
+
+        try:
+            os.rename(new_dir, addon_dir)
+        except OSError:
+            if backup.exists() and not addon_dir.exists():
+                os.rename(backup, addon_dir)
+                backup_restored = True
+            raise
+
     except OSError as exc:
         # Cross-device rename or busy file: fall back to a file-by-file copy.
-        log.warning("installer: rename failed (%s); falling back to copy", exc)
-        if addon_dir.exists() and not backup.exists():
-            shutil.copytree(addon_dir, backup, symlinks=True)
+        log.warning("installer: atomic swap failed (%s); falling back to copy", exc)
+
+        if not addon_dir.exists() and backup.exists() and not backup_restored:
+            os.rename(backup, addon_dir)
+
         _replace_tree_in_place(new_dir, addon_dir)
+
+    finally:
+        if backup.exists():
+            shutil.rmtree(backup, ignore_errors=True)
 
 
 def _replace_tree_in_place(src: Path, dst: Path) -> None:
