@@ -317,6 +317,16 @@ _ENTRIES: tuple[Entry, ...] = (
         "pt_br": "Preparando recursos do RetroArch...",
         "de_de": "RetroArch-Ressourcen werden vorbereitet...",
     }),
+    Entry(32024, "#32024", {
+        "en_gb": "Audio / Video",
+        "it_it": "Audio / Video",
+        "es_es": "Audio / Vídeo",
+        "cs_cz": "Audio / Video",
+        "zh_cn": "音频 / 视频",
+        "sk_sk": "Audio / Video",
+        "pt_br": "Áudio / Vídeo",
+        "de_de": "Audio / Video",
+    }),
 
 )
 

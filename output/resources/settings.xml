@@ -23,13 +23,10 @@
         <setting id="ra_cec_remote" label="32003" type="bool" default="true" />
         <setting id="ra_cec_poweroff" label="36029" type="enum" lvalues="13005|36028" default="0" enable="eq(-1,true)" subsetting="true" />
     </category>
-    <category label="157"> <!-- Video -->
-        <setting label="157" type="lsep"/>
+    <category label="32024"> <!-- Audio / Video -->
+        <setting label="32024" type="lsep"/>
         <setting id="ra_force_refresh_rate" label="32004" type="bool" default="true" />
         <setting id="ra_forced_refresh_rate" label="32005" type="enum" values="50Hz (PAL)|60Hz (NTSC)" default="1" enable="eq(-1,true)" subsetting="true" />
-    </category>
-    <category label="292"> <!-- Audio -->
-        <setting label="292" type="lsep"/>
         <setting id="ra_sync_audio_settings" label="32006" type="bool" default="true" />
     </category>
     <category label="573"> <!-- Paths -->
