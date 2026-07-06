@@ -113,8 +113,8 @@ def _restart_kodi_if_wanted(
     restart_on_exit: Optional[Callable[[], bool]],
 ) -> None:
     if is_masked("kodi"):
-        log.info("unmasking kodi")
-        systemctl("unmask", "kodi")
+        log.info("unmasking kodi runtime mask")
+        systemctl("unmask", "--runtime", "kodi")
     if restart_on_exit is not None and not restart_on_exit():
         log.info("not restarting kodi (caller requested skip)")
     else:

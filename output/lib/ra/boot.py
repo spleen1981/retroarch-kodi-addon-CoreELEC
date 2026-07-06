@@ -18,7 +18,7 @@ from typing import Optional
 
 from . import paths
 from .settings import BOOT_TO_KODI, BOOT_TO_RA
-from .system import is_masked, systemctl
+from .system import systemctl
 
 log = logging.getLogger(__name__)
 
@@ -67,8 +67,6 @@ def boot_toggle(target: Optional[str] = None) -> int:
         return 0
     if target == "off":
         _disable(autostart_sh)
-        if _kodi_is_masked():
-            systemctl("unmask", "kodi")
         _write_setting(BOOT_TO_KODI)
         # `check` callers (the autostart shim) need to distinguish "RA is
         # still the desired boot target" from "settings were reset and we
@@ -139,9 +137,6 @@ def _read_lines(path: Path) -> list[str]:
 def _write_lines(path: Path, lines: list[str]) -> None:
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
-
-def _kodi_is_masked() -> bool:
-    return is_masked("kodi")
 
 
 # ----------------------------------------------------- settings.xml r/w --

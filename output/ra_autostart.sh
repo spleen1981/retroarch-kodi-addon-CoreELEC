@@ -34,12 +34,8 @@ disable_autostart() {
 bail_to_kodi() {
 	shim_log "self-heal: $* -> disabling boot line, booting to kodi"
 	disable_autostart
-	systemctl unmask kodi 2>/dev/null
 	exit 0
 }
-
-# Defensive unmask FIRST: if we bail anywhere below, kodi must be able to start.
-systemctl unmask kodi 2>/dev/null
 
 # Reconcile desired state with settings.
 #   rc=0  -> settings still want RetroArch -> proceed
@@ -59,8 +55,7 @@ if ! python3 -c 'import ra' 2>/dev/null; then
 fi
 
 # Skip kodi: mask it so kodi.service won't start when this script exits.
-# Recovery: runtime unmasks+starts kodi when RA exits; the defensive unmask
-# above also clears it on the next boot, and bail_to_kodi/SSH always can too.
+# Recovery: runtime unmasks+starts kodi when RA exits.
 systemctl mask --runtime kodi 2>/dev/null
 
 # Detached launcher so this script can return; RA owns the framebuffer.
