@@ -39,11 +39,17 @@ def main(argv: Sequence[str]) -> None:
     dialog = xbmcgui.Dialog()
     cmd = argv[0] if argv else None
 
-    if cmd == "reset":
-        _reset_to_defaults(addon, dialog)
-        return
     if cmd == "boot_toggle":
         _boot_toggle(addon, dialog)
+        return
+    if cmd == "sync_resources":
+        _sync_resources_now(addon, dialog)
+        return
+    if cmd == "reset_config":
+        _reset_retroarch_config(addon, dialog)
+        return
+    if cmd == "factory_reset":
+        _factory_reset(addon, dialog)
         return
 
     # Keep the read-only Info settings fresh on every invocation (and on the
@@ -130,22 +136,74 @@ def _launch_retroarch() -> None:
     )
     run_detached("ra-launcher", "/bin/sh", "-c", shell_cmd)
 
-def _reset_to_defaults(addon, dialog) -> None:
-    if not dialog.yesno(
-        f"{_localized(addon, 13007)} (retroarch.cfg / setup)",
-        _localized(addon, 750),
-    ):
-        return
-    from .firstrun import backup_user_cfg, clear_flag
-    backup_user_cfg()
+def _sync_resources_now(addon, dialog) -> None:
+    """Force a no-clobber RetroArch resource synchronization now."""
+    _maybe_presync_resources(addon, dialog, force=True)
+
+
+def _reset_retroarch_config(addon, dialog) -> None:
+    """Backup and remove the user retroarch.cfg, then force first-run setup."""
+    import time
+    from .firstrun import clear_flag
+
+    cfg = paths.RA_CONFIG_FILE
+    if cfg.exists():
+        backup = cfg.with_name(
+            f"{cfg.name}.{time.strftime('%Y%m%d-%H%M%S')}.bak"
+        )
+        try:
+            backup.write_bytes(cfg.read_bytes())
+            cfg.unlink(missing_ok=True)
+        except OSError as exc:
+            log.warning("reset config: cannot backup/remove %s: %s", cfg, exc)
+            dialog.notification(
+                NOTIF_TITLE,
+                f"{_localized(addon, 113)}: {exc}",
+                str(paths.ICON),
+                SHORT_NOTIFICATION_MS,
+            )
+            return
+
     clear_flag()
+
     dialog.notification(
         NOTIF_TITLE,
-        f"{_localized(addon, 13007)} (retroarch.cfg / setup)",
+        _localized(addon, 32038),
         str(paths.ICON),
         SHORT_NOTIFICATION_MS,
     )
 
+
+def _factory_reset(addon, dialog) -> None:
+    """Remove all add-on userdata and the RetroArch user configuration tree."""
+    if not dialog.yesno(
+        _localized(addon, 32034),
+        _localized(addon, 32037),
+    ):
+        return
+
+    import shutil
+
+    for path in (paths.ADDON_HOME, paths.RA_CONFIG_DIR):
+        try:
+            shutil.rmtree(path, ignore_errors=True)
+        except OSError as exc:
+            log.warning("factory reset: cannot remove %s: %s", path, exc)
+
+    for path in (
+        paths.UPDATE_PROGRESS_FILE,
+        paths.UPDATE_PROGRESS_FILE.with_name(paths.UPDATE_PROGRESS_FILE.name + ".tmp"),
+        paths.SYNC_PROGRESS_FILE,
+        paths.SYNC_PROGRESS_FILE.with_name(paths.SYNC_PROGRESS_FILE.name + ".tmp"),
+    ):
+        path.unlink(missing_ok=True)
+
+    dialog.notification(
+        NOTIF_TITLE,
+        _localized(addon, 32042),
+        str(paths.ICON),
+        SHORT_NOTIFICATION_MS,
+    )
 
 def _boot_toggle(addon, dialog) -> None:
     current = addon.getSetting("ra_boot_toggle")
@@ -382,7 +440,7 @@ def _update_info_settings(addon) -> None:
     )
 
 
-def _maybe_presync_resources(addon, dialog) -> None:
+def _maybe_presync_resources(addon, dialog, *, force: bool = False) -> None:
     """Run ra_sync via the installed AppImage while Kodi UI is still up.
 
     Detects a stale or missing `.resources_from_appimage` marker against the
@@ -406,7 +464,7 @@ def _maybe_presync_resources(addon, dialog) -> None:
         marker_val = marker.read_text(encoding="utf-8").strip()
     except OSError:
         marker_val = ""
-    if marker_val == installed_ver:
+    if marker_val == installed_ver and not force:
         return
 
     appimage = paths.installed_appimage()
