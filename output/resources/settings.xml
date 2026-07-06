@@ -14,6 +14,7 @@
         <setting id="ra_boot_toggle" type="action" label="32010" default="KODI" action="RunScript(script.retroarch.launcher,boot_toggle)"/>
         <setting id="ra_autoupdate" label="24063" type="bool" default="true" />
         <setting id="ra_updatenow" type="action" label="24034" action="RunScript(script.retroarch.launcher,check_updates)"/>
+        <setting id="ra_log" label="32008" type="enum" lvalues="32020|32021|32022" default="0" />
         <setting id="ra_reset" type="action" label="13007" action="RunScript(script.retroarch.launcher,reset)"/>
     </category>
     <category label="35234"> <!-- Controls -->
@@ -36,10 +37,6 @@
         <setting id="ra_roms_remote_user" label="1048" type="text" option="hidden" default="" enable="eq(-2,true)" subsetting="true"/>
         <setting id="ra_roms_remote_password" label="733" type="text" default="" enable="eq(-3,true)" subsetting="true"/>
         <setting id="ra_roms_remote_vers" label="32013" type="labelenum" values="Default|3|3.11|3.02|3.0|2.1|2.0|1.0" default="Default" enable="eq(-4,true)" subsetting="true" />
-    </category>
-    <category label="14092"> <!-- Log -->
-        <setting label="14092" type="lsep"/>
-        <setting id="ra_log" label="32008" type="enum" lvalues="32020|32021|32022" default="0" />
     </category>
     <category label="19033"> <!-- Information -->
         <setting label="19033" type="lsep"/>
