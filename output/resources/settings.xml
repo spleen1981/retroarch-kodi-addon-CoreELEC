@@ -41,8 +41,8 @@
         <setting id="ra_sync_resources" type="action" label="32032" action="RunScript(script.retroarch.launcher,sync_resources)" />
         <setting label="32031" type="lsep" />
         <setting id="ra_reset_config" type="action" label="32033" action="RunScript(script.retroarch.launcher,reset_config)" />
-        <setting label="32035" type="lsep" />
-        <setting label="32036" type="lsep" />
+        <setting label="32034" type="lsep" />
+        <setting id="ra_factory_reset_warning" label="32036" type="text" enable="false" default="" />
         <setting id="ra_factory_reset" type="action" label="32034" action="RunScript(script.retroarch.launcher,factory_reset)" />
     </category>
 </settings>

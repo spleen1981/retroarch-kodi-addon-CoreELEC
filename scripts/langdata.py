@@ -428,16 +428,6 @@ _ENTRIES: tuple[Entry, ...] = (
         'pt_br': 'Redefinição de fábrica',
         'de_de': 'Werkseinstellungen',
     }),
-    Entry(32035, "#32035", {
-        'en_gb': '[COLOR red]DANGER ZONE[/COLOR]',
-        'es_es': '[COLOR red]ZONA DE PELIGRO[/COLOR]',
-        'cs_cz': '[COLOR red]NEBEZPEČNÁ ZÓNA[/COLOR]',
-        'it_it': '[COLOR red]DANGER ZONE[/COLOR]',
-        'zh_cn': '[COLOR red]危险区域[/COLOR]',
-        'sk_sk': '[COLOR red]NEBEZPEČNÁ ZÓNA[/COLOR]',
-        'pt_br': '[COLOR red]ZONA DE PERIGO[/COLOR]',
-        'de_de': '[COLOR red]GEFAHRENBEREICH[/COLOR]',
-    }),
     Entry(32036, "#32036", {
         'en_gb': 'Removes all add-on user data and .config/retroarch',
         'es_es': 'Elimina todos los datos de usuario del complemento y .config/retroarch',
