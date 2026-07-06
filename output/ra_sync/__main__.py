@@ -46,7 +46,7 @@ _LOG_VERBOSE = 2
 
 _NO_CLOBBER_SUBDIRS = ("system",)
 _OVERWRITE_SUBDIRS = (
-    "audio_filters", "video_filters", "joypads",
+    "audio_filters", "video_filters", "autoconfig",
     "shaders", "database", "overlays", "assets",
 )
 

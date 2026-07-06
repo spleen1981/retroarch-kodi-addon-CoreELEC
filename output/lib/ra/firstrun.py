@@ -116,7 +116,7 @@ def _override_subdirs(cfg: RetroArchConfig) -> None:
     """Redirect every cfg `<sub>_directory` key to the user-writable RA config dir.
 
     The subdirs are created empty by paths.ensure_runtime_dirs(); their
-    initial content (audio_filters, system, joypads, etc.) is materialized
+    initial content (audio_filters, system, autoconfig, etc.) is materialized
     by the ra_sync module inside the AppImage on each launch — no file
     copy from the addon side here.
     """

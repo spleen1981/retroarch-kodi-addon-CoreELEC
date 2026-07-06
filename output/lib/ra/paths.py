@@ -324,7 +324,7 @@ RA_CONFIG_DIR: Path = _home() / ".config" / "retroarch"
 RA_CONFIG_FILE: Path = RA_CONFIG_DIR / "retroarch.cfg"
 RA_CONFIG_SUBDIRS: tuple[str, ...] = (
     "savestates", "savefiles", "remappings", "playlists", "thumbnails",
-    "system", "assets", "joypads", "shaders", "database", "overlays",
+    "system", "assets", "autoconfig", "shaders", "database", "overlays",
 )
 
 ROMS_FOLDER: Path = _home() / "roms"

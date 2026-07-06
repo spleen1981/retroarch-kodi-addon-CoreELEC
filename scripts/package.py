@@ -54,7 +54,7 @@ _MOVES: tuple[tuple[str, str], ...] = (
     ("usr/share/audio_filters",        "resources/audio_filters"),
     ("usr/share/video_filters",        "resources/video_filters"),
     ("usr/share/retroarch/system",     "resources/system"),
-    ("etc/retroarch-joypad-autoconfig","resources/joypads"),
+    ("etc/retroarch-joypad-autoconfig","resources/autoconfig"),
     ("usr/share/retroarch/shaders",    "resources/shaders"),
     ("usr/share/libretro-database",    "resources/database"),
     ("usr/share/retroarch/assets",     "resources/assets"),
@@ -480,7 +480,7 @@ def stage_appimage(addon_dir: Path, appimage_dir: Path,
     # the user RA config dir on each launch. The addon ZIP keeps only the
     # Kodi-side resources (icon, fanart, language, settings.xml).
     _RA_RESOURCES = (
-        "audio_filters", "video_filters", "system", "joypads",
+        "audio_filters", "video_filters", "system", "autoconfig",
         "shaders", "database", "overlays", "assets",
     )
     appimage_resources = appimage_dir / "resources"
@@ -862,7 +862,7 @@ _ADDON_ID = "script.retroarch.launcher"
 # right place on first launch (before firstrun.py runs).
 _USER_CFG_DIRS = ("savefiles", "savestates", "remappings", "playlists", "thumbnails")
 _RES_DIRS = (
-    "system", "assets", "audio_filters", "video_filters", "joypads",
+    "system", "assets", "audio_filters", "video_filters", "autoconfig",
     "shaders", "database", "overlays",
 )
 
@@ -931,7 +931,7 @@ def customize_retroarch_cfg(addon_dir: Path) -> None:
         "assets_directory":        f"{res_base}/assets",
         "audio_filter_dir":        f"{res_base}/audio_filters",
         "video_filter_dir":        f"{res_base}/video_filters",
-        "joypad_autoconfig_dir":   f"{res_base}/joypads",
+        "joypad_autoconfig_dir":   f"{res_base}/autoconfig",
         "system_directory":        f"{res_base}/system",
         "overlay_directory":       f"{res_base}/overlays",
         "video_shader_dir":        f"{res_base}/shaders",
