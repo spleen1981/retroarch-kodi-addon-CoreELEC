@@ -88,13 +88,26 @@ def main(argv: Sequence[str]) -> None:
 
     _maybe_presync_resources(addon, dialog)
 
-    dialog.notification(
-        NOTIF_TITLE, _localized(addon, 20186), str(paths.ICON), LONG_NOTIFICATION_MS
-    )
+    _notify_launching_retroarch(addon, dialog)
     _launch_retroarch()
 
 
 # ---------------------------------------------------------------- helpers
+
+
+def _notify_launching_retroarch(addon, dialog) -> None:
+    """Show the launch notification and give Kodi a short time to render it."""
+    dialog.notification(
+        NOTIF_TITLE,
+        _localized(addon, 20186),
+        str(paths.ICON),
+        LONG_NOTIFICATION_MS,
+    )
+    try:
+        import xbmc  # type: ignore[import-not-found]
+        xbmc.Monitor().waitForAbort(0.35)
+    except Exception:  # noqa: BLE001
+        pass
 
 
 def _launch_retroarch() -> None:
@@ -596,9 +609,7 @@ def plugin_main(argv: Sequence[str]) -> None:
 
     _maybe_presync_resources(addon, dialog)
 
-    dialog.notification(
-        NOTIF_TITLE, _localized(addon, 20186), str(paths.ICON), LONG_NOTIFICATION_MS
-    )
+    _notify_launching_retroarch(addon, dialog)
     _launch_retroarch()
 
     close_directory()
