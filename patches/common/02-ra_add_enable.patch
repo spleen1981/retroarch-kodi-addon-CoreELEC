@@ -7,7 +7,7 @@ index a49190f1a6..fa73b328cc 100644
  PKG_LR_UPDATE_TAG="yes"
  
 -PKG_CONFIGURE_OPTS_TARGET="--disable-vg \
-+PKG_CONFIGURE_OPTS_TARGET="--disable-online_updater --disable-vg --enable-al --disable-ffmpeg \
++PKG_CONFIGURE_OPTS_TARGET="--disable-update_cores --disable-update_core_info --disable-update_assets --disable-vg --enable-al --disable-ffmpeg \
                             --disable-sdl \
                             --enable-sdl2 \
                             --enable-zlib \
