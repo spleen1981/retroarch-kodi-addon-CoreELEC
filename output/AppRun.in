@@ -119,9 +119,9 @@ _appimage_lib_path() {
     unset MESA_LOADER_DRIVER_OVERRIDE
 
     if [ -n "$_alias_dir" ]; then
-        echo "$_alias_dir:/usr/lib:$APPDIR/lib"
+        echo "$_alias_dir:$APPDIR/lib:/usr/lib"
     else
-        echo "/usr/lib:$APPDIR/lib"
+        echo "$APPDIR/lib:/usr/lib"
     fi
 }
 
