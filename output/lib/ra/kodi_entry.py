@@ -67,8 +67,7 @@ def main(argv: Sequence[str]) -> None:
     # The ADD-ON ZIP is checked FIRST.
     if want_update:
         result = _run_updater(addon, dialog, manual_update=manual_update)
-        if result is _UPDATE_INSTALLING:
-            # Updater restarts Kodi when done; the new add-on resumes the flow.
+        if manual_update and result is _UPDATE_INSTALLED:
             return
 
     # AppImage: mandatory presence/compatibility, plus an optional update when
@@ -235,7 +234,7 @@ def _boot_toggle(addon, dialog) -> None:
 
 # Sentinels for _run_updater return value.
 _UPDATE_NONE = object()
-_UPDATE_INSTALLING = object()
+_UPDATE_INSTALLED = object()
 
 
 def _run_updater(addon, dialog, manual_update: bool):
@@ -257,44 +256,28 @@ def _run_updater(addon, dialog, manual_update: bool):
         )
         return _UPDATE_NONE
 
-    previous_version = None
-    if manual_update:
-        from . import netutil
-        previous_version = netutil.installed_addon_version()
-        paths.UPDATE_PROGRESS_FILE.unlink(missing_ok=True)
-        paths.UPDATE_PROGRESS_FILE.with_name(
-            paths.UPDATE_PROGRESS_FILE.name + ".tmp"
-        ).unlink(missing_ok=True)
+    from . import netutil
+    previous_version = netutil.installed_addon_version()
+    paths.UPDATE_PROGRESS_FILE.unlink(missing_ok=True)
+    paths.UPDATE_PROGRESS_FILE.with_name(
+        paths.UPDATE_PROGRESS_FILE.name + ".tmp"
+    ).unlink(missing_ok=True)
 
-    messages = {
-        "downloading": _localized(addon, 24078),
-        "installing": _localized(addon, 24086),
-        "failed": _localized(addon, 113),
-        "succeeded": _localized(addon, 24065),
-    }
+    messages = {}
 
-    progress_bar = None
-    progress_cb = None
+    import xbmcgui  # type: ignore[import-not-found]
+    progress_bar = xbmcgui.DialogProgressBG()
+    progress_bar.create(NOTIF_TITLE, _localized(addon, 24078))
 
-    if manual_update:
-        # The background progress is the UI for manual updates. Suppress all
-        # stage toasts here; _run_updater() already reports the final failure
-        # with the return code when install_update() fails.
-        messages = {}
-
-        import xbmcgui  # type: ignore[import-not-found]
-        progress_bar = xbmcgui.DialogProgressBG()
-        progress_bar.create(NOTIF_TITLE, _localized(addon, 24078))
-
-        def progress_cb(pct: int, msg: str) -> bool:
-            # Download occupies the first half of the unified progress. The
-            # installer progress is mapped by _refresh_kodi_addon_metadata().
-            mapped = max(0, min(45, int(pct * 0.45)))
-            progress_bar.update(mapped, NOTIF_TITLE, msg)
-            return True
+    def progress_cb(pct: int, msg: str) -> bool:
+        # Download occupies the first half of the unified progress. The
+        # installer progress is mapped by _refresh_kodi_addon_metadata().
+        mapped = max(0, min(45, int(pct * 0.45)))
+        progress_bar.update(mapped, NOTIF_TITLE, msg)
+        return True
 
     rc = install_update(
-        restart=not manual_update,
+        restart=False,
         messages=messages,
         progress=progress_cb,
     )
@@ -309,12 +292,27 @@ def _run_updater(addon, dialog, manual_update: bool):
         )
         return _UPDATE_NONE
 
-    if manual_update:
-        if not _refresh_kodi_addon_metadata(addon, dialog, previous_version, progress_bar):
-            return _UPDATE_NONE
+    if not _refresh_kodi_addon_metadata(addon, dialog, previous_version, progress_bar):
+        return _UPDATE_NONE
 
-    return _UPDATE_INSTALLING
+    _reload_post_addon_update_modules()
+    return _UPDATE_INSTALLED
 
+
+def _reload_post_addon_update_modules() -> None:
+    """Reload modules needed before checking AppImage after an add-on update.
+
+    `_update_info_settings()` imports appimage/netutil before the updater runs,
+    so after the add-on files are replaced on disk we refresh those modules
+    before evaluating AppImage compatibility and requirements. `paths` is kept
+    stable because it contains process-wide path constants resolved at import.
+    """
+    import importlib
+    from . import appimage, netutil
+
+    importlib.invalidate_caches()
+    importlib.reload(netutil)
+    importlib.reload(appimage)
 
 
 def _refresh_kodi_addon_metadata(
