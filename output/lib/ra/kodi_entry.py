@@ -484,6 +484,11 @@ def _maybe_presync_resources(addon, dialog, *, force: bool = False) -> bool:
     if marker_val == installed_ver and not force:
         return True
 
+    if force:
+        # Force the AppImage-side ra_sync to run even when the current
+        # AppImage version already matches .resources_from_appimage.
+        marker.unlink(missing_ok=True)
+
     appimage = paths.installed_appimage()
     if appimage is None:
         return False
