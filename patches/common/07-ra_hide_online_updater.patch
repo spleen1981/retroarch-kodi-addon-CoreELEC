@@ -1,40 +1,35 @@
 diff --git a/packages/lakka/retroarch_base/retroarch/patches/retroarch-1007-hide_online_updater.patch b/packages/lakka/retroarch_base/retroarch/patches/retroarch-1007-hide_online_updater.patch
 new file mode 100644
-index 0000000000..75062ce562
+index 0000000000..d65ea35139
 --- /dev/null
 +++ b/packages/lakka/retroarch_base/retroarch/patches/retroarch-1007-hide_online_updater.patch
-@@ -0,0 +1,34 @@
+@@ -0,0 +1,29 @@
 +diff --git a/menu/menu_displaylist.c b/menu/menu_displaylist.c
-+index f976a496dc..56537b9d41 100644
++index f976a496dc..a43258c886 100644
 +--- a/menu/menu_displaylist.c
 ++++ b/menu/menu_displaylist.c
-+@@ -14957,6 +14957,21 @@ bool menu_displaylist_ctl(enum menu_displaylist_ctl_state type,
++@@ -14920,7 +14920,7 @@ bool menu_displaylist_ctl(enum menu_displaylist_ctl_state type,
++                }
++ #endif /* HAVE_UPDATE_CORES */
++ 
++-#if defined(HAVE_COMPRESSION) && !defined(HAVE_MIST)
+++#if defined(HAVE_COMPRESSION) && !defined(HAVE_MIST) && 0 /* CoreELEC add-on: expose only content and thumbnail-related online updater entries. */
++                if (menu_entries_append(info->list,
++                         msg_hash_to_str(MENU_ENUM_LABEL_VALUE_DOWNLOAD_CORE_SYSTEM_FILES),
++                         msg_hash_to_str(MENU_ENUM_LABEL_DOWNLOAD_CORE_SYSTEM_FILES),
++@@ -14957,6 +14957,7 @@ bool menu_displaylist_ctl(enum menu_displaylist_ctl_state type,
 +                   count++;
 + #endif
 + 
-++#if 0 /* CoreELEC add-on: expose only thumbnail-related online updater entries.
-++       *
-++       * Keep visible:
-++       *   - MENU_ENUM_LABEL_PL_THUMBNAILS_UPDATER_LIST
-++       *   - MENU_ENUM_LABEL_NETWORK_ON_DEMAND_THUMBNAILS
-++       *
-++       * Hide non-thumbnail update actions:
-++       *   - Update Core Info Files
-++       *   - Update Assets
-++       *   - Update Autoconfig Profiles
-++       *   - Update Cheats
-++       *   - Update Databases
-++       *   - Update Overlays
-++       *   - Update Shaders
-++       */
+++#if 0 /* CoreELEC add-on: expose only content and thumbnail-related online updater entries. */
 + #ifdef HAVE_COMPRESSION
 + #ifdef HAVE_UPDATE_CORE_INFO
 +                if (settings->bools.menu_show_core_updater)
-+@@ -15044,6 +15059,7 @@ bool menu_displaylist_ctl(enum menu_displaylist_ctl_state type,
++@@ -15044,6 +15045,7 @@ bool menu_displaylist_ctl(enum menu_displaylist_ctl_state type,
 + #endif
 + #endif /* !defined(_3DS) */
 + #endif /* HAVE_COMPRESSION */
-++#endif /* CoreELEC add-on: hide non-thumbnail online updater entries. */
+++#endif /* CoreELEC add-on: hide non-content/thumbnail online updater entries. */
 + #endif
 +             }
 + 
