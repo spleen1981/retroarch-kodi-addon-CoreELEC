@@ -589,10 +589,7 @@ def plugin_main(argv: Sequence[str]) -> None:
     # update is installed, the installer restarts Kodi and this invocation stops.
     want_update = addon.getSetting("ra_autoupdate") == "true"
     if want_update:
-        result = _run_updater(addon, dialog, manual_update=False)
-        if result is _UPDATE_INSTALLING:
-            close_directory()
-            return
+        _run_updater(addon, dialog, manual_update=False)
 
     # A missing/incompatible RetroArch AppImage is a hard stop, so the yesno +
     # progress dialog is justified here. If not ready, close the directory so
