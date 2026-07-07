@@ -489,6 +489,17 @@ _ENTRIES: tuple[Entry, ...] = (
         'de_de': 'Werkseinstellungen abgeschlossen',
     }),
 
+    Entry(32039, "#32039", {
+        'en_gb': 'RetroArch resources synchronized',
+        'es_es': 'Recursos de RetroArch sincronizados',
+        'cs_cz': 'Prostředky RetroArch synchronizovány',
+        'it_it': 'Risorse RetroArch sincronizzate',
+        'zh_cn': 'RetroArch 资源已同步',
+        'sk_sk': 'Prostriedky RetroArch boli synchronizované',
+        'pt_br': 'Recursos do RetroArch sincronizados',
+        'de_de': 'RetroArch-Ressourcen synchronisiert',
+    }),
+
 )
 
 _BY_ID: dict[int, Entry] = {e.msg_id: e for e in _ENTRIES}

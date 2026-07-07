@@ -150,7 +150,13 @@ def _launch_retroarch() -> None:
 
 def _sync_resources_now(addon, dialog) -> None:
     """Force a no-clobber RetroArch resource synchronization now."""
-    _maybe_presync_resources(addon, dialog, force=True)
+    ok = _maybe_presync_resources(addon, dialog, force=True)
+    dialog.notification(
+        NOTIF_TITLE,
+        _localized(addon, 32039 if ok else 113),
+        str(paths.ICON),
+        SHORT_NOTIFICATION_MS,
+    )
 
 
 def _reset_retroarch_config(addon, dialog) -> None:
@@ -451,7 +457,7 @@ def _update_info_settings(addon) -> None:
     )
 
 
-def _maybe_presync_resources(addon, dialog, *, force: bool = False) -> None:
+def _maybe_presync_resources(addon, dialog, *, force: bool = False) -> bool:
     """Run ra_sync via the installed AppImage while Kodi UI is still up.
 
     Detects a stale or missing `.resources_from_appimage` marker against the
@@ -470,17 +476,17 @@ def _maybe_presync_resources(addon, dialog, *, force: bool = False) -> None:
     marker = paths.RA_CONFIG_DIR / ".resources_from_appimage"
     installed_ver = paths.installed_appimage_version()
     if installed_ver is None:
-        return
+        return False
     try:
         marker_val = marker.read_text(encoding="utf-8").strip()
     except OSError:
         marker_val = ""
     if marker_val == installed_ver and not force:
-        return
+        return True
 
     appimage = paths.installed_appimage()
     if appimage is None:
-        return
+        return False
 
     log.info("kodi_entry: pre-sync needed (marker=%r, installed=%r)",
              marker_val, installed_ver)
@@ -490,6 +496,7 @@ def _maybe_presync_resources(addon, dialog, *, force: bool = False) -> None:
     pbar.create(NOTIF_TITLE, _localized(addon, 32023))
 
     proc = None
+    ok = False
     try:
         proc = subprocess.Popen(
             [str(appimage), "--sync-only"],
@@ -503,19 +510,25 @@ def _maybe_presync_resources(addon, dialog, *, force: bool = False) -> None:
             if rc is not None:
                 # One last read to capture final state.
                 _read_progress_and_update(progress_file, pbar)
+                ok = rc == 0
+                if not ok:
+                    log.warning("kodi_entry: pre-sync exited with rc=%s", rc)
                 break
             if time.monotonic() > deadline:
                 log.warning("kodi_entry: pre-sync timeout, killing")
                 proc.kill()
                 proc.wait()
+                ok = False
                 break
             time.sleep(0.25)
     except OSError as exc:
         log.warning("kodi_entry: pre-sync failed (%s); AppRun will retry", exc)
+        ok = False
     finally:
         pbar.close()
         progress_file.unlink(missing_ok=True)
         progress_file.with_name(progress_file.name + ".tmp").unlink(missing_ok=True)
+    return ok
 
 
 def _read_progress_and_update(progress_file, pbar) -> None:
