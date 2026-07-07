@@ -8,11 +8,6 @@
         <setting id="ra_info_refresh" type="action" label="32019" action="RunScript(script.retroarch.launcher,refresh_info)" />
         <setting label="32026" type="lsep" />
         <setting id="ra_boot_toggle" type="action" label="32010" default="KODI" action="RunScript(script.retroarch.launcher,boot_toggle)" />
-        <setting label="32027" type="lsep" />
-        <setting id="ra_autoupdate" label="32040" type="bool" default="true" />
-        <setting id="ra_updatenow" type="action" label="32041" action="RunScript(script.retroarch.launcher,check_updates)" />
-        <setting label="32028" type="lsep" />
-        <setting id="ra_log" label="32008" type="enum" lvalues="32020|32021|32022" default="0" />
     </category>
     <category label="35234">
         <setting label="35234" type="lsep" />
@@ -37,6 +32,9 @@
         <setting id="ra_roms_remote_vers" label="32013" type="labelenum" values="Default|3|3.11|3.02|3.0|2.1|2.0|1.0" default="Default" enable="eq(-4,true)" subsetting="true" />
     </category>
     <category label="32029">
+        <setting id="ra_autoupdate" label="32040" type="bool" default="true" />
+        <setting id="ra_updatenow" type="action" label="32041" action="RunScript(script.retroarch.launcher,check_updates)" />
+        <setting id="ra_log" label="32008" type="enum" lvalues="32020|32021|32022" default="0" />
         <setting id="ra_sync_resources" type="action" label="32032" action="RunScript(script.retroarch.launcher,sync_resources)" />
         <setting id="ra_reset_config" type="action" label="32033" action="RunScript(script.retroarch.launcher,reset_config)" />
     </category>
