@@ -37,12 +37,7 @@
         <setting id="ra_roms_remote_vers" label="32013" type="labelenum" values="Default|3|3.11|3.02|3.0|2.1|2.0|1.0" default="Default" enable="eq(-4,true)" subsetting="true" />
     </category>
     <category label="32029">
-        <setting label="32030" type="lsep" />
         <setting id="ra_sync_resources" type="action" label="32032" action="RunScript(script.retroarch.launcher,sync_resources)" />
-        <setting label="32031" type="lsep" />
         <setting id="ra_reset_config" type="action" label="32033" action="RunScript(script.retroarch.launcher,reset_config)" />
-        <setting label="32034" type="lsep" />
-        <setting id="ra_factory_reset_warning" label="32036" type="text" enable="false" default="" />
-        <setting id="ra_factory_reset" type="action" label="32034" action="RunScript(script.retroarch.launcher,factory_reset)" />
     </category>
 </settings>
