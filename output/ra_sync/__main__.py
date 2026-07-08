@@ -44,9 +44,9 @@ _LOG_OFF = 0
 _LOG_ERROR = 1
 _LOG_VERBOSE = 2
 
-_NO_CLOBBER_SUBDIRS = ("system",)
+_NO_CLOBBER_SUBDIRS = ()
 _OVERWRITE_SUBDIRS = (
-    "audio_filters", "video_filters", "autoconfig",
+    "system", "audio_filters", "video_filters", "autoconfig",
     "shaders", "database", "overlays", "assets",
 )
 
