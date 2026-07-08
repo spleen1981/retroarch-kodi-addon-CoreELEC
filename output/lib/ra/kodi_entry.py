@@ -298,11 +298,19 @@ def _run_updater(addon, dialog, manual_update: bool):
         )
         return _UPDATE_NONE
 
-    if not _refresh_kodi_addon_metadata(addon, dialog, previous_version, progress_bar):
-        return _UPDATE_NONE
+    try:
+        if not _refresh_kodi_addon_metadata(
+            addon,
+            dialog,
+            previous_version,
+            progress_bar,
+        ):
+            return _UPDATE_NONE
 
-    _reload_post_addon_update_modules()
-    return _UPDATE_INSTALLED
+        _reload_post_addon_update_modules()
+        return _UPDATE_INSTALLED
+    finally:
+        progress_bar.close()
 
 
 def _reload_post_addon_update_modules() -> None:
