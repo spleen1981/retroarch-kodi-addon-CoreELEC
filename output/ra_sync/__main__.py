@@ -91,6 +91,9 @@ def main(argv: list[str]) -> int:
     if _marker_matches(marker, version):
         return 0  # short-circuit, zero I/O
 
+    # Publish an early state before potentially slow counting/copying.
+    _Progress().status(0, "preparing")
+
     src_root = appdir / "resources"
     if not src_root.is_dir():
         logger.info("no resources/ in AppImage, nothing to sync")
@@ -203,6 +206,10 @@ def _merge(src: Path, dst: Path, *, overwrite: bool,
             _merge(entry, target, overwrite=overwrite, progress=progress,
                    rel_prefix=f"{rel}/")
             continue
+        # Report the current file BEFORE copying it. Some resources can be
+        # large or slow to overwrite on flash storage; reporting only after
+        # copy2() makes the Kodi progress dialog look idle.
+        progress.status_for_current(rel)
         if overwrite or not target.exists():
             shutil.copy2(entry, target)
         progress.tick(rel)
@@ -246,6 +253,15 @@ class _Progress:
 
     def set_total(self, n: int) -> None:
         self._total = n
+
+    def status(self, pct: int, message: str) -> None:
+        self._write(f"{pct} {message}")
+
+    def status_for_current(self, relpath: str) -> None:
+        pct = int(self._done * 100 / self._total) if self._total else 0
+        if pct >= 100:
+            pct = 99
+        self._write(f"{pct} {relpath}")
 
     def tick(self, relpath: str) -> None:
         self._done += 1
