@@ -37,5 +37,6 @@
         <setting id="ra_log" label="32008" type="enum" lvalues="32020|32021|32022" default="0" />
         <setting id="ra_sync_resources" type="action" label="32032" action="RunScript(script.retroarch.launcher,sync_resources)" />
         <setting id="ra_reset_config" type="action" label="32033" action="RunScript(script.retroarch.launcher,reset_config)" />
+        <setting id="ra_factory_reset" type="action" label="32034" action="RunScript(script.retroarch.launcher,factory_reset)" />
     </category>
 </settings>
