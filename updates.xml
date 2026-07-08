@@ -11,21 +11,21 @@
   </latest>
   <!-- v2 addon stream: platform-independent addon ZIP. -->
   <addon id="script.retroarch.launcher" distro="coreelec">
-    <version>v2.0.1</version>
-    <download_url>https://github.com/spleen1981/retroarch-kodi-addon-CoreELEC/releases/download/v2.0.1/script.retroarch.launcher-v2.0.1.zip</download_url>
-    <sha256>b63a953d0c6476a79d0e26929c4e5f4bedf2505161e0afe313d4efb990b2ec75</sha256>
-    <requires_appimage min="2.0.0"/>
+    <version>v2.0.2</version>
+    <download_url>https://github.com/spleen1981/retroarch-kodi-addon-CoreELEC/releases/download/v2.0.2/script.retroarch.launcher-v2.0.2.zip</download_url>
+    <sha256>a5b8b266506571edc8f66f3be20c68303ed2db5af5e704226694cfc8339b3dc4</sha256>
+    <requires_appimage min="2.0.2"/>
   </addon>
   <appimage platform="Amlogic-any.aarch64" distro="coreelec" min_ver="">
-    <version>2.0.0</version>
-    <download_url>https://github.com/spleen1981/retroarch-kodi-addon-CoreELEC/releases/download/v2.0.0/retroarch-Amlogic-any.aarch64-2.0.0.AppImage</download_url>
-    <sha256>b177de337ef4503d6be3b2bf0a98c72a6ee3565063aec77c55ccee198874da29</sha256>
-    <requires_addon min="2.0.0"/>
+    <version>2.0.2</version>
+    <download_url>https://github.com/spleen1981/retroarch-kodi-addon-CoreELEC/releases/download/v2.0.2/retroarch-Amlogic-any.aarch64-2.0.2.AppImage</download_url>
+    <sha256>5904bb305fc3e110ce02c9a6f0c3242c1817b4a19609c894be5a99a5c59ec4e0</sha256>
+    <requires_addon min="2.0.2"/>
   </appimage>
   <appimage platform="Amlogic-any.arm" distro="coreelec" min_ver="">
-    <version>2.0.0</version>
-    <download_url>https://github.com/spleen1981/retroarch-kodi-addon-CoreELEC/releases/download/v2.0.0/retroarch-Amlogic-any.arm-2.0.0.AppImage</download_url>
-    <sha256>e6e7a0fc1f3f5c82a253eb9cadfd221b13878edabbc5cd6a9c3a8457191117a7</sha256>
-    <requires_addon min="2.0.0"/>
+    <version>2.0.2</version>
+    <download_url>https://github.com/spleen1981/retroarch-kodi-addon-CoreELEC/releases/download/v2.0.2/retroarch-Amlogic-any.arm-2.0.2.AppImage</download_url>
+    <sha256>5133a9103ac3d1e22867bc60de8cebdfeba2bf4ce12dc7ff9dffdf51543c0641</sha256>
+    <requires_addon min="2.0.2"/>
   </appimage>
 </updates>
