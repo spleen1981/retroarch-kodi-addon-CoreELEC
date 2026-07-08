@@ -477,6 +477,8 @@ def _maybe_presync_resources(addon, dialog, *, force: bool = False) -> bool:
     The boot path (ra_autostart.sh) cannot use this hook: no Kodi UI exists
     yet. ra_sync still runs as a backstop in AppRun on every launch.
     """
+    import os
+    import signal
     import subprocess
     import time
     import xbmcgui  # type: ignore[import-not-found]
@@ -515,8 +517,10 @@ def _maybe_presync_resources(addon, dialog, *, force: bool = False) -> bool:
             [str(appimage), "--sync-only"],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
+            start_new_session=True,
         )
-        deadline = time.monotonic() + 180.0
+        timeout_s = 1800.0 if force else 900.0
+        deadline = time.monotonic() + timeout_s
         while True:
             _read_progress_and_update(progress_file, pbar)
             rc = proc.poll()
@@ -528,9 +532,24 @@ def _maybe_presync_resources(addon, dialog, *, force: bool = False) -> bool:
                     log.warning("kodi_entry: pre-sync exited with rc=%s", rc)
                 break
             if time.monotonic() > deadline:
-                log.warning("kodi_entry: pre-sync timeout, killing")
-                proc.kill()
-                proc.wait()
+                log.warning(
+                    "kodi_entry: pre-sync timeout after %.0fs, killing process group",
+                    timeout_s,
+                )
+                try:
+                    os.killpg(proc.pid, signal.SIGTERM)
+                except OSError:
+                    proc.kill()
+
+                try:
+                    proc.wait(timeout=5.0)
+                except subprocess.TimeoutExpired:
+                    try:
+                        os.killpg(proc.pid, signal.SIGKILL)
+                    except OSError:
+                        proc.kill()
+                    proc.wait()
+
                 ok = False
                 break
             time.sleep(0.25)
