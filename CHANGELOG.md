@@ -1,3 +1,7 @@
+v2.0.2
+ - added Maintainance setting menu
+ - various hotfixes
+
 v2.0.1
  [add-on only]
  - fix crash for resolutions higher than 1080p
