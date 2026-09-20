@@ -56,7 +56,7 @@ class AddonSettings:
     # Mapping: dataclass field name -> settings.xml id.
     _XML_IDS = {
         "boot_toggle": "ra_boot_toggle",
-        "sigkill_kodi": "ra_sigkill_kodi",
+        "autoupdate": "ra_autoupdate",
         "xbox360_shutdown": "ra_xbox360_shutdown",
         "bt_shutdown": "ra_bt_shutdown",
         "cec_remote": "ra_cec_remote",
