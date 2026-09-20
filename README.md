@@ -154,6 +154,17 @@ Useful flags:
      instead of capturing it to `build.log`.
    - `--keep-work` — keep the `retroarch_work/` staging dir after a
      successful build (default: removed).
+   - `--addon-only` — build only the universal add-on ZIP. Cores, tools and
+     the AppImage are skipped, but the Lakka `retroarch` package is still
+     built, because the default `retroarch.cfg` seeded into the ZIP is taken
+     from it. Fast on a warm `build.Lakka-*` tree, slow on a cold one.
+   - `--seed-config PATH` — use an existing seed and skip the Lakka build
+     entirely. `PATH` is either a `retroarch.cfg` or a previously released
+     add-on `.zip` to read `config/retroarch.cfg` from. Implies
+     `--addon-only`. The seed is still path-rewritten (resources redirected to
+     `/storage/.config/retroarch`) and pinned by the packaging step, so the
+     result is identical to the full path as long as the seed comes from the
+     same RetroArch version.
 
 Default cores per device profile, plus the add/remove modifiers, are declared in `_DEVICES` (fields `cores_add`, `cores_remove`, `cores_fallback`) in `scripts/build.py`. Edit that mapping to customize the core list.
 

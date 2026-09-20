@@ -24,6 +24,7 @@ import shutil
 import subprocess
 import sys
 import urllib.request
+import zipfile
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Sequence
@@ -300,6 +301,86 @@ def build_retroarch_seed_config(cfg: BuildConfig) -> None:
 
     shutil.copy2(src_cfg, dst_cfg)
     log.info("addon-only: copied %s -> %s", src_cfg, dst_cfg)
+
+
+def stage_seed_config(cfg: BuildConfig, seed: Path) -> None:
+    """Use an existing retroarch.cfg as the seed, skipping the Lakka build.
+
+    `build_retroarch_seed_config` exists only to obtain one file — the default
+    retroarch.cfg as produced by Lakka's `retroarch` package — which then
+    becomes config/retroarch.cfg in the ZIP (paths.RA_DEFAULT_CFG). When the
+    maintainer already has that file (e.g. kept from a previous full build),
+    there is nothing for Lakka to produce, so the checkout/patch/build cycle
+    is skipped entirely and the addon ZIP can be assembled in seconds.
+
+    Two forms are accepted, selected by extension:
+        *.zip   a previously released add-on ZIP — the seed is read from
+                `<addon_id>/config/retroarch.cfg` inside it;
+        other   the retroarch.cfg itself, copied verbatim.
+
+    The seed still goes through customize_retroarch_cfg() in assemble_addon(),
+    so path redirects and pinned values are applied exactly as on the full
+    path — a cfg already rewritten by a previous build is simply rewritten to
+    the same values, which makes ZIP reuse idempotent.
+    """
+    if not seed.is_file():
+        raise FileNotFoundError(f"seed not found: {seed}")
+
+    log.info("=== addon-only: using seed cfg %s (Lakka build skipped) ===", seed)
+    if cfg.staging_dir.exists():
+        shutil.rmtree(cfg.staging_dir)
+    dst_cfg = cfg.staging_dir / "config" / "retroarch.cfg"
+    dst_cfg.parent.mkdir(parents=True, exist_ok=True)
+    if seed.suffix.lower() == ".zip":
+        # BadZipFile is neither FileNotFoundError nor RuntimeError, so main()
+        # would let it escape as a traceback instead of a clean exit.
+        try:
+            _seed_from_zip(seed, dst_cfg)
+        except zipfile.BadZipFile as exc:
+            raise RuntimeError(f"{seed.name}: not a readable ZIP: {exc}") from exc
+    else:
+        shutil.copy2(seed, dst_cfg)
+        log.info("addon-only: copied %s -> %s", seed, dst_cfg)
+    cfg.work_dir.mkdir(parents=True, exist_ok=True)
+    cfg.build_dir.mkdir(parents=True, exist_ok=True)
+
+
+def _seed_from_zip(zip_path: Path, dst_cfg: Path) -> None:
+    """Extract config/retroarch.cfg from a released add-on ZIP into `dst_cfg`.
+
+    The canonical layout is `<addon_id>/config/retroarch.cfg`, since
+    create_archive() zips the addon dir with its own name as the top-level
+    entry. A flat `config/retroarch.cfg` is accepted too, as are ZIPs built
+    under a different addon id (older v1.x per-platform ids), by falling back
+    to any member whose path ends in `config/retroarch.cfg`.
+    """
+    preferred = f"{ADDON_ID}/config/retroarch.cfg"
+    with zipfile.ZipFile(zip_path) as zf:
+        names = zf.namelist()
+        member = None
+        for candidate in (preferred, "config/retroarch.cfg"):
+            if candidate in names:
+                member = candidate
+                break
+        if member is None:
+            matches = sorted(
+                n for n in names if n.endswith("/config/retroarch.cfg")
+            )
+            if len(matches) > 1:
+                raise RuntimeError(
+                    f"{zip_path.name}: ambiguous seed, {len(matches)} "
+                    f"config/retroarch.cfg entries: {', '.join(matches)}"
+                )
+            if matches:
+                member = matches[0]
+        if member is None:
+            raise FileNotFoundError(
+                f"{zip_path.name}: no config/retroarch.cfg inside "
+                f"(expected {preferred})"
+            )
+        with zf.open(member) as src, dst_cfg.open("wb") as out:
+            shutil.copyfileobj(src, out)
+    log.info("addon-only: extracted %s from %s -> %s", member, zip_path.name, dst_cfg)
 
 
 def build_appimage(cfg: BuildConfig) -> AppImageArtifact:
@@ -663,13 +744,25 @@ def main(argv: Sequence[str] | None = None) -> int:
                              "DLC packages and AppImage creation. Intended "
                              "for fast addon ZIP testing when a compatible "
                              "AppImage is already installed on the target box.")
+    parser.add_argument("--seed-config", default=None, metavar="PATH",
+                        help="Use an existing retroarch.cfg as the seed "
+                             "instead of building the Lakka retroarch package "
+                             "to generate it. Implies --addon-only. PATH is "
+                             "either a retroarch.cfg or a previously "
+                             "released add-on .zip to read it from. The "
+                             "seed is still path-rewritten and pinned by "
+                             "the packaging step.")
     args = parser.parse_args(argv)
+
+    # A seed cfg leaves nothing for Lakka to produce on the addon-only path,
+    # so passing it is by itself a request for that path.
+    addon_only = args.addon_only or args.seed_config is not None
 
     log_file = _configure_output(verbose=args.verbose)
 
     last_work_dir: Path | None = None
     try:
-        if args.addon_only:
+        if addon_only:
             # Build only the RetroArch package for one reference device so
             # config/retroarch.cfg is generated exactly by Lakka's package
             # build, then assemble the universal thin addon ZIP. No cores,
@@ -687,7 +780,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
             last_work_dir = cfg.work_dir
             try:
-                build_retroarch_seed_config(cfg)
+                if args.seed_config is not None:
+                    stage_seed_config(cfg, Path(args.seed_config).resolve())
+                else:
+                    build_retroarch_seed_config(cfg)
                 zip_path, zip_sha = assemble_addon(cfg)
 
                 # addon-only builds produce only the universal addon ZIP.
