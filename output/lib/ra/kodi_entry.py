@@ -54,6 +54,9 @@ def main(argv: Sequence[str]) -> None:
     if cmd == "factory_reset":
         _factory_reset(addon, dialog)
         return
+    if cmd == "test_remote":
+        _test_remote_mount(addon, dialog)
+        return
 
     # Keep the read-only Info settings fresh on every invocation (and on the
     # explicit Refresh action from that category).
@@ -225,6 +228,60 @@ def _factory_reset(addon, dialog) -> None:
         str(paths.ICON),
         SHORT_NOTIFICATION_MS,
     )
+
+# mount.cifs errno -> localized hint id. These are the failures users
+# actually hit; anything else falls through to the raw mount.cifs line.
+_MOUNT_ERRNO_HINTS = {
+    13: 32047,   # EACCES  — wrong username/password
+    95: 32048,   # EOPNOTSUPP — dialect not supported / share subpath
+    112: 32049,  # EHOSTDOWN — host unreachable
+    2: 32050,    # ENOENT  — share does not exist
+}
+
+
+def _test_remote_mount(addon, dialog) -> None:
+    """Try the configured CIFS share and report the outcome in a dialog.
+
+    Runs with Kodi up and touches only a scratch mountpoint, so the user can
+    iterate on the settings without launching RetroArch and losing the UI.
+    """
+    import xbmcgui  # type: ignore[import-not-found]
+    from . import mount
+    from .settings import AddonSettings
+
+    settings = AddonSettings.load()
+    if not settings.roms_remote or not settings.roms_remote_path.strip():
+        dialog.ok(_localized(addon, 32043), _localized(addon, 32051))
+        return
+
+    pbar = xbmcgui.DialogProgressBG()
+    pbar.create(NOTIF_TITLE, _localized(addon, 32044))
+    try:
+        result = mount.test_remote_mount(settings)
+    finally:
+        pbar.close()
+
+    if result["ok"]:
+        dialog.ok(
+            _localized(addon, 32043),
+            f"{_localized(addon, 32045)}\n\n"
+            f"{settings.roms_remote_path}\n"
+            f"{result['entries']} {_localized(addon, 32052)}",
+        )
+        return
+
+    lines = [_localized(addon, 32046), "", settings.roms_remote_path]
+    hint_id = _MOUNT_ERRNO_HINTS.get(result["errno"])
+    if hint_id is not None:
+        lines.append(_localized(addon, hint_id))
+    if result["output"]:
+        # First line only: the second is always the generic "refer to the
+        # manual page" boilerplate, which would push the hint off-screen.
+        lines.append(result["output"].splitlines()[0])
+    elif result["rc"] >= 0:
+        lines.append(f"mount.cifs rc={result['rc']}")
+    dialog.ok(_localized(addon, 32043), "\n".join(lines))
+
 
 def _boot_toggle(addon, dialog) -> None:
     current = addon.getSetting("ra_boot_toggle")

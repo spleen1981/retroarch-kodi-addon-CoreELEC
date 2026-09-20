@@ -30,6 +30,7 @@
         <setting id="ra_roms_remote_user" label="1048" type="text" default="" enable="eq(-2,true)" subsetting="true" />
         <setting id="ra_roms_remote_password" label="733" type="text" option="hidden" default="" enable="eq(-3,true)" subsetting="true" />
         <setting id="ra_roms_remote_vers" label="32013" type="labelenum" values="Default|3|3.11|3.02|3.0|2.1|2.0|1.0" default="Default" enable="eq(-4,true)" subsetting="true" />
+        <setting id="ra_roms_test" type="action" label="32043" action="RunScript(script.retroarch.launcher,test_remote)" enable="eq(-5,true)" subsetting="true" />
     </category>
     <category label="32029">
         <setting id="ra_autoupdate" label="32040" type="bool" default="true" />
