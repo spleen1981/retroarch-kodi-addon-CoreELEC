@@ -136,6 +136,14 @@ class AddonSettings:
             if field.name not in raw:
                 continue
             value = raw[field.name]
+            # An empty value means "not set", not "false"/"empty string": Kodi
+            # may serialize only the settings the user touched, `type="action"`
+            # entries carry no value at all, and xbmcaddon.getSetting() returns
+            # "" for keys the UI has not seeded yet. Falling through would turn
+            # every unset bool into False (silently disabling CEC, the xbox360
+            # shutdown hook, ...) instead of honouring the declared default.
+            if _is_unset(value):
+                continue
             if field.type is bool or field.type == "bool":
                 kwargs[field.name] = _coerce_bool(value)
             elif field.type is int or field.type == "int":
@@ -143,6 +151,13 @@ class AddonSettings:
             else:
                 kwargs[field.name] = "" if value is None else str(value)
         return cls(**kwargs)
+
+
+def _is_unset(value: Any) -> bool:
+    """True when a raw settings value carries no information."""
+    if value is None:
+        return True
+    return isinstance(value, str) and not value.strip()
 
 
 def _text_format_version(version: str) -> bool:
