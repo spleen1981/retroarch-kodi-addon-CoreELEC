@@ -61,8 +61,17 @@ def _mount(remote: str, settings: AddonSettings) -> bool:
             log_safe[idx] = "<options-redacted>"
     log.info("mount: %s", " ".join(log_safe))
 
+    # mount.cifs prints the actual reason ("mount error(13): Permission
+    # denied", "Unknown vers=", "Bad UNC", ...) on stderr. subprocess.call
+    # inherited the descriptors, so it only ever reached the journal and the
+    # addon log showed a bare exit code. Capture it and log it instead.
+    captured_output = ""
     try:
-        rc = subprocess.call(cmd)
+        proc = subprocess.run(cmd, stdout=subprocess.PIPE,
+                              stderr=subprocess.STDOUT, text=True,
+                              errors="replace")
+        rc = proc.returncode
+        captured_output = (proc.stdout or "").strip()
     finally:
         if cred_file is not None:
             try:
@@ -71,8 +80,13 @@ def _mount(remote: str, settings: AddonSettings) -> bool:
                 log.warning("mount: cannot remove credentials file: %s", exc)
 
     if rc != 0:
+        for line in captured_output.splitlines():
+            log.warning("mount.cifs: %s", line)
         log.warning("mount: returned %d, continuing with empty roms folder", rc)
         return False
+    if captured_output:
+        for line in captured_output.splitlines():
+            log.info("mount.cifs: %s", line)
     return True
 
 
