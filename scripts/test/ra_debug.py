@@ -189,7 +189,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         log.info("done")
         return 0
     except KeyboardInterrupt:
-        log.warning("interrotto dall'utente")
+        log.warning("Interrupted by user")
         return 130
     finally:
         if cfg.work_dir.exists():
