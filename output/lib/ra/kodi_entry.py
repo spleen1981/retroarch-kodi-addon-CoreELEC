@@ -35,6 +35,9 @@ def main(argv: Sequence[str]) -> None:
     import xbmcaddon  # type: ignore[import-not-found]
     import xbmcgui  # type: ignore[import-not-found]
 
+    from .uilog import setup_ui_logging
+    setup_ui_logging()
+
     addon = xbmcaddon.Addon(id=paths.ADDON_NAME)
     dialog = xbmcgui.Dialog()
     cmd = argv[0] if argv else None
@@ -613,6 +616,9 @@ def plugin_main(argv: Sequence[str]) -> None:
     import xbmcaddon   # type: ignore[import-not-found]
     import xbmcgui     # type: ignore[import-not-found]
     import xbmcplugin  # type: ignore[import-not-found]
+
+    from .uilog import setup_ui_logging
+    setup_ui_logging()
 
     addon = xbmcaddon.Addon(id=paths.ADDON_NAME)
     dialog = xbmcgui.Dialog()
