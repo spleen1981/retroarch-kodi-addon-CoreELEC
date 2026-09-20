@@ -99,9 +99,12 @@ class AddonSettings:
     def _read_via_xml(cls) -> dict[str, str] | None:
         """Parse `addon_data/<addon>/settings.xml` directly.
 
-        Supports both v1 (`<setting id="..." value="..."/>`) and v2
-        (`<setting id="...">value</setting>`) formats that CoreELEC has
-        shipped over time.
+        Two on-disk formats exist: v1 (`<setting id="..." value="..."/>`) and
+        the element-text form introduced in v2 (`<setting id="...">value
+        </setting>`). Kodi has since bumped the schema (v3, v4, ...) without
+        changing that form, so the check must be `>= 2`, not `== 2` — treating
+        v4 as v1 made every value read back empty, which silently disabled the
+        CIFS mount and forced logging to OFF.
         """
         path = paths.SETTINGS_FILE
         if not path.exists():
@@ -113,16 +116,13 @@ class AddonSettings:
         except ET.ParseError as exc:
             log.warning("malformed settings.xml at %s: %s", path, exc)
             return None
-        version = root.attrib.get("version", "1")
+        text_format = _text_format_version(root.attrib.get("version", "1"))
         out: dict[str, str] = {}
         for setting in root.iter("setting"):
             sid = setting.attrib.get("id")
             if sid is None:
                 continue
-            if version == "2":
-                value = (setting.text or "").strip()
-            else:
-                value = setting.attrib.get("value", "")
+            value = _setting_value(setting, text_format)
             for field_name, xml_id in cls._XML_IDS.items():
                 if xml_id == sid:
                     out[field_name] = value
@@ -143,6 +143,28 @@ class AddonSettings:
             else:
                 kwargs[field.name] = "" if value is None else str(value)
         return cls(**kwargs)
+
+
+def _text_format_version(version: str) -> bool:
+    """True when the settings.xml schema stores values as element text.
+
+    v1 uses `value="..."`; every schema from v2 onward (Kodi 18+, currently
+    v4) uses the element text. Unparsable values fall back to the text form,
+    which is what any current Kodi writes.
+    """
+    try:
+        return int(str(version).strip().split(".")[0]) >= 2
+    except (TypeError, ValueError):
+        return True
+
+
+def _setting_value(setting: ET.Element, text_format: bool) -> str:
+    """Read one setting, tolerating a schema/format mismatch either way."""
+    text = (setting.text or "").strip()
+    attr = setting.attrib.get("value", "")
+    if text_format:
+        return text or attr
+    return attr or text
 
 
 def _coerce_bool(value: Any) -> bool:

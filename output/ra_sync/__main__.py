@@ -166,14 +166,20 @@ def _read_log_level(home: Path) -> int:
         root = ET.parse(settings).getroot()
     except ET.ParseError:
         return _LOG_OFF
-    version = root.attrib.get("version", "1")
+    # Schema v2 and later (Kodi 18+, currently v4) store the value as element
+    # text; only v1 uses the value= attribute. Standalone module: the same
+    # rule is implemented in ra.settings._text_format_version and must be
+    # kept in sync by hand.
+    try:
+        text_format = int(root.attrib.get("version", "1").split(".")[0]) >= 2
+    except ValueError:
+        text_format = True
     for setting in root.iter("setting"):
         if setting.attrib.get("id") != "ra_log":
             continue
-        if version == "2":
-            raw = (setting.text or "").strip()
-        else:
-            raw = setting.attrib.get("value", "")
+        text = (setting.text or "").strip()
+        attr = setting.attrib.get("value", "")
+        raw = (text or attr) if text_format else (attr or text)
         try:
             return int(raw)
         except ValueError:

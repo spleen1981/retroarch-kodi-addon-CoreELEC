@@ -180,19 +180,22 @@ def _write_setting(value: str) -> None:
         return
     root = tree.getroot()
     found = False
-    version = root.attrib.get("version", "1")
+    from .settings import _text_format_version
+    # Schema v2 and later (Kodi 18+, currently v4) store the value as element
+    # text; only v1 uses the value= attribute.
+    text_format = _text_format_version(root.attrib.get("version", "1"))
     for setting in root.iter("setting"):
         if setting.attrib.get("id") != "ra_boot_toggle":
             continue
         found = True
-        if version == "2":
+        if text_format:
             setting.text = value
         else:
             setting.set("value", value)
         break
     if not found:
         elem = ET.SubElement(root, "setting", {"id": "ra_boot_toggle"})
-        if version == "2":
+        if text_format:
             elem.text = value
         else:
             elem.set("value", value)
