@@ -504,7 +504,7 @@ _ENTRIES: tuple[Entry, ...] = (
         'en_gb': 'The server rejected the protocol. Try another SMB protocol version, or point the path at the share root.',
         'es_es': 'El servidor rechazó el protocolo. Prueba otra versión del protocolo SMB o usa la raíz del recurso compartido.',
         'cs_cz': 'Server odmítl protokol. Zkuste jinou verzi protokolu SMB nebo zadejte kořen sdílené složky.',
-        'it_it': 'Il server ha rifiutato il protocollo. Prova unaltra versione del protocollo SMB oppure indica la radice della condivisione.',
+        'it_it': "Il server ha rifiutato il protocollo. Prova un'altra versione del protocollo SMB oppure indica la radice della condivisione.",
         'zh_cn': '服务器拒绝了该协议。请尝试其他 SMB 协议版本，或将路径指向共享根目录。',
         'sk_sk': 'Server odmietol protokol. Skúste inú verziu protokolu SMB alebo zadajte koreň zdieľaného priečinka.',
         'pt_br': 'O servidor rejeitou o protocolo. Tente outra versão do protocolo SMB ou aponte o caminho para a raiz do compartilhamento.',
