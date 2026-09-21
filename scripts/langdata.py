@@ -451,14 +451,14 @@ _ENTRIES: tuple[Entry, ...] = (
     }),
 
     Entry(32043, "#32043", {
-        'en_gb': 'Test connection',
-        'es_es': 'Probar conexión',
-        'cs_cz': 'Otestovat připojení',
-        'it_it': 'Prova connessione',
-        'zh_cn': '测试连接',
-        'sk_sk': 'Otestovať pripojenie',
-        'pt_br': 'Testar conexão',
-        'de_de': 'Verbindung testen',
+        'en_gb': 'Test connection (save settings first)',
+        'es_es': 'Probar conexión (guarda antes los ajustes)',
+        'cs_cz': 'Otestovat připojení (nejprve uložte nastavení)',
+        'it_it': 'Prova connessione (salva prima le impostazioni)',
+        'zh_cn': '测试连接（先保存设置）',
+        'sk_sk': 'Otestovať pripojenie (najprv uložte nastavenia)',
+        'pt_br': 'Testar conexão (salve antes as configurações)',
+        'de_de': 'Verbindung testen (zuerst Einstellungen speichern)',
     }),
     Entry(32044, "#32044", {
         'en_gb': 'Testing connection...',
