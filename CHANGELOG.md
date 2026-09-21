@@ -1,3 +1,10 @@
+v2.03
+ - fix settings V4 not read properly
+ - added UI actions to logs
+ - improved logging
+ - added connection test feature
+ - various hotfixes
+
 v2.0.2
  - added Maintainance setting menu
  - various hotfixes
