@@ -1,0 +1,19 @@
+diff --git a/packages/lakka/retroarch_base/retroarch/patches/04-enable-xkb.patch b/packages/lakka/retroarch_base/retroarch/patches/04-enable-xkb.patch
+new file mode 100644
+index 0000000000..164520a0c2
+--- /dev/null
++++ b/packages/lakka/retroarch_base/retroarch/patches/04-enable-xkb.patch
+@@ -0,0 +1,13 @@
++diff --git a/input/drivers/udev_input.c b/input/drivers/udev_input.c
++index e12b536b0a..00dea7f91d 100644
++--- a/input/drivers/udev_input.c
+++++ b/input/drivers/udev_input.c
++@@ -4093,7 +4093,7 @@ static void *udev_input_init(const char *joypad_driver)
++       goto error;
++ 
++    video_context_driver_get_ident(&ctx_ident);
++-#ifdef HAVE_LAKKA
+++#if 1
++    /* Force xkb_handling on Lakka */
++    udev->xkb_handling = true;
++ #else
