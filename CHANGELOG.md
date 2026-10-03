@@ -6,7 +6,7 @@ v2.03
  - various hotfixes
 
 v2.0.2
- - added Maintainance setting menu
+ - added Maintenance setting menu
  - various hotfixes
 
 v2.0.1
