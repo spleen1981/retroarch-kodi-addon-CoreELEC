@@ -209,6 +209,24 @@ rm /storage/.kodi/userdata/addon_data/script.retroarch.launcher/test/retroarch
 
 Requires `sshpass` on `$PATH`. The RetroArch source dir defaults to `../RetroArch` relative to the repo root, override with `--ra-src` or by setting `RETROARCH_SRC_DIR` in `local.py`.
 
+### Turning a debug fix into a committed patch
+
+Once a `git diff` in the RetroArch checkout is confirmed good via the deploy loop above, `--promote-patch` turns it into the pair of patches this project actually ships, without touching the deploy path (no `sshpass` or `local.py` needed):
+
+```bash
+python3 -m scripts.test.ra_debug --device Amlogic-any.arm \
+  --promote-patch patches/common/06-fix-something.patch \
+  --internal-name retroarch_fix_something.patch
+```
+
+This writes the RetroArch diff as `<internal-name>` under Lakka's `packages/lakka/retroarch_base/retroarch/patches/` -- the directory LibreELEC's own package build auto-applies while compiling `retroarch` -- then captures *that* as a single-file diff against the pinned Lakka commit and writes it to `<EXTERNAL_PATH>`, the file to commit under `patches/<scope>/` so `lakka.patched()` applies it on every future build like any other project patch. The Lakka checkout is left exactly as it was found; nothing persists there. Returns without writing anything if the RetroArch working tree is clean.
+
+List every patch currently active in the Lakka tree (upstream Lakka patches plus this project's own, including anything landed via `--promote-patch`) without building:
+
+```bash
+python3 -m scripts.test.ra_debug --device Amlogic-any.arm --list-patches
+```
+
 Two other helpers under `scripts/test/`:
    - `python3 -m scripts.test.new_files --device Amlogic-any.arm` — generates the
      add-on's text files (manifest, source tree, language PO files, settings)

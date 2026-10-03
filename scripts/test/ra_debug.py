@@ -42,6 +42,19 @@ def _load_local() -> object:
     return local
 
 
+def _try_load_local() -> object | None:
+    """Best-effort import of local.py: None if absent, no REMOTE_* validation.
+
+    Used to resolve RETROARCH_SRC_DIR for modes (--promote-patch) that need
+    neither sshpass nor remote credentials.
+    """
+    try:
+        from . import local  # type: ignore[import-not-found]
+        return local
+    except ImportError:
+        return None
+
+
 def _check_sshpass() -> str:
     path = shutil.which("sshpass")
     if path is None:
@@ -72,6 +85,111 @@ def _export_debug_patch(ra_src: Path, dest: Path) -> bool:
     return True
 
 
+def promote_debug_patch(cfg: BuildConfig, ra_src: Path,
+                        external_patch: Path, internal_name: str) -> bool:
+    """Promote the current RetroArch working-tree diff into a committable patch.
+
+    Pipeline:
+        1. `git diff` in `ra_src` (the RetroArch checkout) -- the fix itself.
+        2. Written as `<internal_name>` under Lakka's
+           packages/lakka/retroarch_base/retroarch/patches/ -- the internal
+           patch LibreELEC's own package build auto-applies while compiling
+           `retroarch` (the same mechanism `retroarch_debug.patch` abuses for
+           throwaway test builds).
+        3. Captured as a single-file `git diff` of that new file against the
+           pinned Lakka commit, written to `external_patch` -- the patch this
+           addon commits under `patches/<scope>/`, where `lakka.patched()`
+           applies it on every future build like any other project patch.
+
+    Lakka is reset to `cfg.lakka_version` first so the capture is always
+    relative to the same pinned baseline every other patch in `patches/` is
+    written against; the tree must already be clean (no leftover debug state).
+    The internal patch file and the `git add` staging are both undone before
+    returning, so the Lakka checkout is left exactly as it was found -- Lakka
+    itself is scratch here, nothing is meant to persist in it.
+
+    Returns False (nothing written) when the RetroArch working tree has no
+    pending changes to promote.
+    """
+    if not internal_name.endswith(".patch"):
+        raise ValueError(
+            f"internal_name must end in .patch for LibreELEC's package build "
+            f"to auto-apply it: {internal_name!r}"
+        )
+
+    status = subprocess.run(
+        ["git", "status", "--porcelain"], cwd=str(cfg.lakka_dir),
+        capture_output=True, text=True, check=True,
+    )
+    if status.stdout.strip():
+        raise RuntimeError(
+            f"Lakka tree at {cfg.lakka_dir} is dirty -- commit or stash before "
+            f"promoting a patch so the capture is relative to a known "
+            f"baseline:\n{status.stdout}"
+        )
+    lakka._git_checkout(cfg.lakka_dir, cfg.lakka_version)
+
+    internal_patch = (
+        cfg.lakka_dir / "packages" / "lakka" / "retroarch_base"
+        / "retroarch" / "patches" / internal_name
+    )
+    if not _export_debug_patch(ra_src, internal_patch):
+        return False
+
+    rel = internal_patch.relative_to(cfg.lakka_dir).as_posix()
+    try:
+        subprocess.run(["git", "add", "--", rel], cwd=str(cfg.lakka_dir), check=True)
+        result = subprocess.run(
+            ["git", "diff", "--staged", "--", rel], cwd=str(cfg.lakka_dir),
+            capture_output=True, text=True, check=True,
+        )
+    finally:
+        subprocess.run(["git", "reset", "--", rel], cwd=str(cfg.lakka_dir), check=False)
+        internal_patch.unlink(missing_ok=True)
+
+    if not result.stdout.strip():
+        raise RuntimeError(f"git diff produced no output for {rel}")
+
+    external_patch.parent.mkdir(parents=True, exist_ok=True)
+    external_patch.write_text(result.stdout, encoding="utf-8")
+    log.info("promote: internal patches/%s -> external %s", internal_name, external_patch)
+    return True
+
+
+def list_applied_patches(cfg: BuildConfig) -> list[str]:
+    """Return every *.patch file present in the RetroArch package's own
+    patches/ dir once this project's patches (patches/<scope>/*.patch, as
+    collected by lakka._collect_patches) are checked out and applied.
+
+    Scoped to packages/lakka/retroarch_base/retroarch/patches/ only -- this
+    is a RetroArch debugging helper, not a general Lakka patch browser, so
+    every other package's patches (there can be hundreds across the tree)
+    are deliberately excluded.
+
+    This includes patches promoted via promote_debug_patch(): once one lands
+    under that same directory as <name>.patch via the external patch
+    committed to patches/<scope>/, applying the latter recreates the former,
+    so it shows up here exactly like any upstream Lakka RetroArch patch would.
+
+    Lakka is left exactly as found: checked out fresh to cfg.lakka_version,
+    patched, listed, reverted -- same lifecycle as lakka.patched(), just
+    without running a build in between. Subprocess stdout/stderr from the
+    checkout/apply/revert steps is discarded by the caller; only the
+    resulting patch list is meant to reach the user.
+    """
+    retroarch_patches_dir = (
+        cfg.lakka_dir / "packages" / "lakka" / "retroarch_base"
+        / "retroarch" / "patches"
+    )
+    with lakka.patched(cfg.lakka_dir, REPO_ROOT, cfg.profile.source_device,
+                       cfg.profile.project, cfg.profile.arch, cfg.lakka_version):
+        found = sorted(
+            str(p.relative_to(cfg.lakka_dir))
+            for p in retroarch_patches_dir.glob("*.patch")
+        ) if retroarch_patches_dir.is_dir() else []
+    return found
+
+
 def _scp_binary(local_bin: Path, remote_host: str, remote_user: str,
                 remote_password: str, remote_path: str,
                 sshpass: str) -> None:
@@ -98,12 +216,31 @@ def main(argv: Sequence[str] | None = None) -> int:
                         help="Override RetroArch source dir "
                              "(default: ../RetroArch or local.RETROARCH_SRC_DIR).")
     parser.add_argument("-j", "--jobs", type=int, default=None)
+    parser.add_argument("--promote-patch", metavar="EXTERNAL_PATH", default=None,
+                        help="Instead of building+deploying, promote the "
+                             "current RetroArch working-tree diff to a "
+                             "committable addon patch at EXTERNAL_PATH (e.g. "
+                             "patches/common/06-fix.patch, so lakka.patched() "
+                             "picks it up on future builds). Requires "
+                             "--internal-name. Needs neither sshpass nor "
+                             "scripts/test/local.py.")
+    parser.add_argument("--internal-name", metavar="NAME", default=None,
+                        help="Filename for the internal Lakka-side RetroArch "
+                             "patch (placed under packages/lakka/"
+                             "retroarch_base/retroarch/patches/NAME). Must "
+                             "end in .patch. Required with --promote-patch.")
+    parser.add_argument("--list-patches", action="store_true",
+                        help="List every *.patch file present under Lakka's "
+                             "packages/ tree once this project's own patches "
+                             "(patches/<scope>/*.patch) are applied, then "
+                             "revert and exit. Includes anything landed via "
+                             "--promote-patch. Needs neither sshpass nor "
+                             "scripts/test/local.py.")
     args = parser.parse_args(argv)
 
     logging.basicConfig(level=logging.INFO, format="%(message)s", stream=sys.stderr)
 
-    local = _load_local()
-    sshpass = _check_sshpass()
+    local = _try_load_local()
 
     cfg = BuildConfig(
         device=args.device,
@@ -113,12 +250,48 @@ def main(argv: Sequence[str] | None = None) -> int:
         jobs=args.jobs,
     )
 
+    if args.list_patches:
+        lakka.configure_subprocess(stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        try:
+            patches = list_applied_patches(cfg)
+        except subprocess.CalledProcessError as exc:
+            log.error("list-patches failed: %s", exc)
+            return 1
+        if not patches:
+            log.info("no retroarch patches found")
+        else:
+            log.info("%d retroarch patch(es):", len(patches))
+            for rel in patches:
+                log.info("  %s", rel)
+        return 0
+
     if args.ra_src:
         ra_src = Path(args.ra_src).resolve()
-    elif hasattr(local, "RETROARCH_SRC_DIR"):
+    elif local is not None and hasattr(local, "RETROARCH_SRC_DIR"):
         ra_src = Path(local.RETROARCH_SRC_DIR).resolve()  # type: ignore[attr-defined]
     else:
         ra_src = (REPO_ROOT.parent / "RetroArch").resolve()
+
+    if args.promote_patch:
+        if not args.internal_name:
+            parser.error("--promote-patch requires --internal-name")
+        external_patch = Path(args.promote_patch)
+        if not external_patch.is_absolute():
+            external_patch = (REPO_ROOT / external_patch).resolve()
+        try:
+            promoted = promote_debug_patch(cfg, ra_src, external_patch,
+                                           args.internal_name)
+        except (subprocess.CalledProcessError, RuntimeError, ValueError) as exc:
+            log.error("promote failed: %s", exc)
+            return 1
+        if not promoted:
+            log.info("RetroArch working tree clean -- nothing to promote")
+            return 0
+        log.info("promoted patch -> %s", external_patch)
+        return 0
+
+    local = _load_local()
+    sshpass = _check_sshpass()
 
     debug_patch = (cfg.lakka_dir / "packages" / "lakka" / "retroarch_base"
                    / "retroarch" / "patches" / "retroarch_debug.patch")
