@@ -48,7 +48,7 @@ OUTPUT_DIR = REPO_ROOT / "output"
 ADDON_ID = "script.retroarch.launcher"
 
 # Pinned Lakka commit. Bumped intentionally — keep in sync with the README.
-DEFAULT_LAKKA_VERSION = "c4d3f32b0e3d76889353ea0f6c81f947d6c6f103"
+DEFAULT_LAKKA_VERSION = "4f70542a559cd0f3eeb40726ac507279a75cc6b1"
 
 # Package families the build pulls from Lakka, keyed by their subdir under
 # `packages/`. The names match the legacy `PKG_SUBDIR_*` variables.
