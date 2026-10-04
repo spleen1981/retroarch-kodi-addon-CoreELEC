@@ -4,7 +4,7 @@ index 16b2193106..78e2d44750 100644
 +++ b/packages/lakka/libretro_cores/scummvm/package.mk
 @@ -1,5 +1,5 @@
  PKG_NAME="scummvm"
--PKG_VERSION="c9e94a9d7417119c94f4a3b21f4284c3dda926e2"
+-PKG_VERSION="c3f4936d1ba2af178816cc9bb06087025e4a2bea"
 +PKG_VERSION="fcbce3ae815269dacdc309092bc92ccc6d3e13bb"
  PKG_LICENSE="GPLv3"
  PKG_SITE="https://github.com/libretro/scummvm"

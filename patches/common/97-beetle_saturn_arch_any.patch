@@ -4,7 +4,7 @@ index 56b32a1b5d..65b8a817e2 100644
 +++ b/packages/lakka/libretro_cores/beetle_saturn/package.mk
 @@ -1,6 +1,6 @@
  PKG_NAME="beetle_saturn"
- PKG_VERSION="b4df47a9f0f30d09eb95b07a4435d0f435a2e95d"
+ PKG_VERSION="5231aa238ff2bf61b1ed88775711b71692c8e37c"
 -PKG_ARCH="x86_64"
 +PKG_ARCH="any"
  if [ "${PROJECT}" = "RPi" ] && [ "${DEVICE:0:4}" = "RPi5" ]; then
